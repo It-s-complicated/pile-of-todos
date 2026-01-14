@@ -36,6 +36,7 @@ src/
 ├── views/          - Page-level components (PascalCaseView.vue)
 ├── App.vue         - Root component
 ├── main.ts         - Application entry point
+├── env.d.ts        - Vue type declarations
 └── style.css       - Tailwind CSS import and theme
 ```
 
@@ -70,6 +71,8 @@ src/
   ```ts
   const { addTodo: addTodoDB, updateTodo: updateTodoDB } = useTodosDB()
   ```
+- Store imports: rename DB composables to avoid name conflicts with store actions
+- Example: `import { useTodos as useTodosDB }` to distinguish from `useTodosStore`
 
 ### Database Guidelines
 - Use Dexie.js for IndexedDB operations
@@ -86,6 +89,15 @@ src/
 - Import uses upsert logic: updates existing todos by ID, adds new ones
 - After successful import, call `loadTodos()` to refresh store state
 - Export filename format: `todo-export-YYYY-MM-DD.json`
+- Import returns `{ success: boolean; message: string; count?: number }` result object
+- Import validation checks: `todo.id`, `todo.label`, `todo.done`, `todo.archived` fields
+
+### UI Feedback Patterns
+- Display success/error messages for user actions (import/export operations)
+- Use conditional styling for feedback: `bg-green-100 text-green-800` for success, `bg-red-100 text-red-800` for errors
+- Auto-dismiss messages with `setTimeout()` (typical: 5000ms)
+- Use hidden file input for import: `class="hidden"` with trigger button
+- Clear file input value after processing: `target.value = ''`
 
 ### Styling Guidelines
 - Tailwind CSS v4 with `@tailwindcss/vite` plugin
@@ -110,17 +122,26 @@ src/
 - State management: Store actions update local state, then persist to DB
 - Example pattern:
   ```ts
-  async function addTodo(...) {
-    const id = await db.addTodo(...)
-    localState.value.push(newItem)  // Immediate UI update
+  async function addTodo(label: string) {
+    const id = await db.addTodo(label)
+    localState.value.push(newItem) // Immediate UI update
   }
   ```
 - This ensures UI updates immediately without page reload
 
 ### Router Guidelines
-- Route names match view names: `'backlog'`, `'current-week'`, etc.
+- Route names match view names: `'backlog'`, `'current-week'`, `'future'`, `'unfinished'`, `'finished'`, `'archived'`
 - Use route-based filtering in store: `route.name as TodoFilter`
 - Router links: `<RouterLink to="/path" class="...">Link</RouterLink>`
+- All views except 'archived' filter out archived todos (`!t.archived`)
+
+### View Filtering Behavior
+- **backlog**: `weekNumber === null && !archived`
+- **current-week**: `weekNumber === currentWeek && !archived`
+- **future**: `weekNumber > currentWeek && !archived`
+- **unfinished**: `weekNumber < currentWeek && !done && !archived`
+- **finished**: `done === true && !archived`
+- **archived**: `archived === true` (shows all archived todos)
 
 ### PWA Configuration
 - Manifest in vite.config.ts (not separate file)
