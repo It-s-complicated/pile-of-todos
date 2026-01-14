@@ -1,6 +1,6 @@
-import Dexie from 'dexie'
 import type { Table } from 'dexie'
 import type { Todo } from '../types/todo'
+import Dexie from 'dexie'
 
 export class TodoDatabase extends Dexie {
   todos!: Table<Todo, string>
@@ -8,7 +8,7 @@ export class TodoDatabase extends Dexie {
   constructor() {
     super('TodoAppDB')
     this.version(1).stores({
-      todos: 'id, weekNumber, done, archived, createdAt, updatedAt'
+      todos: 'id, weekNumber, done, archived, createdAt, updatedAt',
     })
   }
 }

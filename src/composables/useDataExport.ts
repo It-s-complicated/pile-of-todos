@@ -6,9 +6,9 @@ export function useDataExport() {
     const exportData = {
       version: '1.0',
       exportedAt: new Date().toISOString(),
-      todos
+      todos,
     }
-    
+
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -20,11 +20,11 @@ export function useDataExport() {
     URL.revokeObjectURL(url)
   }
 
-  async function importTodos(file: File): Promise<{ success: boolean; message: string; count?: number }> {
+  async function importTodos(file: File): Promise<{ success: boolean, message: string, count?: number }> {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
-      
+
       if (!data.todos || !Array.isArray(data.todos)) {
         return { success: false, message: 'Invalid file format: missing or invalid todos array' }
       }
@@ -40,14 +40,16 @@ export function useDataExport() {
           const existingTodo = await db.todos.get(todo.id)
           if (existingTodo) {
             await db.todos.update(todo.id, todo)
-          } else {
+          }
+          else {
             await db.todos.add(todo)
           }
         }
       })
 
       return { success: true, message: `Successfully imported ${data.todos.length} todos`, count: data.todos.length }
-    } catch (error) {
+    }
+    catch (error) {
       if (error instanceof SyntaxError) {
         return { success: false, message: 'Invalid JSON file' }
       }

@@ -1,9 +1,9 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
 import type { Todo, TodoFilter } from '../types/todo'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useTodos as useTodosDB } from '../composables/useTodos'
 import { useWeekNumber } from '../composables/useWeekNumber'
-import { useRoute } from 'vue-router'
 
 export const useTodosStore = defineStore('todos', () => {
   const { getAllTodos, addTodo: addTodoDB, updateTodo: updateTodoDB, deleteTodo: deleteTodoDB, archiveTodo: archiveTodoDB, toggleTodoDone: toggleTodoDoneDB } = useTodosDB()
@@ -53,7 +53,7 @@ export const useTodosStore = defineStore('todos', () => {
       done: false,
       archived: false,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     })
   }
 
@@ -70,7 +70,7 @@ export const useTodosStore = defineStore('todos', () => {
           done: updates.done !== undefined ? updates.done : existingTodo.done,
           archived: updates.archived !== undefined ? updates.archived : existingTodo.archived,
           createdAt: existingTodo.createdAt,
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
         }
       }
     }

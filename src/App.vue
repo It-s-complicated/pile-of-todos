@@ -1,45 +1,9 @@
-<template>
-  <div class="max-w-2xl mx-auto p-4">
-    <nav class="flex gap-2 mb-6 flex-wrap">
-      <RouterLink to="/backlog" :class="{ 'bg-blue-500 text-white': route.path === '/backlog', 'bg-gray-100 text-gray-700': route.path !== '/backlog' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">Backlog</RouterLink>
-      <RouterLink to="/current-week" :class="{ 'bg-blue-500 text-white': route.path === '/current-week', 'bg-gray-100 text-gray-700': route.path !== '/current-week' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">Current Week</RouterLink>
-      <RouterLink to="/future" :class="{ 'bg-blue-500 text-white': route.path === '/future', 'bg-gray-100 text-gray-700': route.path !== '/future' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">Future</RouterLink>
-      <RouterLink to="/unfinished" :class="{ 'bg-blue-500 text-white': route.path === '/unfinished', 'bg-gray-100 text-gray-700': route.path !== '/unfinished' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">Unfinished</RouterLink>
-      <RouterLink to="/finished" :class="{ 'bg-blue-500 text-white': route.path === '/finished', 'bg-gray-100 text-gray-700': route.path !== '/finished' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">Finished</RouterLink>
-      <RouterLink to="/archived" :class="{ 'bg-blue-500 text-white': route.path === '/archived', 'bg-gray-100 text-gray-700': route.path !== '/archived' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">Archived</RouterLink>
-    </nav>
-
-    <form @submit.prevent="createTodo" class="flex gap-2 mb-6 flex-wrap">
-      <input v-model="newTodoLabel" placeholder="New todo..." required class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <select v-model="newTodoWeek" class="px-3 py-2 border border-gray-300 rounded-md text-base">
-        <option :value="null">Backlog</option>
-        <option :value="currentWeek">Current Week ({{ currentWeek }})</option>
-        <option :value="currentWeek + 1">Next Week ({{ currentWeek + 1 }})</option>
-        <option :value="currentWeek + 2">Week {{ currentWeek + 2 }}</option>
-      </select>
-      <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-600">Add</button>
-    </form>
-
-    <div class="flex gap-2 mb-6 flex-wrap">
-      <button @click="handleExport" class="px-4 py-2 bg-green-100 text-green-800 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-green-200">Export Data</button>
-      <button @click="triggerImport" class="px-4 py-2 bg-purple-100 text-purple-800 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-purple-200">Import Data</button>
-      <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImport" />
-    </div>
-
-    <div v-if="importMessage" :class="{ 'bg-green-100 text-green-800': importSuccess, 'bg-red-100 text-red-800': !importSuccess }" class="p-3 mb-6 rounded-md text-sm">
-      {{ importMessage }}
-    </div>
-
-    <RouterView />
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { useTodosStore } from './stores/todos'
-import { useWeekNumber } from './composables/useWeekNumber'
 import { useDataExport } from './composables/useDataExport'
+import { useWeekNumber } from './composables/useWeekNumber'
+import { useTodosStore } from './stores/todos'
 
 const route = useRoute()
 const store = useTodosStore()
@@ -66,8 +30,9 @@ async function handleExport() {
   try {
     await exportTodos()
     showImportMessage('Data exported successfully!', true)
-  } catch (error) {
-    showImportMessage('Export failed: ' + (error instanceof Error ? error.message : 'Unknown error'), false)
+  }
+  catch (error) {
+    showImportMessage(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`, false)
   }
 }
 
@@ -78,19 +43,22 @@ function triggerImport() {
 async function handleImport(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
-  
-  if (!file) return
+
+  if (!file)
+    return
 
   try {
     const result = await importTodos(file)
     if (result.success) {
       await loadTodos()
       showImportMessage(result.message, true)
-    } else {
+    }
+    else {
       showImportMessage(result.message, false)
     }
-  } catch (error) {
-    showImportMessage('Import failed: ' + (error instanceof Error ? error.message : 'Unknown error'), false)
+  }
+  catch (error) {
+    showImportMessage(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`, false)
   }
 
   if (target) {
@@ -110,3 +78,65 @@ onMounted(() => {
   loadTodos()
 })
 </script>
+
+<template>
+  <div class="max-w-2xl mx-auto p-4">
+    <nav class="flex gap-2 mb-6 flex-wrap">
+      <RouterLink to="/backlog" :class="{ 'bg-blue-500 text-white': route.path === '/backlog', 'bg-gray-100 text-gray-700': route.path !== '/backlog' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+        Backlog
+      </RouterLink>
+      <RouterLink to="/current-week" :class="{ 'bg-blue-500 text-white': route.path === '/current-week', 'bg-gray-100 text-gray-700': route.path !== '/current-week' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+        Current Week
+      </RouterLink>
+      <RouterLink to="/future" :class="{ 'bg-blue-500 text-white': route.path === '/future', 'bg-gray-100 text-gray-700': route.path !== '/future' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+        Future
+      </RouterLink>
+      <RouterLink to="/unfinished" :class="{ 'bg-blue-500 text-white': route.path === '/unfinished', 'bg-gray-100 text-gray-700': route.path !== '/unfinished' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+        Unfinished
+      </RouterLink>
+      <RouterLink to="/finished" :class="{ 'bg-blue-500 text-white': route.path === '/finished', 'bg-gray-100 text-gray-700': route.path !== '/finished' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+        Finished
+      </RouterLink>
+      <RouterLink to="/archived" :class="{ 'bg-blue-500 text-white': route.path === '/archived', 'bg-gray-100 text-gray-700': route.path !== '/archived' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+        Archived
+      </RouterLink>
+    </nav>
+
+    <form class="flex gap-2 mb-6 flex-wrap" @submit.prevent="createTodo">
+      <input v-model="newTodoLabel" placeholder="New todo..." required class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+      <select v-model="newTodoWeek" class="px-3 py-2 border border-gray-300 rounded-md text-base">
+        <option :value="null">
+          Backlog
+        </option>
+        <option :value="currentWeek">
+          Current Week ({{ currentWeek }})
+        </option>
+        <option :value="currentWeek + 1">
+          Next Week ({{ currentWeek + 1 }})
+        </option>
+        <option :value="currentWeek + 2">
+          Week {{ currentWeek + 2 }}
+        </option>
+      </select>
+      <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-600">
+        Add
+      </button>
+    </form>
+
+    <div class="flex gap-2 mb-6 flex-wrap">
+      <button class="px-4 py-2 bg-green-100 text-green-800 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-green-200" @click="handleExport">
+        Export Data
+      </button>
+      <button class="px-4 py-2 bg-purple-100 text-purple-800 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-purple-200" @click="triggerImport">
+        Import Data
+      </button>
+      <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImport">
+    </div>
+
+    <div v-if="importMessage" :class="{ 'bg-green-100 text-green-800': importSuccess, 'bg-red-100 text-red-800': !importSuccess }" class="p-3 mb-6 rounded-md text-sm">
+      {{ importMessage }}
+    </div>
+
+    <RouterView />
+  </div>
+</template>

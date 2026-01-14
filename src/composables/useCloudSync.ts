@@ -1,8 +1,8 @@
 import type { Todo } from '../types/todo'
 
 export interface CloudSyncAdapter {
-  uploadTodos(todos: Todo[]): Promise<void>
-  downloadTodos(): Promise<Todo[]>
+  uploadTodos: (todos: Todo[]) => Promise<void>
+  downloadTodos: () => Promise<Todo[]>
 }
 
 export function useCloudSync() {

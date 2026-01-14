@@ -1,12 +1,15 @@
-import { db } from '../db/db'
 import type { Todo } from '../types/todo'
+import { db } from '../db/db'
 
 export function useTodos() {
   async function getAllTodos(): Promise<Todo[]> {
     return await db.todos.toArray()
   }
 
-  async function addTodo(label: string, weekNumber: number | null): Promise<string> {
+  async function addTodo(
+    label: string,
+    weekNumber: number | null,
+  ): Promise<string> {
     const id = crypto.randomUUID()
     const now = Date.now()
     const todo: Todo = {
@@ -16,7 +19,7 @@ export function useTodos() {
       done: false,
       archived: false,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     }
     await db.todos.add(todo)
     return id
@@ -41,5 +44,12 @@ export function useTodos() {
     }
   }
 
-  return { getAllTodos, addTodo, updateTodo, deleteTodo, archiveTodo, toggleTodoDone }
+  return {
+    getAllTodos,
+    addTodo,
+    updateTodo,
+    deleteTodo,
+    archiveTodo,
+    toggleTodoDone,
+  }
 }
