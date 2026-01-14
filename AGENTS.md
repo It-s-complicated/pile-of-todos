@@ -118,6 +118,26 @@ src/
 - Use hidden file input for import: `class="hidden"` with trigger button
 - Clear file input value after processing: `target.value = ''`
 
+### Validation Guidelines
+- Todo labels validated using **valibot** schemas
+- Label validation rules:
+  - Minimum length: 1 character (cannot be empty)
+  - Maximum length: 500 characters
+  - Allowed characters: letters, numbers, spaces, and `-.,!?@+#$%&*'()`
+- Validation errors shown as red messages that auto-dismiss after 5000ms
+- Validation prevents invalid data from being added to database
+- Validation schema example:
+  ```ts
+  import { pipe, string, minLength, maxLength, regex } from 'valibot'
+
+  const TodoLabelSchema = pipe(
+    string(),
+    minLength(1, 'Label cannot be empty'),
+    maxLength(500, 'Label must be less than 500 characters'),
+    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
+  )
+  ```
+
 ### Styling Guidelines
 - Tailwind CSS v4 with `@tailwindcss/vite` plugin
 - Use `@theme` directive in style.css for custom colors
