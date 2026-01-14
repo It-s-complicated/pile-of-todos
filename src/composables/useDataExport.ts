@@ -1,11 +1,11 @@
 import type { InferOutput } from 'valibot'
-import { array, boolean, number, object, safeParse, string } from 'valibot'
+import { array, boolean, nullable, number, object, safeParse, string } from 'valibot'
 import { db } from '../db/db'
 
 const TodoSchema = object({
   id: string(),
   label: string(),
-  weekNumber: number(),
+  weekNumber: nullable(number()),
   done: boolean(),
   archived: boolean(),
   createdAt: number(),
@@ -27,7 +27,7 @@ export function useDataExport() {
       version: '1.0',
       exportedAt: new Date().toISOString(),
       todos,
-    }
+    } satisfies ExportData
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
