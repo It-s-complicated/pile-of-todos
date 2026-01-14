@@ -20,6 +20,7 @@ Always run `npx vue-tsc --noEmit` after changes to verify type safety before bui
 - **Database**: Dexie.js 4.2+ (IndexedDB wrapper)
 - **Styling**: Tailwind CSS 4.1+ with Vite plugin
 - **PWA**: vite-plugin-pwa 1.2+
+- **Validation**: valibot (data validation for import/export)
 - **TypeScript**: 5.9+ with strict mode enabled
 
 ## Code Style Guidelines
@@ -85,12 +86,30 @@ src/
 ### Data Export/Import Guidelines
 - Export composable: `useDataExport()` provides `exportTodos()` and `importTodos()` functions
 - Export format: JSON with `version`, `exportedAt`, and `todos` array
-- Import validates JSON structure and todo fields before insertion
+- Import validates JSON structure and todo fields using **valibot** schemas
+- Import validation schemas:
+  ```ts
+  const TodoSchema = object({
+    id: string(),
+    label: string(),
+    weekNumber: any(),
+    done: boolean(),
+    archived: boolean(),
+    createdAt: number(),
+    updatedAt: number(),
+  })
+  
+  const ExportDataSchema = object({
+    version: string(),
+    exportedAt: string(),
+    todos: array(TodoSchema),
+  })
+  ```
 - Import uses upsert logic: updates existing todos by ID, adds new ones
 - After successful import, call `loadTodos()` to refresh store state
 - Export filename format: `todo-export-YYYY-MM-DD.json`
 - Import returns `{ success: boolean; message: string; count?: number }` result object
-- Import validation checks: `todo.id`, `todo.label`, `todo.done`, `todo.archived` fields
+- Validation errors include path and message for easy debugging
 
 ### UI Feedback Patterns
 - Display success/error messages for user actions (import/export operations)

@@ -1,4 +1,24 @@
+import type { InferOutput } from 'valibot'
+import { array, boolean, number, object, safeParse, string } from 'valibot'
 import { db } from '../db/db'
+
+const TodoSchema = object({
+  id: string(),
+  label: string(),
+  weekNumber: number(),
+  done: boolean(),
+  archived: boolean(),
+  createdAt: number(),
+  updatedAt: number(),
+})
+
+const ExportDataSchema = object({
+  version: string(),
+  exportedAt: string(),
+  todos: array(TodoSchema),
+})
+
+type ExportData = InferOutput<typeof ExportDataSchema>
 
 export function useDataExport() {
   async function exportTodos(): Promise<void> {
@@ -25,18 +45,18 @@ export function useDataExport() {
       const text = await file.text()
       const data = JSON.parse(text)
 
-      if (!data.todos || !Array.isArray(data.todos)) {
-        return { success: false, message: 'Invalid file format: missing or invalid todos array' }
+      const result = safeParse(ExportDataSchema, data)
+
+      if (!result.success) {
+        const issue = result.issues[0]
+        const path = issue.path?.map(p => (typeof p === 'string' ? p : p.key)).join('.') || 'root'
+        return { success: false, message: `Validation error at ${path}: ${issue.message}` }
       }
 
-      for (const todo of data.todos) {
-        if (!todo.id || !todo.label || typeof todo.done !== 'boolean' || typeof todo.archived !== 'boolean') {
-          return { success: false, message: 'Invalid todo format in file' }
-        }
-      }
+      const validatedTodos = result.output.todos
 
       await db.transaction('rw', db.todos, async () => {
-        for (const todo of data.todos) {
+        for (const todo of validatedTodos) {
           const existingTodo = await db.todos.get(todo.id)
           if (existingTodo) {
             await db.todos.update(todo.id, todo)
@@ -47,7 +67,7 @@ export function useDataExport() {
         }
       })
 
-      return { success: true, message: `Successfully imported ${data.todos.length} todos`, count: data.todos.length }
+      return { success: true, message: `Successfully imported ${validatedTodos.length} todos`, count: validatedTodos.length }
     }
     catch (error) {
       if (error instanceof SyntaxError) {
