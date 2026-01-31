@@ -3,10 +3,13 @@ import TodoList from '../components/TodoList.vue'
 </script>
 
 <template>
-  <div class="p-4">
-    <h1 class="text-3xl font-bold mb-6 text-gray-900">
-      Backlog
-    </h1>
-    <TodoList />
+  <div class="mb-6">
+    <h2 class="font-[Playfair_Display] text-2xl font-semibold text-navy mb-2">
+      The Backlog
+    </h2>
+    <p class="text-sm text-text-muted">
+      Unscheduled tasks waiting to be organized
+    </p>
   </div>
+  <TodoList />
 </template>

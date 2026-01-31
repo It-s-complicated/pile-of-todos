@@ -2,11 +2,30 @@ import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import UnpluginFonts from 'unplugin-fonts/vite'
 
 export default defineConfig({
   plugins: [
     vue(),
     tailwindcss(),
+    UnpluginFonts({
+      google: {
+        families: [
+          {
+            name: 'IBM Plex Mono',
+            styles: 'wght@400;500',
+          },
+          {
+            name: 'Playfair Display',
+            styles: 'wght@400..700',
+          },
+          {
+            name: 'Source Sans 3',
+            styles: 'wght@400..700',
+          },
+        ],
+      },
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],

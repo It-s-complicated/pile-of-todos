@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next'
 import { ref } from 'vue'
 
 const props = defineProps<{ currentWeek: number }>()
@@ -16,36 +17,88 @@ function confirm() {
 function cancel() {
   emit('cancel')
 }
+
+const weekOptions = [
+  { value: null, label: 'Backlog', description: 'No assigned week' },
+  { value: props.currentWeek - 1, label: `Week ${props.currentWeek - 1}`, description: 'Previous week' },
+  { value: props.currentWeek, label: `Week ${props.currentWeek}`, description: 'Current week' },
+  { value: props.currentWeek + 1, label: `Week ${props.currentWeek + 1}`, description: 'Next week' },
+  { value: props.currentWeek + 2, label: `Week ${props.currentWeek + 2}`, description: 'Two weeks ahead' },
+  { value: props.currentWeek + 3, label: `Week ${props.currentWeek + 3}`, description: 'Three weeks ahead' },
+]
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 p-6 border border-gray-200 rounded-lg bg-white">
-    <label class="font-medium text-gray-700">Move to week:</label>
-    <select v-model="selectedWeek" class="px-2 py-2 border border-gray-300 rounded-md text-base">
-      <option :value="null">
-        Backlog
-      </option>
-      <option :value="currentWeek - 1">
-        Previous ({{ currentWeek - 1 }})
-      </option>
-      <option :value="currentWeek">
-        Current ({{ currentWeek }})
-      </option>
-      <option :value="currentWeek + 1">
-        Next ({{ currentWeek + 1 }})
-      </option>
-      <option :value="currentWeek + 2">
-        Week {{ currentWeek + 2 }}
-      </option>
-      <option :value="currentWeek + 3">
-        Week {{ currentWeek + 3 }}
-      </option>
-    </select>
-    <button class="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-600" @click="confirm">
-      Move
-    </button>
-    <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-gray-200" @click="cancel">
-      Cancel
-    </button>
+  <div class="bg-white rounded-xl shadow-lg p-6 max-w-md w-full animate-fade-in-up">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h3 class="font-[Playfair_Display] text-xl font-semibold text-navy">
+          Move to Week
+        </h3>
+        <p class="text-sm text-text-muted mt-1">
+          Select a destination for this task
+        </p>
+      </div>
+      <button
+        type="button"
+        class="p-2 text-text-muted hover:text-navy hover:bg-cream rounded-lg transition-all duration-150"
+        @click="cancel"
+      >
+        <X class="w-5 h-5" stroke-width="1.5" />
+      </button>
+    </div>
+
+    <!-- Week Options -->
+    <div class="space-y-2 mb-6">
+      <button
+        v-for="option in weekOptions"
+        :key="option.value ?? 'backlog'"
+        type="button"
+        class="w-full flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 text-left"
+        :class="selectedWeek === option.value
+          ? 'border-coral bg-cream'
+          : 'border-border bg-white hover:border-border-hover hover:bg-cream'"
+        @click="selectedWeek = option.value"
+      >
+        <div
+          class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200"
+          :class="selectedWeek === option.value
+            ? 'border-coral bg-coral'
+            : 'border-border'"
+        >
+          <div
+            v-if="selectedWeek === option.value"
+            class="w-2 h-2 rounded-full bg-white"
+          />
+        </div>
+        <div class="flex-1">
+          <p class="font-medium text-navy">
+            {{ option.label }}
+          </p>
+          <p class="text-xs text-text-muted">
+            {{ option.description }}
+          </p>
+        </div>
+      </button>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-3">
+      <button
+        type="button"
+        class="flex-1 px-4 py-2.5 bg-coral text-white rounded-lg text-sm font-semibold cursor-pointer transition-all duration-150 hover:bg-coral-dark hover:shadow-md active:scale-[0.98]"
+        @click="confirm"
+      >
+        Move Task
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2.5 bg-cream text-text-secondary rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-border active:scale-[0.98]"
+        @click="cancel"
+      >
+        Cancel
+      </button>
+    </div>
   </div>
 </template>
