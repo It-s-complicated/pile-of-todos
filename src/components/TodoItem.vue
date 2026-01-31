@@ -3,7 +3,11 @@ import type { Todo } from '../types/todo'
 import { ref } from 'vue'
 
 const props = defineProps<{ todo: Todo }>()
-const emit = defineEmits(['update', 'archive', 'move'])
+const emit = defineEmits<{
+  update: [updates: Partial<Todo>]
+  archive: []
+  move: []
+}>()
 
 const isEditing = ref(false)
 const editLabel = ref(props.todo.label)

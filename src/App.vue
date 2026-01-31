@@ -93,6 +93,12 @@ function showImportMessage(message: string, success: boolean) {
   }, 5000)
 }
 
+function navLinkClass(path: string) {
+  return route.path === path
+    ? 'bg-blue-500 text-white'
+    : 'bg-gray-100 text-gray-700'
+}
+
 onMounted(() => {
   loadTodos()
 })
@@ -101,22 +107,22 @@ onMounted(() => {
 <template>
   <div class="max-w-2xl mx-auto p-4">
     <nav class="flex gap-2 mb-6 flex-wrap">
-      <RouterLink to="/backlog" :class="{ 'bg-blue-500 text-white': route.path === '/backlog', 'bg-gray-100 text-gray-700': route.path !== '/backlog' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+      <RouterLink to="/backlog" :class="navLinkClass('/backlog')" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
         Backlog
       </RouterLink>
-      <RouterLink to="/current-week" :class="{ 'bg-blue-500 text-white': route.path === '/current-week', 'bg-gray-100 text-gray-700': route.path !== '/current-week' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+      <RouterLink to="/current-week" :class="navLinkClass('/current-week')" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
         Current Week
       </RouterLink>
-      <RouterLink to="/future" :class="{ 'bg-blue-500 text-white': route.path === '/future', 'bg-gray-100 text-gray-700': route.path !== '/future' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+      <RouterLink to="/future" :class="navLinkClass('/future')" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
         Future
       </RouterLink>
-      <RouterLink to="/unfinished" :class="{ 'bg-blue-500 text-white': route.path === '/unfinished', 'bg-gray-100 text-gray-700': route.path !== '/unfinished' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+      <RouterLink to="/unfinished" :class="navLinkClass('/unfinished')" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
         Unfinished
       </RouterLink>
-      <RouterLink to="/finished" :class="{ 'bg-blue-500 text-white': route.path === '/finished', 'bg-gray-100 text-gray-700': route.path !== '/finished' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+      <RouterLink to="/finished" :class="navLinkClass('/finished')" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
         Finished
       </RouterLink>
-      <RouterLink to="/archived" :class="{ 'bg-blue-500 text-white': route.path === '/archived', 'bg-gray-100 text-gray-700': route.path !== '/archived' }" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
+      <RouterLink to="/archived" :class="navLinkClass('/archived')" class="px-4 py-2 rounded-md font-medium transition-colors hover:bg-gray-200">
         Archived
       </RouterLink>
     </nav>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const _props = defineProps<{ currentWeek: number }>()
+const props = defineProps<{ currentWeek: number }>()
 const emit = defineEmits<{
   confirm: [weekNumber: number | null]
   cancel: []

@@ -1,4 +1,6 @@
 import type { Todo, TodoFilter } from '../types/todo'
+
+const VALID_FILTERS: TodoFilter[] = ['backlog', 'current-week', 'future', 'unfinished', 'archived', 'finished']
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -16,7 +18,8 @@ export const useTodosStore = defineStore('todos', () => {
   const currentWeekNumber = computed(() => getCurrentWeekNumber())
 
   const filteredTodos = computed(() => {
-    const filter = (route.params.filter as TodoFilter) || route.name as TodoFilter || 'backlog'
+    const rawFilter = (route.params.filter as TodoFilter) || (route.name as TodoFilter)
+    const filter = VALID_FILTERS.includes(rawFilter) ? rawFilter : 'backlog'
     const weekNum = currentWeekNumber.value
 
     switch (filter) {
@@ -39,8 +42,16 @@ export const useTodosStore = defineStore('todos', () => {
 
   async function loadTodos() {
     loading.value = true
-    todos.value = await getAllTodos()
-    loading.value = false
+    try {
+      todos.value = await getAllTodos()
+    }
+    catch (error) {
+      console.error('Failed to load todos:', error)
+      todos.value = []
+    }
+    finally {
+      loading.value = false
+    }
   }
 
   async function addTodo(label: string, weekNumber: number | null) {
