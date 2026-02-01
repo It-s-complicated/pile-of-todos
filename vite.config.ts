@@ -3,9 +3,13 @@ import vue from '@vitejs/plugin-vue'
 import UnpluginFonts from 'unplugin-fonts/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import VueRouter from 'vue-router/vite'
 
 export default defineConfig({
   plugins: [
+    VueRouter({
+      dts: 'src/route-map.d.ts',
+    }),
     vue(),
     tailwindcss(),
     UnpluginFonts({
