@@ -5,12 +5,10 @@ import { ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDataExport } from './composables/useDataExport'
 import { useWeekNumber } from './composables/useWeekNumber'
-import { useTodosStore } from './stores/todos'
+import { todosCollection } from './db/collections'
 
 const route = useRoute()
-const store = useTodosStore()
 const { getCurrentWeekNumber } = useWeekNumber()
-const { addTodo } = store
 const { exportTodos, importTodos } = useDataExport()
 
 const newTodoLabel = ref('')
@@ -41,7 +39,15 @@ async function createTodo() {
     return
   }
 
-  await addTodo(trimmedLabel, newTodoWeek.value)
+  todosCollection.insert({
+    id: crypto.randomUUID(),
+    label: trimmedLabel,
+    weekNumber: newTodoWeek.value,
+    done: false,
+    archived: false,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  })
   newTodoLabel.value = ''
   newTodoWeek.value = null
 }

@@ -229,24 +229,27 @@ export function resolveConflict(
 
 ### Phase 3: Vue 3 Integration (Weeks 5-6)
 
-#### 3.1 Todo Store with CRDT
+#### 3.1 Todo Operations with CRDT
 ```typescript
-// src/stores/todoStore.ts
-import { store, todo } from 'syncedstore'
+// src/composables/useTodosWithSync.ts
 import { useSyncQueue } from '@/composables/useSyncQueue'
+import { todosCollection } from '@/db/collections'
+import { useLiveQuery } from '@tanstack/vue-db'
+import { computed, ref } from 'vue'
 
-export const todoStore = store({
-  todos: todo<Map<string, Todo>>(),
-  loading: false,
-  error: null as string | null
-})
-
-export function useTodos() {
+export function useTodosWithSync() {
   const { addToQueue, processQueue } = useSyncQueue()
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  // Live query for todos
+  const { data: todos } = useLiveQuery(q =>
+    q.from({ todo: todosCollection })
+  )
 
   // Local operations
   async function addTodo(label: string, weekNumber: number | null) {
-    const todo: Todo = {
+    const todo = {
       id: crypto.randomUUID(),
       label,
       weekNumber,
@@ -254,11 +257,10 @@ export function useTodos() {
       archived: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      crdtState: {} // Initialize CRDT state
     }
 
-    // Add to CRDT
-    todoStore.todos.set(todo.id, todo)
+    // Add to TanStack DB
+    todosCollection.insert(todo)
 
     // Queue for sync
     addToQueue({
@@ -268,10 +270,22 @@ export function useTodos() {
     })
   }
 
+  async function updateTodo(id: string, updates: Partial<Todo>) {
+    todosCollection.update(id, (draft) => {
+      Object.assign(draft, updates, { updatedAt: Date.now() })
+    })
+
+    addToQueue({
+      type: 'update',
+      data: { id, ...updates },
+      timestamp: Date.now()
+    })
+  }
+
   // Sync operations
   async function syncWithCloud() {
     try {
-      todoStore.loading = true
+      loading.value = true
 
       // Upload local changes
       const localChanges = getPendingChanges()
@@ -289,17 +303,20 @@ export function useTodos() {
       // Process sync queue
       await processQueue()
     }
-    catch (error) {
-      todoStore.error = `Sync failed: ${error.message}`
+    catch (err) {
+      error.value = `Sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
     }
     finally {
-      todoStore.loading = false
+      loading.value = false
     }
   }
 
   return {
-    todos: computed(() => Array.from(todoStore.todos.values())),
+    todos: computed(() => todos.value ?? []),
+    loading: computed(() => loading.value),
+    error: computed(() => error.value),
     addTodo,
+    updateTodo,
     syncWithCloud
   }
 }

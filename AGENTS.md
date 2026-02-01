@@ -15,8 +15,7 @@ Always run `npx vue-tsc --noEmit` after changes to verify type safety before bui
 
 - **Framework**: Vue 3.5+ with Composition API and `<script setup lang="ts">`
 - **Build Tool**: Vite 7.2+
-- **State Management**: Pinia 3.0+ with setup store syntax
-- **Routing**: Vue Router 4.6+
+- **Routing**: Vue Router 5.0+
 - **Database**: TanStack DB (LocalStorage) with valibot schema validation
 - **Styling**: Tailwind CSS 4.1+ with Vite plugin
 - **PWA**: vite-plugin-pwa 1.2+
@@ -30,7 +29,6 @@ Always run `npx vue-tsc --noEmit` after changes to verify type safety before bui
 src/
 ├── components/     - Reusable Vue components (PascalCase.vue)
 ├── composables/    - Vue composition functions (useXxx.ts)
-├── stores/         - Pinia stores (xxx.ts)
 ├── db/             - Database setup and collections
 ├── router/         - Vue Router configuration
 ├── views/          - Page-level components (PascalCaseView.vue)
@@ -42,8 +40,7 @@ src/
 
 ### Naming Conventions
 - **Components/Views**: PascalCase (`TodoItem.vue`, `BacklogView.vue`)
-- **Composables**: camelCase with `use` prefix (`useTodos.ts`, `useWeekNumber.ts`)
-- **Stores**: camelCase with `use` prefix (`useTodosStore`)
+- **Composables**: camelCase with `use` prefix (`useWeekNumber.ts`, `useDataExport.ts`)
 - **Types/Interfaces**: PascalCase (`Todo`, `TodoFilter`)
 - **Functions/Variables**: camelCase
 - **Constants**: SCREAMING_SNAKE_CASE (rare)
@@ -62,17 +59,6 @@ src/
 - Define props: `defineProps<{ prop: Type }>()`
 - Use Tailwind utility classes for ALL styling - no scoped CSS
 - Import types with `import type { X }` to avoid verbatimModuleSyntax conflicts
-
-### Pinia Store Guidelines
-- Use setup store syntax: `defineStore('name', () => { ... })`
-- State with `ref<T>()` and `computed<T>()`
-- Actions update local state immediately for reactivity
-- Import database composables with renamed exports to avoid conflicts:
-  ```ts
-  const { addTodo: addTodoDB, updateTodo: updateTodoDB } = useTodosDB()
-  ```
-- Store imports: rename DB composables to avoid name conflicts with store actions
-- Example: `import { useTodos as useTodosDB }` to distinguish from `useTodosStore`
 
 ### Database Guidelines
 - Use TanStack DB `createCollection()` with `localStorageCollectionOptions`

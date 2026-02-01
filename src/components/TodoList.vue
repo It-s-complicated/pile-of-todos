@@ -1,22 +1,19 @@
 <script setup lang="ts">
-import type { Todo } from '../db/collections'
+import type { Todo, TodoFilter } from '../db/collections'
 import { useLiveQuery } from '@tanstack/vue-db'
 import { FileText } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useWeekNumber } from '../composables/useWeekNumber'
-import { todosCollection } from '../db/collections'
-import { useTodosStore } from '../stores/todos'
+import { todosCollection, VALID_FILTERS } from '../db/collections'
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
-const store = useTodosStore()
-const { updateTodo, archiveTodo, VALID_FILTERS } = store
 const { getCurrentWeekNumber } = useWeekNumber()
 const route = useRoute()
 
 const currentWeek = getCurrentWeekNumber()
-const rawFilter = computed(() => (route.params.filter as typeof VALID_FILTERS[number]) || (route.name as typeof VALID_FILTERS[number]))
+const rawFilter = computed(() => (route.params.filter as TodoFilter) || (route.name as TodoFilter))
 const filter = computed(() => VALID_FILTERS.includes(rawFilter.value) ? rawFilter.value : 'backlog')
 
 // Single live query for all todos - called in component context
@@ -53,11 +50,16 @@ const showWeekSelector = ref(false)
 const selectedTodo = ref<Todo | null>(null)
 
 function handleUpdate(id: string, updates: Partial<Todo>) {
-  updateTodo(id, updates)
+  todosCollection.update(id, (draft) => {
+    Object.assign(draft, updates, { updatedAt: Date.now() })
+  })
 }
 
 function handleArchive(id: string) {
-  archiveTodo(id)
+  todosCollection.update(id, (draft) => {
+    draft.archived = true
+    draft.updatedAt = Date.now()
+  })
 }
 
 function handleMove(todo: Todo) {

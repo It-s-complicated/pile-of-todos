@@ -21,6 +21,8 @@ export type Todo = InferOutput<typeof TodoSchema>
 
 export type TodoFilter = 'backlog' | 'current-week' | 'future' | 'unfinished' | 'archived' | 'finished'
 
+export const VALID_FILTERS: TodoFilter[] = ['backlog', 'current-week', 'future', 'unfinished', 'archived', 'finished']
+
 export const todosCollection = createCollection(
   localStorageCollectionOptions({
     id: 'todos',
