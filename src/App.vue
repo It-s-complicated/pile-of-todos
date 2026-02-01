@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
 import { Archive, Calendar, CheckCircle, Clock, Download, Inbox, Layers, Upload } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
+import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
+import { ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDataExport } from './composables/useDataExport'
 import { useWeekNumber } from './composables/useWeekNumber'
@@ -10,7 +10,7 @@ import { useTodosStore } from './stores/todos'
 const route = useRoute()
 const store = useTodosStore()
 const { getCurrentWeekNumber } = useWeekNumber()
-const { loadTodos, addTodo } = store
+const { addTodo } = store
 const { exportTodos, importTodos } = useDataExport()
 
 const newTodoLabel = ref('')
@@ -70,7 +70,6 @@ async function handleImport(event: Event) {
   try {
     const result = await importTodos(file)
     if (result.success) {
-      await loadTodos()
       showImportMessage(result.message, true)
     }
     else {
@@ -110,9 +109,7 @@ function getNavLinkClass(path: string): string {
     : 'bg-transparent text-text-secondary hover:bg-cream'
 }
 
-onMounted(() => {
-  loadTodos()
-})
+const id = useId()
 </script>
 
 <template>
@@ -136,7 +133,7 @@ onMounted(() => {
         :class="getNavLinkClass(item.path)"
         class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-out flex items-center gap-2"
       >
-        <component :is="item.icon" class="w-4 h-4" stroke-width="1.5" />
+        <component :is="item.icon" class="size-4" stroke-width="1.5" />
         <span>{{ item.label }}</span>
       </RouterLink>
     </nav>
@@ -144,11 +141,12 @@ onMounted(() => {
     <!-- Input Form -->
     <form class="mb-6" @submit.prevent="createTodo">
       <div class="flex gap-3 flex-wrap items-end bg-white p-4 rounded-lg border border-border shadow-sm">
-        <div class="flex-1 min-w-[240px]">
-          <label class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide">
+        <div class="flex-1 min-w-60">
+          <label :for="`${id}-new`" class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide">
             New Task
           </label>
           <input
+            :id="`${id}-new`"
             v-model="newTodoLabel"
             placeholder="What needs to be done?"
             required
@@ -156,12 +154,13 @@ onMounted(() => {
           >
         </div>
         <div class="w-40">
-          <label class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide">
+          <label :for="`${id}-week`" class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide">
             Week
           </label>
           <select
+            :id="`${id}-week`"
             v-model="newTodoWeek"
-            class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-base text-navy focus:outline-none focus:border-navy focus:ring-1 focus:ring-navy/10 transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%234a4a5a%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1rem] bg-[right_0.5rem_center] bg-no-repeat pr-10"
+            class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-base text-navy focus:outline-none focus:border-navy focus:ring-1 focus:ring-navy/10 transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%234a4a5a%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-size-[1rem] bg-position-[right_0.5rem_center] bg-no-repeat pr-10"
           >
             <option :value="null">
               Backlog
@@ -178,9 +177,9 @@ onMounted(() => {
           </select>
         </div>
         <div class="flex flex-col">
-          <label class="block text-xs font-medium text-transparent mb-1.5 uppercase tracking-wide select-none" aria-hidden="true">
+          <span class="block text-xs font-medium text-transparent mb-1.5 uppercase tracking-wide select-none" aria-hidden="true">
             Action
-          </label>
+          </span>
           <button
             type="submit"
             class="px-6 py-3 bg-navy text-white rounded-lg text-sm font-semibold cursor-pointer transition-all duration-150 hover:bg-blue-600 hover:shadow-md active:scale-[0.98] border border-transparent"
@@ -202,17 +201,17 @@ onMounted(() => {
     <!-- Import/Export -->
     <div class="flex gap-3 mb-6">
       <button
-        class="px-4 py-2 bg-success-light text-success rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-[#d8e5dc] flex items-center gap-2"
+        class="px-4 py-2 bg-success-light text-success-dark rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-[#d8e5dc] flex items-center gap-2"
         @click="handleExport"
       >
-        <Download class="w-4 h-4" stroke-width="1.5" />
+        <Download class="size-4" stroke-width="1.5" />
         Export
       </button>
       <button
-        class="px-4 py-2 bg-warning-light text-warning rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-[#f5eadd] flex items-center gap-2"
+        class="px-4 py-2 bg-warning-light text-warning-dark rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-[#f5eadd] flex items-center gap-2"
         @click="triggerImport"
       >
-        <Upload class="w-4 h-4" stroke-width="1.5" />
+        <Upload class="size-4" stroke-width="1.5" />
         Import
       </button>
       <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImport">

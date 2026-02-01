@@ -1,4 +1,4 @@
-import type { Todo } from '../types/todo'
+import type { Todo } from '../db/collections'
 
 export interface CloudSyncAdapter {
   uploadTodos: (todos: Todo[]) => Promise<void>

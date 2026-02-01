@@ -39,7 +39,7 @@ interface Todo {
 
 **Valibot Schema Definition**:
 ```typescript
-import { object, string, number, boolean, pipe, minLength, maxLength, regex } from 'valibot'
+import { boolean, maxLength, minLength, number, object, pipe, regex, string } from 'valibot'
 
 export const TodoSchema = object({
   id: pipe(string(), minLength(1)),
@@ -47,7 +47,7 @@ export const TodoSchema = object({
     string(),
     minLength(1, 'Label cannot be empty'),
     maxLength(500, 'Label must be less than 500 characters'),
-    regex(/^[a-zA-Z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
   ),
   weekNumber: number(),
   done: boolean(),
@@ -110,8 +110,8 @@ TanStack DB supports Standard Schema v1, which means it works seamlessly with Va
 ### Todo Schema
 
 ```typescript
-import { object, string, number, boolean, pipe, minLength, maxLength, regex } from 'valibot'
 import type { Output } from 'valibot'
+import { boolean, maxLength, minLength, number, object, pipe, regex, string } from 'valibot'
 
 // Main Todo schema for collection
 export const TodoSchema = object({
@@ -120,7 +120,7 @@ export const TodoSchema = object({
     string(),
     minLength(1, 'Label cannot be empty'),
     maxLength(500, 'Label must be less than 500 characters'),
-    regex(/^[a-zA-Z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
   ),
   weekNumber: number(), // null handled by TypeScript
   done: boolean(),
@@ -137,7 +137,7 @@ export const TodoLabelSchema = pipe(
   string(),
   minLength(1, 'Label cannot be empty'),
   maxLength(500, 'Label must be less than 500 characters'),
-  regex(/^[a-zA-Z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+  regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
 )
 ```
 
@@ -185,7 +185,7 @@ const todosCollection = createCollection(
   localStorageCollectionOptions({
     id: 'todos',
     storageKey: 'ai-todo-app-todos',
-    getKey: (item) => item.id,
+    getKey: item => item.id,
     schema: TodoSchema, // Runtime validation on insert/update
   })
 )
@@ -216,10 +216,9 @@ npm uninstall dexie
 **New file**: `src/db/collections.ts`
 
 ```typescript
-import { createCollection } from '@tanstack/vue-db'
-import { localStorageCollectionOptions } from '@tanstack/vue-db'
-import { object, string, number, boolean, pipe, minLength, maxLength, regex } from 'valibot'
 import type { Output } from 'valibot'
+import { createCollection, localStorageCollectionOptions } from '@tanstack/vue-db'
+import { boolean, maxLength, minLength, number, object, pipe, regex, string } from 'valibot'
 
 // Valibot schema for Todo validation
 export const TodoSchema = object({
@@ -228,7 +227,7 @@ export const TodoSchema = object({
     string(),
     minLength(1, 'Label cannot be empty'),
     maxLength(500, 'Label must be less than 500 characters'),
-    regex(/^[a-zA-Z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
   ),
   weekNumber: number(), // can be null via TypeScript type
   done: boolean(),
@@ -245,7 +244,7 @@ export const todosCollection = createCollection(
   localStorageCollectionOptions({
     id: 'todos',
     storageKey: 'ai-todo-app-todos',
-    getKey: (item) => item.id,
+    getKey: item => item.id,
     schema: TodoSchema, // Valibot schema for validation
   })
 )
@@ -255,7 +254,7 @@ export const TodoLabelSchema = pipe(
   string(),
   minLength(1, 'Label cannot be empty'),
   maxLength(500, 'Label must be less than 500 characters'),
-  regex(/^[a-zA-Z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+  regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
 )
 ```
 
@@ -294,13 +293,13 @@ Major refactoring:
 1. **Replace Pinia state**:
 ```typescript
 // Remove this:
-const todos = ref<Todo[]>([])
-
 // Add this:
-import { useLiveQuery, eq, gt, lt, and, or } from '@tanstack/vue-db'
+import { and, eq, gt, lt, or, useLiveQuery } from '@tanstack/vue-db'
 import { todosCollection } from '@/db/collections'
 
-const { data: todos } = useLiveQuery((q) => 
+const todos = ref<Todo[]>([])
+
+const { data: todos } = useLiveQuery(q =>
   q.from({ todo: todosCollection })
 )
 ```
@@ -321,14 +320,14 @@ const filteredTodos = computed(() => {
 // With live queries:
 const currentWeek = computed(() => weekNumber.value)
 
-const { data: backlogTodos } = useLiveQuery((q) =>
+const { data: backlogTodos } = useLiveQuery(q =>
   q
     .from({ todo: todosCollection })
     .where(({ todo }) => eq(todo.weekNumber, null))
     .where(({ todo }) => eq(todo.archived, false))
 )
 
-const { data: currentWeekTodos } = useLiveQuery((q) =>
+const { data: currentWeekTodos } = useLiveQuery(q =>
   q
     .from({ todo: todosCollection })
     .where(({ todo }) => eq(todo.weekNumber, currentWeek.value))
@@ -344,7 +343,7 @@ const { data: currentWeekTodos } = useLiveQuery((q) =>
 async function addTodo(label: string, weekNumber: number | null) {
   const id = crypto.randomUUID()
   const now = Date.now()
-  
+
   todosCollection.insert({
     id,
     label,
@@ -354,7 +353,7 @@ async function addTodo(label: string, weekNumber: number | null) {
     createdAt: now,
     updatedAt: now,
   })
-  
+
   return id
 }
 
@@ -393,7 +392,7 @@ async function archiveTodo(id: string) {
 Replace Dexie transaction with TanStack DB utilities and valibot validation:
 
 ```typescript
-import { parse, array, object, string, number, boolean } from 'valibot'
+import { array, boolean, number, object, parse, string } from 'valibot'
 import { TodoSchema } from '@/db/collections'
 
 // Export function
@@ -419,23 +418,24 @@ async function importTodos(jsonString: string): Promise<ImportResult> {
   try {
     // Parse JSON
     const parsed = JSON.parse(jsonString)
-    
+
     // Validate structure with valibot
     const validatedData = parse(ExportDataSchema, parsed)
     const validatedTodos = validatedData.todos
-    
+
     // Clear existing data
     await todosCollection.utils.clear()
-    
+
     // Insert validated todos
     await todosCollection.utils.bulkInsert(validatedTodos)
-    
+
     return {
       success: true,
       message: `Imported ${validatedTodos.length} todos`,
       count: validatedTodos.length,
     }
-  } catch (error) {
+  }
+  catch (error) {
     // Valibot provides detailed error messages
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return {
@@ -510,7 +510,7 @@ todosCollection.update(id, (draft) => { ...changes })
 todosCollection.delete(id)
 
 // Query
-const { data: all } = useLiveQuery((q) => 
+const { data: all } = useLiveQuery((q) =>
   q.from({ todo: todosCollection })
 )
 const one = todosCollection.utils.get(id)
@@ -578,7 +578,7 @@ if (!result.success) {
 
 ### Data Loss
 - **Risk**: All existing IndexedDB data will be lost
-- **Mitigation**: 
+- **Mitigation**:
   - Acceptable per requirements
   - Consider adding export feature before migration for backup
   - Users can re-import after migration
@@ -730,6 +730,6 @@ This migration provides:
 
 ---
 
-**Document Version**: 1.0  
-**Created**: 2026-02-01  
+**Document Version**: 1.0
+**Created**: 2026-02-01
 **Status**: Ready for Execution

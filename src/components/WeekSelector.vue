@@ -45,7 +45,7 @@ const weekOptions = [
         class="p-2 text-text-muted hover:text-navy hover:bg-cream rounded-lg transition-all duration-150"
         @click="cancel"
       >
-        <X class="w-5 h-5" stroke-width="1.5" />
+        <X class="size-5" stroke-width="1.5" />
       </button>
     </div>
 
@@ -62,14 +62,14 @@ const weekOptions = [
         @click="selectedWeek = option.value"
       >
         <div
-          class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200"
+          class="size-5 rounded-full border-2 flex items-center justify-center transition-all duration-200"
           :class="selectedWeek === option.value
             ? 'border-coral bg-coral'
             : 'border-border'"
         >
           <div
             v-if="selectedWeek === option.value"
-            class="w-2 h-2 rounded-full bg-white"
+            class="size-2 rounded-full bg-white"
           />
         </div>
         <div class="flex-1">

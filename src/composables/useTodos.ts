@@ -1,15 +1,12 @@
-import type { Todo } from '../types/todo'
-import { db } from '../db/db'
+import type { Todo } from '../db/collections'
+import { todosCollection } from '../db/collections'
 
 export function useTodos() {
-  async function getAllTodos(): Promise<Todo[]> {
-    return await db.todos.toArray()
+  function getAllTodos(): Todo[] {
+    return todosCollection.utils.getAll()
   }
 
-  async function addTodo(
-    label: string,
-    weekNumber: number | null,
-  ): Promise<string> {
+  function addTodo(label: string, weekNumber: number | null): string {
     const id = crypto.randomUUID()
     const now = Date.now()
     const todo: Todo = {
@@ -21,26 +18,34 @@ export function useTodos() {
       createdAt: now,
       updatedAt: now,
     }
-    await db.todos.add(todo)
+    todosCollection.insert(todo)
     return id
   }
 
-  async function updateTodo(id: string, updates: Partial<Todo>): Promise<void> {
-    await db.todos.update(id, { ...updates, updatedAt: Date.now() })
+  function updateTodo(id: string, updates: Partial<Todo>): void {
+    todosCollection.update(id, (draft) => {
+      Object.assign(draft, updates, { updatedAt: Date.now() })
+    })
   }
 
-  async function deleteTodo(id: string): Promise<void> {
-    await db.todos.delete(id)
+  function deleteTodo(id: string): void {
+    todosCollection.delete(id)
   }
 
-  async function archiveTodo(id: string): Promise<void> {
-    await db.todos.update(id, { archived: true, updatedAt: Date.now() })
+  function archiveTodo(id: string): void {
+    todosCollection.update(id, (draft) => {
+      draft.archived = true
+      draft.updatedAt = Date.now()
+    })
   }
 
-  async function toggleTodoDone(id: string): Promise<void> {
-    const todo = await db.todos.get(id)
+  function toggleTodoDone(id: string): void {
+    const todo = todosCollection.utils.get(id)
     if (todo) {
-      await db.todos.update(id, { done: !todo.done, updatedAt: Date.now() })
+      todosCollection.update(id, (draft) => {
+        draft.done = !todo.done
+        draft.updatedAt = Date.now()
+      })
     }
   }
 

@@ -1,63 +1,14 @@
-import type { Todo, TodoFilter } from '../types/todo'
+import type { Todo, TodoFilter } from '../db/collections'
+import { defineStore } from 'pinia'
+import { todosCollection } from '../db/collections'
 
 const VALID_FILTERS: TodoFilter[] = ['backlog', 'current-week', 'future', 'unfinished', 'archived', 'finished']
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { useTodos as useTodosDB } from '../composables/useTodos'
-import { useWeekNumber } from '../composables/useWeekNumber'
 
 export const useTodosStore = defineStore('todos', () => {
-  const { getAllTodos, addTodo: addTodoDB, updateTodo: updateTodoDB, deleteTodo: deleteTodoDB, archiveTodo: archiveTodoDB, toggleTodoDone: toggleTodoDoneDB } = useTodosDB()
-  const { getCurrentWeekNumber } = useWeekNumber()
-  const route = useRoute()
-
-  const todos = ref<Todo[]>([])
-  const loading = ref(false)
-
-  const currentWeekNumber = computed(() => getCurrentWeekNumber())
-
-  const filteredTodos = computed(() => {
-    const rawFilter = (route.params.filter as TodoFilter) || (route.name as TodoFilter)
-    const filter = VALID_FILTERS.includes(rawFilter) ? rawFilter : 'backlog'
-    const weekNum = currentWeekNumber.value
-
-    switch (filter) {
-      case 'backlog':
-        return todos.value.filter(t => t.weekNumber === null && !t.archived)
-      case 'current-week':
-        return todos.value.filter(t => t.weekNumber === weekNum && !t.archived)
-      case 'future':
-        return todos.value.filter(t => t.weekNumber !== null && t.weekNumber > weekNum && !t.archived)
-      case 'unfinished':
-        return todos.value.filter(t => t.weekNumber !== null && t.weekNumber < weekNum && !t.done && !t.archived)
-      case 'archived':
-        return todos.value.filter(t => t.archived === true)
-      case 'finished':
-        return todos.value.filter(t => t.done === true && t.archived === false)
-      default:
-        return todos.value
-    }
-  })
-
-  async function loadTodos() {
-    loading.value = true
-    try {
-      todos.value = await getAllTodos()
-    }
-    catch (error) {
-      console.error('Failed to load todos:', error)
-      todos.value = []
-    }
-    finally {
-      loading.value = false
-    }
-  }
-
-  async function addTodo(label: string, weekNumber: number | null) {
-    const id = await addTodoDB(label, weekNumber)
+  function addTodo(label: string, weekNumber: number | null) {
+    const id = crypto.randomUUID()
     const now = Date.now()
-    todos.value.push({
+    todosCollection.insert({
       id,
       label,
       weekNumber,
@@ -66,45 +17,42 @@ export const useTodosStore = defineStore('todos', () => {
       createdAt: now,
       updatedAt: now,
     })
+    return id
   }
 
-  async function updateTodo(id: string, updates: Partial<Todo>) {
-    await updateTodoDB(id, updates)
-    const index = todos.value.findIndex(t => t.id === id)
-    if (index !== -1) {
-      const existingTodo = todos.value[index]
-      if (existingTodo) {
-        todos.value[index] = {
-          id: existingTodo.id,
-          label: updates.label !== undefined ? updates.label : existingTodo.label,
-          weekNumber: updates.weekNumber !== undefined ? updates.weekNumber : existingTodo.weekNumber,
-          done: updates.done !== undefined ? updates.done : existingTodo.done,
-          archived: updates.archived !== undefined ? updates.archived : existingTodo.archived,
-          createdAt: existingTodo.createdAt,
-          updatedAt: Date.now(),
-        }
-      }
-    }
+  function updateTodo(id: string, updates: Partial<Todo>) {
+    todosCollection.update(id, (draft) => {
+      Object.assign(draft, updates, { updatedAt: Date.now() })
+    })
   }
 
-  async function deleteTodo(id: string) {
-    await deleteTodoDB(id)
-    todos.value = todos.value.filter(t => t.id !== id)
+  function deleteTodo(id: string) {
+    todosCollection.delete(id)
   }
 
-  async function archiveTodo(id: string) {
-    await archiveTodoDB(id)
-    todos.value = todos.value.filter(t => t.id !== id)
+  function archiveTodo(id: string) {
+    todosCollection.update(id, (draft) => {
+      draft.archived = true
+      draft.updatedAt = Date.now()
+    })
   }
 
-  async function toggleTodoDone(id: string) {
-    await toggleTodoDoneDB(id)
-    const todo = todos.value.find(t => t.id === id)
+  function toggleTodoDone(id: string) {
+    const todo = todosCollection.utils.get(id)
     if (todo) {
-      todo.done = !todo.done
-      todo.updatedAt = Date.now()
+      todosCollection.update(id, (draft) => {
+        draft.done = !todo.done
+        draft.updatedAt = Date.now()
+      })
     }
   }
 
-  return { todos, loading, filteredTodos, currentWeekNumber, loadTodos, addTodo, updateTodo, deleteTodo, archiveTodo, toggleTodoDone }
+  return {
+    addTodo,
+    updateTodo,
+    deleteTodo,
+    archiveTodo,
+    toggleTodoDone,
+    VALID_FILTERS,
+  }
 })

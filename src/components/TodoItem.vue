@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Todo } from '../types/todo'
+import type { Todo } from '../db/collections'
 import { Archive, Calendar, Check } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useWeekNumber } from '../composables/useWeekNumber'
@@ -71,7 +71,7 @@ function cancelEdit() {
 
 <template>
   <div
-    class="group flex items-center gap-4 bg-white rounded-lg border border-border p-4 shadow-sm transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5"
+    class="group flex items-center gap-4 bg-white rounded-lg border border-border p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
     :style="{ borderLeft: `3px solid ${statusColor}` }"
   >
     <!-- Custom Checkbox -->
@@ -80,7 +80,7 @@ function cancelEdit() {
       role="checkbox"
       :aria-checked="isChecked"
       :aria-label="isChecked ? 'Mark as incomplete' : 'Mark as complete'"
-      class="relative w-5 h-5 flex-shrink-0 rounded border-2 border-navy transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2"
+      class="relative size-5 scroll-pr-0.5 shrink-0 rounded border-2 border-navy transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2"
       :class="{ 'bg-navy': isChecked, 'bg-white': !isChecked }"
       @click="toggleDone"
     >
@@ -114,7 +114,7 @@ function cancelEdit() {
           {{ todo.label }}
         </p>
         <p class="text-xs text-text-muted mt-1 font-mono flex items-center gap-1.5">
-          <Calendar class="w-3 h-3" stroke-width="1.5" />
+          <Calendar class="size-3" stroke-width="1.5" />
           {{ weekStatusLabel }}
         </p>
       </div>
@@ -128,7 +128,7 @@ function cancelEdit() {
         title="Move to different week"
         @click="$emit('move')"
       >
-        <Calendar class="w-4 h-4" stroke-width="1.5" />
+        <Calendar class="size-4" stroke-width="1.5" />
       </button>
       <button
         type="button"
@@ -136,7 +136,7 @@ function cancelEdit() {
         title="Archive"
         @click="$emit('archive')"
       >
-        <Archive class="w-4 h-4" stroke-width="1.5" />
+        <Archive class="size-4" stroke-width="1.5" />
       </button>
     </div>
   </div>

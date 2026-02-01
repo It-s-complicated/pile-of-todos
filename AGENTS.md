@@ -17,7 +17,7 @@ Always run `npx vue-tsc --noEmit` after changes to verify type safety before bui
 - **Build Tool**: Vite 7.2+
 - **State Management**: Pinia 3.0+ with setup store syntax
 - **Routing**: Vue Router 4.6+
-- **Database**: Dexie.js 4.2+ (IndexedDB wrapper)
+- **Database**: TanStack DB (LocalStorage) with valibot schema validation
 - **Styling**: Tailwind CSS 4.1+ with Vite plugin
 - **PWA**: vite-plugin-pwa 1.2+
 - **Validation**: valibot (data validation for import/export)
@@ -31,8 +31,7 @@ src/
 ├── components/     - Reusable Vue components (PascalCase.vue)
 ├── composables/    - Vue composition functions (useXxx.ts)
 ├── stores/         - Pinia stores (xxx.ts)
-├── types/          - TypeScript type definitions
-├── db/             - Database setup
+├── db/             - Database setup and collections
 ├── router/         - Vue Router configuration
 ├── views/          - Page-level components (PascalCaseView.vue)
 ├── App.vue         - Root component
@@ -51,7 +50,7 @@ src/
 
 ### TypeScript Guidelines
 - Strict mode enabled in tsconfig - all types must be explicit
-- Use `type` keyword for type-only imports: `import type { Todo } from './types/todo'`
+- Use `type` keyword for type-only imports: `import type { Todo } from './db/collections'`
 - No `any` types - use `unknown` with type guards if necessary
 - Use `Partial<T>` for update operations
 - Prefer explicit return types on exported functions
@@ -76,12 +75,14 @@ src/
 - Example: `import { useTodos as useTodosDB }` to distinguish from `useTodosStore`
 
 ### Database Guidelines
-- Use Dexie.js for IndexedDB operations
-- Table indexes defined in db.ts: `'id, weekNumber, done, archived, createdAt, updatedAt'`
-- All DB operations return Promises
+- Use TanStack DB `createCollection()` with `localStorageCollectionOptions`
+- Define schemas using valibot for runtime validation
 - Use `crypto.randomUUID()` for unique IDs (cloud-sync ready)
 - Always set `updatedAt` timestamp on modifications
-- Initial objects include: `id, label, weekNumber, done, archived, createdAt, updatedAt`
+- Collection methods: `insert()`, `update()`, `delete()` (synchronous)
+- Live queries via `useLiveQuery()` hook
+- Cross-tab sync enabled by default
+- Collection file: `src/db/collections.ts` defines `todosCollection` and schemas
 
 ### Data Export/Import Guidelines
 - Export composable: `useDataExport()` provides `exportTodos()` and `importTodos()` functions
@@ -98,7 +99,7 @@ src/
     createdAt: number(),
     updatedAt: number(),
   })
-  
+
   const ExportDataSchema = object({
     version: string(),
     exportedAt: string(),
@@ -128,7 +129,7 @@ src/
 - Validation prevents invalid data from being added to database
 - Validation schema example:
   ```ts
-  import { pipe, string, minLength, maxLength, regex } from 'valibot'
+  import { maxLength, minLength, pipe, regex, string } from 'valibot'
 
   const TodoLabelSchema = pipe(
     string(),
@@ -152,21 +153,14 @@ src/
 - Async functions should handle promise rejections (await without try/catch is OK in UI code)
 
 ### Imports
-- Absolute imports use `@/` alias: `import { X } from '@/types/todo'`
-- Relative imports for sibling files: `import { X } from '../types/todo'`
-- Type imports explicitly marked: `import type { Table } from 'dexie'`
-- Value imports without type keyword: `import Dexie from 'dexie'`
+- Absolute imports use `@/` alias: `import { X } from '@/db/collections'`
+- Relative imports for sibling files: `import { X } from '../db/collections'`
 
 ### Reactivity Pattern
-- State management: Store actions update local state, then persist to DB
-- Example pattern:
-  ```ts
-  async function addTodo(label: string) {
-    const id = await db.addTodo(label)
-    localState.value.push(newItem) // Immediate UI update
-  }
-  ```
-- This ensures UI updates immediately without page reload
+- TanStack DB live queries provide automatic reactivity
+- No manual state updates needed after mutations
+- Components subscribe to live queries for real-time updates
+- Use `useLiveQuery()` with filter conditions for different views
 
 ### Router Guidelines
 - Route names match view names: `'backlog'`, `'current-week'`, `'future'`, `'unfinished'`, `'finished'`, `'archived'`

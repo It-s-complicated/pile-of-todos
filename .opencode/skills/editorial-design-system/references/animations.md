@@ -111,12 +111,12 @@ module.exports = {
 ```vue
 <template>
   <button
-    class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200" :class="[
+    class="size-5 rounded border-2 flex items-center justify-center transition-all duration-200" :class="[
       checked && 'scale-pulse',
     ]"
     @click="toggle"
   >
-    <Check v-if="checked" class="w-3.5 h-3.5" />
+    <Check v-if="checked" class="size-3.5" />
   </button>
 </template>
 
@@ -238,7 +238,7 @@ module.exports = {
         v-if="error"
         class="flex items-center gap-2 text-sm text-[#c45a5a]"
       >
-        <AlertCircle class="w-4 h-4" />
+        <AlertCircle class="size-4" />
         {{ error }}
       </div>
     </Transition>
@@ -290,7 +290,7 @@ module.exports = {
 <template>
   <div class="relative group">
     <button class="icon-button">
-      <Archive class="w-5 h-5" />
+      <Archive class="size-5" />
     </button>
 
     <div
@@ -368,7 +368,7 @@ module.exports = {
         px-4 py-3 bg-[#e8f0eb] text-[#5a8a6e] rounded-lg
       "
     >
-      <CheckCircle class="w-5 h-5" />
+      <CheckCircle class="size-5" />
       <span class="font-medium">Changes saved successfully</span>
     </div>
   </Transition>

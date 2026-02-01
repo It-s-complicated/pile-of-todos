@@ -39,17 +39,17 @@ export type Status = 'pending' | 'active' | 'completed'
 <script setup lang="ts">
 import type { Status, User } from '@/types/user'
 
+// WORKS: Imported union type
+defineProps<{
+  status: Status
+}>()
+
 // WORKS: Direct imported interface
 defineProps<User>()
 
 // WORKS: Simple imported interface
 defineProps<{
   user: User
-}>()
-
-// WORKS: Imported union type
-defineProps<{
-  status: Status
 }>()
 
 </script>

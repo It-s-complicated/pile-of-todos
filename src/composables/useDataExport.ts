@@ -1,16 +1,6 @@
 import type { InferOutput } from 'valibot'
-import { array, boolean, nullable, number, object, safeParse, string } from 'valibot'
-import { db } from '../db/db'
-
-const TodoSchema = object({
-  id: string(),
-  label: string(),
-  weekNumber: nullable(number()),
-  done: boolean(),
-  archived: boolean(),
-  createdAt: number(),
-  updatedAt: number(),
-})
+import { array, object, safeParse, string } from 'valibot'
+import { TodoSchema, todosCollection } from '../db/collections'
 
 const ExportDataSchema = object({
   version: string(),
@@ -21,13 +11,13 @@ const ExportDataSchema = object({
 type ExportData = InferOutput<typeof ExportDataSchema>
 
 export function useDataExport() {
-  async function exportTodos(): Promise<void> {
-    const todos = await db.todos.toArray()
-    const exportData = {
-      version: '1.0',
+  function exportTodos(): void {
+    const allTodos = todosCollection.utils.getAll()
+    const exportData: ExportData = {
+      version: '2',
       exportedAt: new Date().toISOString(),
-      todos,
-    } satisfies ExportData
+      todos: allTodos,
+    }
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -45,6 +35,7 @@ export function useDataExport() {
       const text = await file.text()
       const data = JSON.parse(text)
 
+      // Validate with valibot
       const result = safeParse(ExportDataSchema, data)
 
       if (!result.success) {
@@ -55,17 +46,9 @@ export function useDataExport() {
 
       const validatedTodos = result.output.todos
 
-      await db.transaction('rw', db.todos, async () => {
-        for (const todo of validatedTodos) {
-          const existingTodo = await db.todos.get(todo.id)
-          if (existingTodo) {
-            await db.todos.update(todo.id, todo)
-          }
-          else {
-            await db.todos.add(todo)
-          }
-        }
-      })
+      // Clear existing data and bulk insert
+      todosCollection.utils.clear()
+      todosCollection.utils.bulkInsert(validatedTodos)
 
       return { success: true, message: `Successfully imported ${validatedTodos.length} todos`, count: validatedTodos.length }
     }
