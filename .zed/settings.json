@@ -10,5 +10,13 @@
   "tab_size": 2,
   "formatter": [
     { "code_action": "source.fixAll.eslint" }
-  ]
+  ],
+  "languages": {
+      "CSS": {
+        "language_servers": [
+          "tailwindcss-intellisense-css",
+          "!vscode-css-language-server"
+        ]
+      }
+    }
 }
