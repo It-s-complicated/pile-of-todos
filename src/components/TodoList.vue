@@ -74,7 +74,10 @@ function closeWeekSelector() {
 
 function confirmMove(weekNumber: number | null) {
   if (selectedTodo.value) {
-    updateTodo(selectedTodo.value.id, { weekNumber })
+    todosCollection.update(selectedTodo.value.id, (draft) => {
+      draft.weekNumber = weekNumber
+      draft.updatedAt = Date.now()
+    })
   }
   closeWeekSelector()
 }
