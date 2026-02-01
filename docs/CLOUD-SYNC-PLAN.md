@@ -17,7 +17,7 @@ This document outlines the comprehensive plan for implementing cloud synchroniza
 **Rationale**:
 - Proven CRDT implementation with extensive documentation
 - Excellent Vue 3 integration support
-- Supports IndexedDB persistence for offline storage
+- Compatible with TanStack DB reactivity model
 - Works seamlessly with Supabase via WebSocket providers
 - Large community and active development
 
@@ -29,54 +29,26 @@ This document outlines the comprehensive plan for implementing cloud synchroniza
 
 ### ADR-002: Local Database Package Selection
 
-**Decision**: Dexie.js can be replaced with alternative packages
+**Decision**: TanStack DB (LocalStorage) - Migration completed ✅
 
-**Status**: ⚠️ OPEN DECISION
+**Status**: ✅ DECIDED & IMPLEMENTED
 
 **Current Implementation**:
-- **Dexie.js**: Currently used for IndexedDB operations
-- **Version**: 4.2.1
-- **Features**: Basic CRUD operations, TypeScript support
+- **TanStack DB**: Reactive queries with LocalStorage persistence
+- **Version**: @tanstack/react-db (latest)
+- **Features**: Live queries, automatic reactivity, cross-tab sync, valibot validation
 
-**Alternative Packages to Consider**:
+**Migration from Dexie.js**:
+- **Previous**: Dexie.js 4.2.1 with IndexedDB
+- **Current**: TanStack DB with LocalStorage collection options
+- **Rationale**: Better Vue 3 reactivity integration, simpler API, automatic sync across tabs
 
-**A. WatermelonDB**
-- **Pros**: Reactive queries, better performance for large datasets
-- **Cons**: More complex setup, different API patterns
-- **Use Case**: Better for apps with complex data relationships
-
-**B. RxDB**
-- **Pros**: Built-in replication, offline-first features
-- **Cons**: Larger bundle size, more dependencies
-- **Use Case**: Excellent for complex sync scenarios
-
-**C. LocalForage**
-- **Pros**: Simple API, multiple storage backends
-- **Cons**: Less feature-rich, basic CRUD only
-- **Use Case**: Simple key-value storage needs
-
-**D. PouchDB**
-- **Pros**: Excellent replication, CouchDB compatibility
-- **Cons**: Larger bundle size, different paradigm
-- **Use Case**: Complex sync scenarios with multiple devices
-
-**Rationale for Current Choice**:
-- **Dexie.js**: Simple, lightweight, TypeScript support
-- **Integration**: Works well with existing Vue 3 + TypeScript setup
-- **Performance**: Sufficient for todo app requirements
-- **Learning Curve**: Minimal, easy to understand and maintain
-
-**Decision Criteria**:
-1. **Bundle Size**: Impact on application performance
-2. **API Compatibility**: Ease of migration from Dexie.js
-3. **Feature Requirements**: Support for required operations
-4. **Community Support**: Documentation and maintenance
-5. **Integration**: Compatibility with CRDT and sync implementations
-
-**Open Decisions**:
-- ⚠️ **DECISION NEEDED**: Should we keep Dexie.js or migrate to an alternative?
-- ⚠️ **DECISION NEEDED**: If migrating, which package best fits our requirements?
-- ⚠️ **DECISION NEEDED**: What is the migration timeline and effort?
+**Key Features**:
+- **Live Queries**: `useLiveQuery()` provides automatic reactivity
+- **LocalStorage**: `localStorageCollectionOptions` for persistence
+- **Cross-tab Sync**: Enabled by default via storage events
+- **Validation**: valibot schemas for import/export validation
+- **Simplicity**: Synchronous CRUD operations (no async/await needed)
 
 ---
 
@@ -90,15 +62,22 @@ This document outlines the comprehensive plan for implementing cloud synchroniza
 
 ### ADR-002: Sync Strategy
 
-**Decision**: Hybrid approach (Dexie.js + Supabase)
+**Decision**: Hybrid approach (TanStack DB + Supabase)
 
 **Status**: ✅ DECIDED
 
 **Rationale**:
-- Keep Dexie.js for local IndexedDB storage (offline support)
+- TanStack DB for local storage with automatic reactivity and cross-tab sync
 - Use Supabase for cloud sync and real-time updates
 - Implement sync queue for offline operations
 - Provide immediate UI feedback with optimistic updates
+- Valibot validation for data integrity
+
+**Current Implementation**:
+- Collections defined in `src/db/collections.ts`
+- Live queries via `useLiveQuery()` in composables
+- Cross-tab sync enabled via LocalStorage events
+- Import/export with valibot validation schemas
 
 **Open Decisions**:
 - ⚠️ **DECISION NEEDED**: Confirm sync queue implementation details
@@ -163,23 +142,20 @@ CREATE INDEX idx_todos_archived ON todos(archived);
 
 #### 1.3 CRDT Integration
 ```typescript
-import { IndexeddbPersistence } from 'y-indexeddb'
 // src/lib/crdt.ts
 import * as Y from 'yjs'
+import { useLiveQuery } from '@tanstack/react-db'
+import { todosCollection } from '@/db/collections'
 
 export function createCRDTStore() {
   const ydoc = new Y.Doc()
 
-  // IndexedDB persistence for offline support
-  const persistence = new IndexeddbPersistence('todos-crdt', ydoc)
-  persistence.whenSynced.then(() => {
-    console.log('CRDT loaded from IndexedDB')
-  })
+  // TanStack DB persistence via LocalStorage (already handles reactivity)
+  // No additional persistence layer needed - TanStack DB handles this
+  const todos = useLiveQuery(() => todosCollection.findMany({}))
 
-  // Create shared todo map
-  const todos = ydoc.getMap('todos')
-
-  return { ydoc, todos, persistence }
+  // CRDT updates will be applied to TanStack DB via sync queue
+  return { ydoc, todos }
 }
 ```
 
@@ -416,7 +392,7 @@ export function useAuth() {
 **Considerations**:
 - Yjs has more mature ecosystem and documentation
 - SyncedStore has Vue 3 native bindings
-- Yjs supports IndexedDB persistence out of the box
+- Yjs compatible with TanStack DB reactivity patterns
 - SyncedStore may have simpler API
 
 **Recommendation**: Proceed with Yjs based on current research, but verify compatibility with existing Vue 3 + TypeScript setup.
@@ -466,7 +442,8 @@ export function useAuth() {
 **Impact**: High
 **Mitigation**:
 - Implement robust sync queue with retry logic
-- Use IndexedDB for reliable offline storage
+- TanStack DB with LocalStorage provides reliable offline storage
+- Cross-tab sync enabled via storage events
 - Provide clear user feedback on sync status
 - Handle network interruptions gracefully
 
