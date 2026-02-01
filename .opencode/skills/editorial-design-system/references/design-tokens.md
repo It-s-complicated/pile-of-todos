@@ -137,18 +137,18 @@ Complete design token reference for the Editorial Design System.
   --color-navy: #1a1a2e;
   --color-coral: #e07a5f;
   --color-coral-dark: #c45a3f;
-  
+
   /* Backgrounds */
   --color-cream: #faf9f6;
   --color-paper: #ffffff;
   --color-paper-elevated: #ffffff;
-  
+
   /* Text */
   --color-text-primary: #1a1a2e;
   --color-text-secondary: #4a4a5a;
   --color-text-muted: #7a7a8a;
   --color-text-inverse: #ffffff;
-  
+
   /* Status */
   --color-success: #5a8a6e;
   --color-success-light: #e8f0eb;
@@ -156,22 +156,22 @@ Complete design token reference for the Editorial Design System.
   --color-warning-light: #faf3e8;
   --color-danger: #c45a5a;
   --color-danger-light: #f5e8e8;
-  
+
   /* Week Indicators */
   --color-week-current: #e07a5f;
   --color-week-future: #5a8a6e;
   --color-week-past: #7a7a8a;
   --color-week-backlog: #d4a373;
-  
+
   /* Borders */
   --color-border: #e8e6e1;
   --color-border-hover: #d8d6d1;
-  
+
   /* Typography */
   --font-display: 'Playfair Display', serif;
   --font-body: 'Source Sans 3', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
-  
+
   /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -182,18 +182,18 @@ Complete design token reference for the Editorial Design System.
   --space-8: 2rem;
   --space-10: 2.5rem;
   --space-12: 3rem;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(26, 26, 46, 0.04);
   --shadow-md: 0 4px 6px rgba(26, 26, 46, 0.06);
   --shadow-lg: 0 10px 24px rgba(26, 26, 46, 0.12);
-  
+
   /* Radius */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-full: 9999px;
-  
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;

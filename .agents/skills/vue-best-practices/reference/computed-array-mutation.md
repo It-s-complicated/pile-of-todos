@@ -20,7 +20,7 @@ tags: [vue3, computed, arrays, mutation, sort, reverse]
 **Incorrect:**
 ```vue
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const items = ref([3, 1, 4, 1, 5, 9, 2, 6])
 const users = ref([
@@ -58,7 +58,7 @@ const sortedUsers = computed(() => {
 **Correct:**
 ```vue
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const items = ref([3, 1, 4, 1, 5, 9, 2, 6])
 const users = ref([

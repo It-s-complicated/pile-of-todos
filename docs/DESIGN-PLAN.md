@@ -4,8 +4,8 @@
 Transform the ai-todo-app from its current generic Tailwind defaults into a refined, magazine-inspired "Editorial Workspace" aesthetic. This design treats task management like editorial planning with sophisticated typography, warm colors, and elegant micro-interactions.
 
 ## Design Direction
-**Theme**: Editorial Workspace - Magazine-inspired, refined, sophisticated  
-**Tone**: Professional yet warm, organized yet creative  
+**Theme**: Editorial Workspace - Magazine-inspired, refined, sophisticated
+**Tone**: Professional yet warm, organized yet creative
 **Metaphor**: Editorial planning desk with paper, ink, and careful organization
 
 ---
@@ -431,7 +431,7 @@ Before considering implementation complete:
 ### Lucide Icons (Vue)
 ```vue
 <script setup>
-import { Check, Archive, Calendar, ArrowRight, Download, Upload } from 'lucide-vue-next'
+import { Archive, ArrowRight, Calendar, Check, Download, Upload } from 'lucide-vue-next'
 </script>
 ```
 
@@ -450,24 +450,24 @@ import { Check, Archive, Calendar, ArrowRight, Download, Upload } from 'lucide-v
   --color-warning: #d4a373;
   --color-danger: #c45a5a;
   --color-border: #e8e6e1;
-  
+
   /* Typography */
   --font-display: 'Playfair Display', serif;
   --font-body: 'Source Sans 3', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
-  
+
   /* Spacing */
   --space-4: 1rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
-  
+
   /* Effects */
   --shadow-sm: 0 1px 2px rgba(26, 26, 46, 0.04);
   --shadow-md: 0 4px 6px rgba(26, 26, 46, 0.06);
   --shadow-lg: 0 10px 24px rgba(26, 26, 46, 0.12);
   --radius-md: 8px;
   --radius-lg: 12px;
-  
+
   /* Transitions */
   --transition-base: 200ms ease;
   --transition-slow: 300ms ease;
@@ -488,6 +488,6 @@ The implementation is successful when:
 
 ---
 
-*Document Version: 1.0*  
-*Created: January 2026*  
+*Document Version: 1.0*
+*Created: January 2026*
 *Design Skill Required: frontend-design*

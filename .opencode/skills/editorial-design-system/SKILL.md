@@ -57,11 +57,11 @@ UnpluginFonts({
       },
       {
         name: 'Playfair Display',
-        styles: 'wght@400..700',  // Variable font
+        styles: 'wght@400..700', // Variable font
       },
       {
         name: 'Source Sans 3',
-        styles: 'wght@400..700',  // Variable font
+        styles: 'wght@400..700', // Variable font
       },
     ],
   },

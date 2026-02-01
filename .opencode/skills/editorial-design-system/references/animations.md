@@ -111,12 +111,10 @@ module.exports = {
 ```vue
 <template>
   <button
-    @click="toggle"
-    :class="[
-      'w-5 h-5 rounded border-2 flex items-center justify-center',
-      'transition-all duration-200',
-      checked && 'scale-pulse'
+    class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200" :class="[
+      checked && 'scale-pulse',
     ]"
+    @click="toggle"
   >
     <Check v-if="checked" class="w-3.5 h-3.5" />
   </button>
@@ -194,7 +192,7 @@ module.exports = {
         @click="close"
       />
     </Transition>
-    
+
     <!-- Modal -->
     <Transition
       enter-active-class="transition-all duration-300 ease-out"
@@ -226,8 +224,8 @@ module.exports = {
 ```vue
 <template>
   <div class="space-y-2">
-    <input v-model="value" class="input" />
-    
+    <input v-model="value" class="input">
+
     <Transition
       enter-active-class="transition-all duration-300 ease-out"
       enter-from-class="opacity-0 -translate-y-2"
@@ -294,7 +292,7 @@ module.exports = {
     <button class="icon-button">
       <Archive class="w-5 h-5" />
     </button>
-    
+
     <div
       class="
         absolute bottom-full left-1/2 -translate-x-1/2 mb-2

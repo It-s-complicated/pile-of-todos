@@ -163,22 +163,22 @@ CREATE INDEX idx_todos_archived ON todos(archived);
 
 #### 1.3 CRDT Integration
 ```typescript
+import { IndexeddbPersistence } from 'y-indexeddb'
 // src/lib/crdt.ts
 import * as Y from 'yjs'
-import { IndexeddbPersistence } from 'y-indexeddb'
 
 export function createCRDTStore() {
   const ydoc = new Y.Doc()
-  
+
   // IndexedDB persistence for offline support
   const persistence = new IndexeddbPersistence('todos-crdt', ydoc)
   persistence.whenSynced.then(() => {
     console.log('CRDT loaded from IndexedDB')
   })
-  
+
   // Create shared todo map
   const todos = ydoc.getMap('todos')
-  
+
   return { ydoc, todos, persistence }
 }
 ```
@@ -204,15 +204,17 @@ export function useSyncQueue() {
   }
 
   async function processQueue(): Promise<void> {
-    if (isSyncing.value) return
-    
+    if (isSyncing.value)
+      return
+
     isSyncing.value = true
     while (queue.value.length > 0) {
       const operation = queue.value[0]
       try {
         await syncOperation(operation)
         queue.value.shift()
-      } catch (error) {
+      }
+      catch (error) {
         // Handle sync failure
         console.error('Sync failed:', error)
         break
@@ -236,10 +238,10 @@ export function resolveConflict(
   // CRDT automatically resolves conflicts
   // Use vector clocks for deterministic resolution
   // Fallback to last-writer-wins if needed
-  
+
   // CRDT approach: apply remote changes, let CRDT merge
   Y.applyUpdate(localTodo.crdtState, crdtUpdate)
-  
+
   // Return merged result
   return {
     ...localTodo,
@@ -265,7 +267,7 @@ export const todoStore = store({
 
 export function useTodos() {
   const { addToQueue, processQueue } = useSyncQueue()
-  
+
   // Local operations
   async function addTodo(label: string, weekNumber: number | null) {
     const todo: Todo = {
@@ -278,10 +280,10 @@ export function useTodos() {
       updatedAt: Date.now(),
       crdtState: {} // Initialize CRDT state
     }
-    
+
     // Add to CRDT
     todoStore.todos.set(todo.id, todo)
-    
+
     // Queue for sync
     addToQueue({
       type: 'create',
@@ -289,34 +291,36 @@ export function useTodos() {
       timestamp: Date.now()
     })
   }
-  
+
   // Sync operations
   async function syncWithCloud() {
     try {
       todoStore.loading = true
-      
+
       // Upload local changes
       const localChanges = getPendingChanges()
       await supabase.from('todos').upsert(localChanges)
-      
+
       // Download remote changes
       const remoteTodos = await supabase
         .from('todos')
         .select('*')
         .order('updated_at', { ascending: false })
-      
+
       // Merge using CRDT
       mergeWithCRDT(remoteTodos)
-      
+
       // Process sync queue
       await processQueue()
-    } catch (error) {
-      todoStore.error = 'Sync failed: ' + error.message
-    } finally {
+    }
+    catch (error) {
+      todoStore.error = `Sync failed: ${error.message}`
+    }
+    finally {
       todoStore.loading = false
     }
   }
-  
+
   return {
     todos: computed(() => Array.from(todoStore.todos.values())),
     addTodo,
@@ -330,7 +334,7 @@ export function useTodos() {
 // src/composables/useRealtimeSync.ts
 export function useRealtimeSync() {
   const channel = supabase.channel('todos')
-  
+
   function subscribeToChanges(callback: (payload: any) => void) {
     channel
       .on('postgres_changes', {
@@ -339,10 +343,10 @@ export function useRealtimeSync() {
         table: 'todos'
       }, callback)
       .subscribe()
-    
+
     return () => supabase.removeChannel(channel)
   }
-  
+
   return { subscribeToChanges }
 }
 ```
@@ -354,27 +358,27 @@ export function useRealtimeSync() {
 // src/composables/useNetworkStatus.ts
 export function useNetworkStatus() {
   const isOnline = ref(navigator.onLine)
-  
+
   function handleOnline() {
     isOnline.value = true
     // Trigger sync when back online
     syncManager.syncWhenOnline()
   }
-  
+
   function handleOffline() {
     isOnline.value = false
   }
-  
+
   useEffect(() => {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-    
+
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
-  
+
   return { isOnline }
 }
 ```
@@ -384,7 +388,7 @@ export function useNetworkStatus() {
 // src/composables/useAuth.ts
 export function useAuth() {
   const { data: session, error } = await supabase.auth.getSession()
-  
+
   // GitHub OAuth setup
   async function signInWithGitHub() {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -392,14 +396,14 @@ export function useAuth() {
     })
     return { data, error }
   }
-  
+
   // Restrict to pre-configured users
   async function isAllowedUser(email: string): Promise<boolean> {
     // Check against allowed emails list
     // Or check user roles/permissions
     return allowedEmails.includes(email)
   }
-  
+
   return { session, signInWithGitHub, isAllowedUser }
 }
 ```
