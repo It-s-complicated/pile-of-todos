@@ -1,8 +1,8 @@
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
+import UnpluginFonts from 'unplugin-fonts/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import UnpluginFonts from 'unplugin-fonts/vite'
 
 export default defineConfig({
   plugins: [
