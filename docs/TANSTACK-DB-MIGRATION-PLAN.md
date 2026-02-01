@@ -639,6 +639,40 @@ if (!result.success) {
 | `src/composables/useDataExport.ts` | Modify | Update import/export with valibot validation |
 | `src/stores/todos.ts` | Modify | Replace with live queries |
 | `src/components/*.vue` | Modify | Update to use valibot validation for labels |
+| `AGENTS.md` | Modify | Update tech stack and database guidelines |
+
+### Documentation Update Required
+
+**File**: `AGENTS.md`
+
+After migration, update the following sections:
+
+1. **Tech Stack** - Update Database line:
+   ```
+   - **Database**: TanStack DB (LocalStorage) with valibot schema validation
+   ```
+
+2. **Database Guidelines** - Replace entire section with:
+   - Use TanStack DB `createCollection()` with `localStorageCollectionOptions`
+   - Define schemas using valibot for runtime validation
+   - Use `crypto.randomUUID()` for unique IDs
+   - Always set `updatedAt` timestamp on modifications
+   - Collection methods: `insert()`, `update()`, `delete()` (synchronous)
+   - Live queries via `useLiveQuery()` hook
+   - Cross-tab sync enabled by default
+
+3. **Reactivity Pattern** - Update to reflect TanStack DB:
+   - TanStack DB live queries provide automatic reactivity
+   - No manual state updates needed after mutations
+   - Components subscribe to live queries for real-time updates
+
+4. **Imports** - Remove Dexie-specific import guidelines
+
+5. **Remove references to**:
+   - Dexie.js
+   - IndexedDB
+   - `Table` type from dexie
+   - `db.todos` pattern
 
 ## Post-Migration Verification
 
@@ -649,6 +683,15 @@ After migration is complete, verify:
 3. **Memory usage**: Monitor memory usage with large todo lists
 4. **User experience**: Test on slow devices/networks
 5. **Cross-browser**: Test in Chrome, Firefox, Safari, Edge
+
+### Update Documentation
+
+**CRITICAL**: Update `AGENTS.md` to reflect new architecture:
+- [ ] Update Tech Stack section (replace Dexie with TanStack DB)
+- [ ] Update Database Guidelines section (new patterns)
+- [ ] Update Reactivity Pattern section (live queries)
+- [ ] Remove Dexie-specific import guidelines
+- [ ] Update any code examples referencing Dexie
 
 ## Additional Considerations
 
