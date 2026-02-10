@@ -1,14 +1,16 @@
 {
   "name": "ai-todo-app",
-  "type": "module",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "eslint .",
-    "lint:fix": "eslint --fix"
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix"
   },
   "dependencies": {
     "@tanstack/vue-db": "^0.0.102",
@@ -18,12 +20,12 @@
     "vue-router": "^5.0.2"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^7.4.2",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^24.10.13",
     "@vitejs/plugin-vue": "^6.0.4",
     "@vue/tsconfig": "^0.8.1",
-    "eslint": "^9.39.2",
+    "oxfmt": "^0.31.0",
+    "oxlint": "^1.46.0",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
     "unplugin-fonts": "^1.4.0",

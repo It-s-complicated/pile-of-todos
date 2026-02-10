@@ -14,12 +14,12 @@ const route = useRoute()
 
 const currentWeek = getCurrentWeekNumber()
 const rawFilter = computed(() => (route.params.filter as TodoFilter) || (route.name as TodoFilter))
-const filter = computed(() => VALID_FILTERS.includes(rawFilter.value) ? rawFilter.value : 'backlog')
+const filter = computed(() =>
+  VALID_FILTERS.includes(rawFilter.value) ? rawFilter.value : 'backlog',
+)
 
 // Single live query for all todos - called in component context
-const { data: allTodos, isReady } = useLiveQuery(q =>
-  q.from({ todo: todosCollection }),
-)
+const { data: allTodos, isReady } = useLiveQuery(q => q.from({ todo: todosCollection }))
 
 // Loading state
 const loading = computed(() => !isReady.value)
@@ -36,7 +36,9 @@ const filteredTodos = computed(() => {
     case 'future':
       return todos.filter(t => t.weekNumber !== null && t.weekNumber > currentWeek && !t.archived)
     case 'unfinished':
-      return todos.filter(t => t.weekNumber !== null && t.weekNumber < currentWeek && !t.done && !t.archived)
+      return todos.filter(
+        t => t.weekNumber !== null && t.weekNumber < currentWeek && !t.done && !t.archived,
+      )
     case 'archived':
       return todos.filter(t => t.archived === true)
     case 'finished':
@@ -96,7 +98,10 @@ const emptyStateMessage = computed(() => {
     case 'finished':
       return { title: 'No completed tasks', subtitle: 'Mark tasks as done to see them here' }
     case 'archived':
-      return { title: 'No archived tasks', subtitle: 'Archive tasks to hide them from active views' }
+      return {
+        title: 'No archived tasks',
+        subtitle: 'Archive tasks to hide them from active views',
+      }
     default:
       return { title: 'No tasks found', subtitle: 'Add your first task to get started' }
   }
@@ -114,10 +119,7 @@ const emptyStateMessage = computed(() => {
     </div>
 
     <!-- Empty State -->
-    <div
-      v-else-if="filteredTodos.length === 0"
-      class="text-center py-16 px-4"
-    >
+    <div v-else-if="filteredTodos.length === 0" class="text-center py-16 px-4">
       <div class="inline-flex flex-col items-center gap-4">
         <div class="size-16 rounded-full bg-cream flex items-center justify-center">
           <FileText class="size-8 text-border-hover" stroke-width="1.5" />

@@ -5,6 +5,7 @@
 This document outlines the migration from Dexie.js to TanStack DB using LocalStorage Collection for the AI Todo App.
 
 **Key Decision**: With < 1000 todos, LocalStorage Collection is appropriate and provides significant benefits:
+
 - ✅ Well within 5-10MB storage limit (~500KB-1MB expected usage)
 - ✅ Simple, synchronous API (no async/await for mutations)
 - ✅ Automatic cross-tab synchronization
@@ -14,6 +15,7 @@ This document outlines the migration from Dexie.js to TanStack DB using LocalSto
 ## Current State Analysis
 
 ### Dexie.js Usage
+
 - **Database**: `TodoAppDB` (IndexedDB)
 - **Table**: `todos` with indexes on `id, weekNumber, done, archived, createdAt, updatedAt`
 - **Files using Dexie**:
@@ -25,6 +27,7 @@ This document outlines the migration from Dexie.js to TanStack DB using LocalSto
 ### Data Model with Valibot Schema
 
 **TypeScript Interface** (inferred from schema):
+
 ```typescript
 interface Todo {
   id: string
@@ -38,6 +41,7 @@ interface Todo {
 ```
 
 **Valibot Schema Definition**:
+
 ```typescript
 import { boolean, maxLength, minLength, number, object, pipe, regex, string } from 'valibot'
 
@@ -47,7 +51,7 @@ export const TodoSchema = object({
     string(),
     minLength(1, 'Label cannot be empty'),
     maxLength(500, 'Label must be less than 500 characters'),
-    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
   ),
   weekNumber: number(),
   done: boolean(),
@@ -120,7 +124,7 @@ export const TodoSchema = object({
     string(),
     minLength(1, 'Label cannot be empty'),
     maxLength(500, 'Label must be less than 500 characters'),
-    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
   ),
   weekNumber: number(), // null handled by TypeScript
   done: boolean(),
@@ -137,22 +141,22 @@ export const TodoLabelSchema = pipe(
   string(),
   minLength(1, 'Label cannot be empty'),
   maxLength(500, 'Label must be less than 500 characters'),
-  regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+  regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
 )
 ```
 
 ### Validation Rules
 
-| Field | Rule | Error Message |
-|-------|------|---------------|
-| `id` | Required string | N/A (system generated) |
-| `label` | 1-500 chars | "Label must be 1-500 characters" |
-| `label` | Valid chars only | "Invalid characters in label" |
-| `weekNumber` | Number or null | N/A |
-| `done` | Boolean | N/A |
-| `archived` | Boolean | N/A |
-| `createdAt` | Number (timestamp) | N/A |
-| `updatedAt` | Number (timestamp) | N/A |
+| Field        | Rule               | Error Message                    |
+| ------------ | ------------------ | -------------------------------- |
+| `id`         | Required string    | N/A (system generated)           |
+| `label`      | 1-500 chars        | "Label must be 1-500 characters" |
+| `label`      | Valid chars only   | "Invalid characters in label"    |
+| `weekNumber` | Number or null     | N/A                              |
+| `done`       | Boolean            | N/A                              |
+| `archived`   | Boolean            | N/A                              |
+| `createdAt`  | Number (timestamp) | N/A                              |
+| `updatedAt`  | Number (timestamp) | N/A                              |
 
 ### Why Valibot?
 
@@ -166,6 +170,7 @@ export const TodoLabelSchema = pipe(
 ### Usage Examples
 
 **Validating user input**:
+
 ```typescript
 import { safeParse } from 'valibot'
 import { TodoLabelSchema } from '@/db/collections'
@@ -180,18 +185,20 @@ function validateLabel(label: string): string | null {
 ```
 
 **Collection with validation**:
+
 ```typescript
 const todosCollection = createCollection(
   localStorageCollectionOptions({
     id: 'todos',
     storageKey: 'ai-todo-app-todos',
-    getKey: item => item.id,
+    getKey: (item) => item.id,
     schema: TodoSchema, // Runtime validation on insert/update
-  })
+  }),
 )
 ```
 
 **Import validation**:
+
 ```typescript
 const result = safeParse(array(TodoSchema), importedData.todos)
 if (!result.success) {
@@ -227,7 +234,7 @@ export const TodoSchema = object({
     string(),
     minLength(1, 'Label cannot be empty'),
     maxLength(500, 'Label must be less than 500 characters'),
-    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
   ),
   weekNumber: number(), // can be null via TypeScript type
   done: boolean(),
@@ -244,9 +251,9 @@ export const todosCollection = createCollection(
   localStorageCollectionOptions({
     id: 'todos',
     storageKey: 'ai-todo-app-todos',
-    getKey: item => item.id,
+    getKey: (item) => item.id,
     schema: TodoSchema, // Valibot schema for validation
-  })
+  }),
 )
 
 // Label validation helper for UI
@@ -254,11 +261,12 @@ export const TodoLabelSchema = pipe(
   string(),
   minLength(1, 'Label cannot be empty'),
   maxLength(500, 'Label must be less than 500 characters'),
-  regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters')
+  regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
 )
 ```
 
 **Key Benefits of Valibot Integration**:
+
 - ✅ Runtime validation of all todo data
 - ✅ Type inference from schemas (single source of truth)
 - ✅ Label validation rules (1-500 chars, specific characters)
@@ -271,15 +279,16 @@ export const TodoLabelSchema = pipe(
 
 Replace all Dexie operations:
 
-| Current (Dexie) | New (TanStack DB) |
-|----------------|-------------------|
-| `db.todos.toArray()` | Remove (use live queries) |
-| `db.todos.add(todo)` | `todosCollection.insert(todo)` |
+| Current (Dexie)                | New (TanStack DB)                                |
+| ------------------------------ | ------------------------------------------------ |
+| `db.todos.toArray()`           | Remove (use live queries)                        |
+| `db.todos.add(todo)`           | `todosCollection.insert(todo)`                   |
 | `db.todos.update(id, changes)` | `todosCollection.update(id, (draft) => { ... })` |
-| `db.todos.delete(id)` | `todosCollection.delete(id)` |
-| `db.todos.get(id)` | Query from collection utils |
+| `db.todos.delete(id)`          | `todosCollection.delete(id)`                     |
+| `db.todos.get(id)`             | Query from collection utils                      |
 
 **Key changes**:
+
 - Remove async/await where not needed (mutations are synchronous)
 - Remove Dexie imports
 - Use collection methods directly
@@ -291,6 +300,7 @@ Replace all Dexie operations:
 Major refactoring:
 
 1. **Replace Pinia state**:
+
 ```typescript
 // Remove this:
 // Add this:
@@ -299,20 +309,19 @@ import { todosCollection } from '@/db/collections'
 
 const todos = ref<Todo[]>([])
 
-const { data: todos } = useLiveQuery(q =>
-  q.from({ todo: todosCollection })
-)
+const { data: todos } = useLiveQuery((q) => q.from({ todo: todosCollection }))
 ```
 
 2. **Convert filtered views to live queries**:
+
 ```typescript
 // Replace computed filters:
 const filteredTodos = computed(() => {
   switch (filter) {
     case 'backlog':
-      return todos.value.filter(t => t.weekNumber === null && !t.archived)
+      return todos.value.filter((t) => t.weekNumber === null && !t.archived)
     case 'current-week':
-      return todos.value.filter(t => t.weekNumber === currentWeek && !t.archived)
+      return todos.value.filter((t) => t.weekNumber === currentWeek && !t.archived)
     // ... other cases
   }
 })
@@ -320,24 +329,25 @@ const filteredTodos = computed(() => {
 // With live queries:
 const currentWeek = computed(() => weekNumber.value)
 
-const { data: backlogTodos } = useLiveQuery(q =>
+const { data: backlogTodos } = useLiveQuery((q) =>
   q
     .from({ todo: todosCollection })
     .where(({ todo }) => eq(todo.weekNumber, null))
-    .where(({ todo }) => eq(todo.archived, false))
+    .where(({ todo }) => eq(todo.archived, false)),
 )
 
-const { data: currentWeekTodos } = useLiveQuery(q =>
+const { data: currentWeekTodos } = useLiveQuery((q) =>
   q
     .from({ todo: todosCollection })
     .where(({ todo }) => eq(todo.weekNumber, currentWeek.value))
-    .where(({ todo }) => eq(todo.archived, false))
+    .where(({ todo }) => eq(todo.archived, false)),
 )
 
 // ... create live queries for each filter
 ```
 
 3. **Keep action methods** for component compatibility:
+
 ```typescript
 // Keep these methods but update implementation:
 async function addTodo(label: string, weekNumber: number | null) {
@@ -368,7 +378,7 @@ async function deleteTodo(id: string) {
 }
 
 async function toggleTodoDone(id: string) {
-  const todo = todos.value.find(t => t.id === id)
+  const todo = todos.value.find((t) => t.id === id)
   if (todo) {
     todosCollection.update(id, (draft) => {
       draft.done = !todo.done
@@ -434,8 +444,7 @@ async function importTodos(jsonString: string): Promise<ImportResult> {
       message: `Imported ${validatedTodos.length} todos`,
       count: validatedTodos.length,
     }
-  }
-  catch (error) {
+  } catch (error) {
     // Valibot provides detailed error messages
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return {
@@ -448,6 +457,7 @@ async function importTodos(jsonString: string): Promise<ImportResult> {
 ```
 
 **Benefits**:
+
 - Schema validation on import ensures data integrity
 - Valibot's tree-shakeable design keeps bundle size small
 - Type-safe validation with clear error messages
@@ -455,9 +465,11 @@ async function importTodos(jsonString: string): Promise<ImportResult> {
 ### Phase 6: Cleanup (30 minutes)
 
 **Delete**:
+
 - `src/db/db.ts` (Dexie database file)
 
 **Update**:
+
 - Remove all `import Dexie from 'dexie'` statements
 - Remove Dexie type imports
 - Update any remaining references
@@ -465,6 +477,7 @@ async function importTodos(jsonString: string): Promise<ImportResult> {
 ## API Changes Reference
 
 ### Before (Dexie)
+
 ```typescript
 // Database setup
 class TodoDatabase extends Dexie {
@@ -491,6 +504,7 @@ await db.transaction('rw', db.todos, async () => {
 ```
 
 ### After (TanStack DB with Valibot)
+
 ```typescript
 // Collection setup with valibot schema
 import { TodoSchema } from './collections'
@@ -532,6 +546,7 @@ if (!result.success) {
 ## Testing Checklist
 
 ### Core Functionality
+
 - [ ] Add new todo appears immediately in UI
 - [ ] Update todo text works
 - [ ] Update todo week number works
@@ -542,6 +557,7 @@ if (!result.success) {
 - [ ] Data persists after closing/reopening browser
 
 ### Filter Views
+
 - [ ] Backlog view shows only unarchived todos with weekNumber = null
 - [ ] Current week view shows only unarchived todos for current week
 - [ ] Future view shows only unarchived todos for future weeks
@@ -550,6 +566,7 @@ if (!result.success) {
 - [ ] Archived view shows only archived todos
 
 ### Import/Export
+
 - [ ] Export creates valid JSON file
 - [ ] Import validates JSON structure
 - [ ] Import validates todo fields
@@ -560,6 +577,7 @@ if (!result.success) {
 - [ ] Error handling for validation failures
 
 ### Cross-Tab Sync
+
 - [ ] Open app in two tabs
 - [ ] Add todo in tab 1 → appears in tab 2 automatically
 - [ ] Update todo in tab 1 → updates in tab 2 automatically
@@ -567,6 +585,7 @@ if (!result.success) {
 - [ ] Changes sync within 1-2 seconds
 
 ### Edge Cases
+
 - [ ] Empty todo list displays correctly
 - [ ] Very long todo labels handled properly
 - [ ] Special characters in todo labels work
@@ -577,6 +596,7 @@ if (!result.success) {
 ## Risk Mitigation
 
 ### Data Loss
+
 - **Risk**: All existing IndexedDB data will be lost
 - **Mitigation**:
   - Acceptable per requirements
@@ -584,6 +604,7 @@ if (!result.success) {
   - Users can re-import after migration
 
 ### Storage Limits
+
 - **Risk**: Approaching 5-10MB LocalStorage limit
 - **Mitigation**:
   - Monitor with < 1000 todos (should be ~500KB-1MB)
@@ -591,6 +612,7 @@ if (!result.success) {
   - Consider compression for larger datasets
 
 ### Performance
+
 - **Risk**: Synchronous JSON operations blocking UI
 - **Mitigation**:
   - Not expected with < 1000 todos
@@ -598,6 +620,7 @@ if (!result.success) {
   - Consider chunked operations if needed
 
 ### Rollback Plan
+
 1. Keep git branch with Dexie version until verified
 2. Both implementations can't coexist (different storage mechanisms)
 3. If critical issues found, revert to Dexie branch
@@ -608,6 +631,7 @@ if (!result.success) {
 **Total: 1-2 days**
 
 ### Day 1
+
 - **Morning (3-4 hours)**: Phases 1-3
   - Dependencies installation
   - Collection creation
@@ -617,6 +641,7 @@ if (!result.success) {
   - Live query implementation
 
 ### Day 2
+
 - **Morning (2-3 hours)**: Phases 5-6
   - Import/export migration
   - Cleanup
@@ -629,17 +654,17 @@ if (!result.success) {
 
 ## Files Modified Summary
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `package.json` | Modify | Add @tanstack/vue-db, remove dexie, keep valibot |
-| `src/db/collections.ts` | Create | New TanStack DB collection with valibot schema |
-| `src/db/db.ts` | Delete | Remove Dexie database |
-| `src/types/todo.ts` | Modify | Remove interface, use inferred type from valibot schema |
-| `src/composables/useTodos.ts` | Modify | Update to use collection |
-| `src/composables/useDataExport.ts` | Modify | Update import/export with valibot validation |
-| `src/stores/todos.ts` | Modify | Replace with live queries |
-| `src/components/*.vue` | Modify | Update to use valibot validation for labels |
-| `AGENTS.md` | Modify | Update tech stack and database guidelines |
+| File                               | Change Type | Description                                             |
+| ---------------------------------- | ----------- | ------------------------------------------------------- |
+| `package.json`                     | Modify      | Add @tanstack/vue-db, remove dexie, keep valibot        |
+| `src/db/collections.ts`            | Create      | New TanStack DB collection with valibot schema          |
+| `src/db/db.ts`                     | Delete      | Remove Dexie database                                   |
+| `src/types/todo.ts`                | Modify      | Remove interface, use inferred type from valibot schema |
+| `src/composables/useTodos.ts`      | Modify      | Update to use collection                                |
+| `src/composables/useDataExport.ts` | Modify      | Update import/export with valibot validation            |
+| `src/stores/todos.ts`              | Modify      | Replace with live queries                               |
+| `src/components/*.vue`             | Modify      | Update to use valibot validation for labels             |
+| `AGENTS.md`                        | Modify      | Update tech stack and database guidelines               |
 
 ### Documentation Update Required
 
@@ -648,6 +673,7 @@ if (!result.success) {
 After migration, update the following sections:
 
 1. **Tech Stack** - Update Database line:
+
    ```
    - **Database**: TanStack DB (LocalStorage) with valibot schema validation
    ```
@@ -687,6 +713,7 @@ After migration is complete, verify:
 ### Update Documentation
 
 **CRITICAL**: Update `AGENTS.md` to reflect new architecture:
+
 - [ ] Update Tech Stack section (replace Dexie with TanStack DB)
 - [ ] Update Database Guidelines section (new patterns)
 - [ ] Update Reactivity Pattern section (live queries)
@@ -696,14 +723,18 @@ After migration is complete, verify:
 ## Additional Considerations
 
 ### Future Enhancements
+
 With TanStack DB, you can easily add:
+
 - Server sync (using Query Collection with ElectricSQL/RxDB)
 - Offline support
 - Real-time collaboration
 - Optimistic mutations with server reconciliation
 
 ### Monitoring
+
 Consider adding:
+
 - Storage usage tracking
 - Performance metrics
 - Error tracking for mutations
@@ -711,6 +742,7 @@ Consider adding:
 ## Conclusion
 
 This migration provides:
+
 - ✅ Simpler codebase (no Dexie dependency)
 - ✅ Better reactivity (live queries)
 - ✅ Cross-tab synchronization
@@ -720,6 +752,7 @@ This migration provides:
 - ✅ Acceptable for < 1000 todos
 
 **Key Improvements**:
+
 1. **Valibot Integration**: Runtime validation on all data operations
 2. **Standard Schema v1**: Compatible with TanStack ecosystem
 3. **Validation Rules**: Enforced 1-500 char labels, valid characters only

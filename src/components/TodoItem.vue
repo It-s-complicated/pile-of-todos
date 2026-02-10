@@ -102,11 +102,7 @@ function cancelEdit() {
         @keyup.enter="saveEdit"
         @keyup.esc="cancelEdit"
       >
-      <div
-        v-else
-        class="cursor-pointer"
-        @dblclick="startEdit"
-      >
+      <div v-else class="cursor-pointer" @dblclick="startEdit">
         <p
           class="text-base leading-snug transition-all duration-200"
           :class="{ 'line-through text-text-muted': todo.done, 'text-navy': !todo.done }"
@@ -121,7 +117,9 @@ function cancelEdit() {
     </div>
 
     <!-- Actions -->
-    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+    <div
+      class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+    >
       <button
         type="button"
         class="p-2 text-text-muted hover:text-navy hover:bg-cream rounded-md transition-all duration-150"

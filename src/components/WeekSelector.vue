@@ -20,11 +20,27 @@ function cancel() {
 
 const weekOptions = [
   { value: null, label: 'Backlog', description: 'No assigned week' },
-  { value: props.currentWeek - 1, label: `Week ${props.currentWeek - 1}`, description: 'Previous week' },
+  {
+    value: props.currentWeek - 1,
+    label: `Week ${props.currentWeek - 1}`,
+    description: 'Previous week',
+  },
   { value: props.currentWeek, label: `Week ${props.currentWeek}`, description: 'Current week' },
-  { value: props.currentWeek + 1, label: `Week ${props.currentWeek + 1}`, description: 'Next week' },
-  { value: props.currentWeek + 2, label: `Week ${props.currentWeek + 2}`, description: 'Two weeks ahead' },
-  { value: props.currentWeek + 3, label: `Week ${props.currentWeek + 3}`, description: 'Three weeks ahead' },
+  {
+    value: props.currentWeek + 1,
+    label: `Week ${props.currentWeek + 1}`,
+    description: 'Next week',
+  },
+  {
+    value: props.currentWeek + 2,
+    label: `Week ${props.currentWeek + 2}`,
+    description: 'Two weeks ahead',
+  },
+  {
+    value: props.currentWeek + 3,
+    label: `Week ${props.currentWeek + 3}`,
+    description: 'Three weeks ahead',
+  },
 ]
 </script>
 
@@ -56,21 +72,18 @@ const weekOptions = [
         :key="option.value ?? 'backlog'"
         type="button"
         class="w-full flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 text-left"
-        :class="selectedWeek === option.value
-          ? 'border-coral bg-cream'
-          : 'border-border bg-white hover:border-border-hover hover:bg-cream'"
+        :class="
+          selectedWeek === option.value
+            ? 'border-coral bg-cream'
+            : 'border-border bg-white hover:border-border-hover hover:bg-cream'
+        "
         @click="selectedWeek = option.value"
       >
         <div
           class="size-5 rounded-full border-2 flex items-center justify-center transition-all duration-200"
-          :class="selectedWeek === option.value
-            ? 'border-coral bg-coral'
-            : 'border-border'"
+          :class="selectedWeek === option.value ? 'border-coral bg-coral' : 'border-border'"
         >
-          <div
-            v-if="selectedWeek === option.value"
-            class="size-2 rounded-full bg-white"
-          />
+          <div v-if="selectedWeek === option.value" class="size-2 rounded-full bg-white" />
         </div>
         <div class="flex-1">
           <p class="font-medium text-navy">

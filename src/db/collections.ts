@@ -1,6 +1,16 @@
 import type { InferOutput } from 'valibot'
 import { createCollection, localStorageCollectionOptions } from '@tanstack/vue-db'
-import { boolean, maxLength, minLength, nullable, number, object, pipe, regex, string } from 'valibot'
+import {
+  boolean,
+  maxLength,
+  minLength,
+  nullable,
+  number,
+  object,
+  pipe,
+  regex,
+  string,
+} from 'valibot'
 
 export const TodoSchema = object({
   id: pipe(string(), minLength(1)),
@@ -19,9 +29,22 @@ export const TodoSchema = object({
 
 export type Todo = InferOutput<typeof TodoSchema>
 
-export type TodoFilter = 'backlog' | 'current-week' | 'future' | 'unfinished' | 'archived' | 'finished'
+export type TodoFilter
+  = | 'backlog'
+    | 'current-week'
+    | 'future'
+    | 'unfinished'
+    | 'archived'
+    | 'finished'
 
-export const VALID_FILTERS: TodoFilter[] = ['backlog', 'current-week', 'future', 'unfinished', 'archived', 'finished']
+export const VALID_FILTERS: TodoFilter[] = [
+  'backlog',
+  'current-week',
+  'future',
+  'unfinished',
+  'archived',
+  'finished',
+]
 
 export const todosCollection = createCollection(
   localStorageCollectionOptions({

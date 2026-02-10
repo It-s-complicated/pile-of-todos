@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { Archive, Calendar, CheckCircle, Clock, Download, Inbox, Layers, Upload } from 'lucide-vue-next'
+import {
+  Archive,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Download,
+  Inbox,
+  Layers,
+  Upload,
+} from 'lucide-vue-next'
 import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
 import { ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
@@ -58,7 +67,10 @@ async function handleExport() {
     showImportMessage('Data exported successfully!', true)
   }
   catch (error) {
-    showImportMessage(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`, false)
+    showImportMessage(
+      `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      false,
+    )
   }
 }
 
@@ -83,7 +95,10 @@ async function handleImport(event: Event) {
     }
   }
   catch (error) {
-    showImportMessage(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`, false)
+    showImportMessage(
+      `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      false,
+    )
   }
 
   if (target) {
@@ -122,7 +137,9 @@ const id = useId()
   <div class="max-w-3xl mx-auto px-6 py-8 min-h-screen">
     <!-- Header -->
     <header class="mb-6 sm:mb-8 lg:mb-10">
-      <h1 class="font-[Playfair_Display] text-2xl sm:text-3xl lg:text-4xl font-bold text-navy mb-1 sm:mb-2 tracking-tight">
+      <h1
+        class="font-[Playfair_Display] text-2xl sm:text-3xl lg:text-4xl font-bold text-navy mb-1 sm:mb-2 tracking-tight"
+      >
         Editorial Tasks
       </h1>
       <p class="text-text-muted text-sm font-[Source_Sans_3] hidden sm:block">
@@ -148,7 +165,10 @@ const id = useId()
     <!-- Input Form -->
     <form class="mb-6" @submit.prevent="createTodo">
       <div class="bg-white p-4 rounded-lg border border-border shadow-sm">
-        <label :for="`${id}-new`" class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide">
+        <label
+          :for="`${id}-new`"
+          class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide"
+        >
           New Task
         </label>
         <input
@@ -158,12 +178,17 @@ const id = useId()
           required
           class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-base text-navy placeholder:text-gray-400 focus:outline-none focus:border-navy focus:ring-1 focus:ring-navy/10 transition-all duration-200"
         >
-        <div 
-          :class="newTodoLabel.trim().length > 0 ? 'max-h-20 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'"
+        <div
+          :class="
+            newTodoLabel.trim().length > 0 ? 'max-h-20 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
+          "
           class="flex gap-3 flex-wrap items-end overflow-hidden transition-all duration-300 ease-in-out"
         >
           <div class="w-40">
-            <label :for="`${id}-week`" class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide">
+            <label
+              :for="`${id}-week`"
+              class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide"
+            >
               Week
             </label>
             <select
@@ -186,7 +211,10 @@ const id = useId()
             </select>
           </div>
           <div class="flex flex-col">
-            <span class="block text-xs font-medium text-transparent mb-1.5 uppercase tracking-wide select-none" aria-hidden="true">
+            <span
+              class="block text-xs font-medium text-transparent mb-1.5 uppercase tracking-wide select-none"
+              aria-hidden="true"
+            >
               Action
             </span>
             <button
@@ -239,9 +267,16 @@ const id = useId()
       <!-- Import Message -->
       <div
         v-if="importMessage"
-        :class="{ 'bg-success-light text-success': importSuccess, 'bg-danger-light text-danger': !importSuccess }"
+        :class="{
+          'bg-success-light text-success': importSuccess,
+          'bg-danger-light text-danger': !importSuccess,
+        }"
         class="mt-4 px-4 py-3 rounded-lg text-sm border"
-        :style="importSuccess ? 'border-color: rgba(90, 138, 110, 0.2)' : 'border-color: rgba(196, 90, 90, 0.2)'"
+        :style="
+          importSuccess
+            ? 'border-color: rgba(90, 138, 110, 0.2)'
+            : 'border-color: rgba(196, 90, 90, 0.2)'
+        "
       >
         {{ importMessage }}
       </div>

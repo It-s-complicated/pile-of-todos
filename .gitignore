@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 session-ses*.md
+
+.agents
+.opencode

@@ -30,7 +30,9 @@ export function useDataExport() {
     URL.revokeObjectURL(url)
   }
 
-  async function importTodos(file: File): Promise<{ success: boolean, message: string, count?: number }> {
+  async function importTodos(
+    file: File,
+  ): Promise<{ success: boolean, message: string, count?: number }> {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
@@ -50,13 +52,20 @@ export function useDataExport() {
       todosCollection.utils.clear()
       todosCollection.utils.bulkInsert(validatedTodos)
 
-      return { success: true, message: `Successfully imported ${validatedTodos.length} todos`, count: validatedTodos.length }
+      return {
+        success: true,
+        message: `Successfully imported ${validatedTodos.length} todos`,
+        count: validatedTodos.length,
+      }
     }
     catch (error) {
       if (error instanceof SyntaxError) {
         return { success: false, message: 'Invalid JSON file' }
       }
-      return { success: false, message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}` }
+      return {
+        success: false,
+        message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      }
     }
   }
 
