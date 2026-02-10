@@ -1,140 +1,121 @@
-# PLAN-CLOUD-SYNC.md
+# Cloud Sync Implementation Plan
 
-**IMPORTANT: This plan needs to be reviewed and updated before starting implementation.**
+**Status**: Ready for Implementation  
+**Last Updated**: 2026-02-10  
+**Decision**: ElectricSQL Cloud + TanStack DB
 
 ## Overview
 
-This document outlines the comprehensive plan for implementing cloud synchronization with Supabase, CRDTs, and offline-first support for the AI Todo App.
+This document outlines the implementation plan for adding cloud synchronization to the AI Todo App using ElectricSQL Cloud and TanStack DB.
 
-## Architecture Decision Record (ADR)
+## Architecture
 
-### ADR-001: CRDT Library Selection
-
-**Decision**: Use Yjs for CRDT implementation
-
-**Status**: ✅ DECIDED
-
-**Rationale**:
-
-- Proven CRDT implementation with extensive documentation
-- Excellent Vue 3 integration support
-- Compatible with TanStack DB reactivity model
-- Works seamlessly with Supabase via WebSocket providers
-- Large community and active development
-
-**Alternatives Considered**:
-
-- **SyncedStore**: Simpler API but less mature ecosystem
-- **Automerge**: Document-based CRDTs, more complex for todo app
-
----
-
-### ADR-002: Local Database Package Selection
-
-**Decision**: TanStack DB (LocalStorage) - Migration completed ✅
-
-**Status**: ✅ DECIDED & IMPLEMENTED
-
-**Current Implementation**:
-
-- **TanStack DB**: Reactive queries with LocalStorage persistence
-- **Version**: @tanstack/react-db (latest)
-- **Features**: Live queries, automatic reactivity, cross-tab sync, valibot validation
-
-**Migration from Dexie.js**:
-
-- **Previous**: Dexie.js 4.2.1 with IndexedDB
-- **Current**: TanStack DB with LocalStorage collection options
-- **Rationale**: Better Vue 3 reactivity integration, simpler API, automatic sync across tabs
-
-**Key Features**:
-
-- **Live Queries**: `useLiveQuery()` provides automatic reactivity
-- **LocalStorage**: `localStorageCollectionOptions` for persistence
-- **Cross-tab Sync**: Enabled by default via storage events
-- **Validation**: valibot schemas for import/export validation
-- **Simplicity**: Synchronous CRUD operations (no async/await needed)
-
----
-
-### ADR-001: CRDT Library Selection
-
-**Open Decisions**:
-
-- ⚠️ **DECISION NEEDED**: Confirm Yjs is the best choice for our use case
-- ⚠️ **DECISION NEEDED**: Verify compatibility with existing Vue 3 + TypeScript setup
-
----
-
-### ADR-002: Sync Strategy
-
-**Decision**: Hybrid approach (TanStack DB + Supabase)
-
-**Status**: ✅ DECIDED
-
-**Rationale**:
-
-- TanStack DB for local storage with automatic reactivity and cross-tab sync
-- Use Supabase for cloud sync and real-time updates
-- Implement sync queue for offline operations
-- Provide immediate UI feedback with optimistic updates
-- Valibot validation for data integrity
-
-**Current Implementation**:
-
-- Collections defined in `src/db/collections.ts`
-- Live queries via `useLiveQuery()` in composables
-- Cross-tab sync enabled via LocalStorage events
-- Import/export with valibot validation schemas
-
-**Open Decisions**:
-
-- ⚠️ **DECISION NEEDED**: Confirm sync queue implementation details
-- ⚠️ **DECISION NEEDED**: Define conflict resolution strategy
-
----
-
-### ADR-003: Authentication Approach
-
-**Decision**: GitHub OAuth with pre-configured users
-
-**Status**: ✅ DECIDED
-
-**Rationale**:
-
-- Single-user app initially, but future collaboration planned
-- GitHub OAuth provides secure authentication
-- Pre-configured user list ensures controlled access
-- Supabase handles user management and permissions
-
-**Open Decisions**:
-
-- ⚠️ **DECISION NEEDED**: Define allowed user list management
-- ⚠️ **DECISION NEEDED**: Confirm email-based vs GitHub ID-based access
-
----
-
-## Technical Implementation Plan
-
-### Phase 1: Core Infrastructure (Weeks 1-2)
-
-#### 1.1 Supabase Setup
-
-```bash
-# Dependencies
-npm install @supabase/supabase-js
-
-# Environment variables
-VITE_SUPABASE_URL=your-project-url.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CLIENT (Vue 3 App)                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐      │
+│  │   Components     │◄──►│  useLiveQuery    │◄──►│  Electric        │      │
+│  │   (Views/UI)     │    │  (TanStack DB)   │    │  Collection      │      │
+│  └──────────────────┘    └──────────────────┘    └──────────────────┘      │
+│         │                                               │                   │
+│         │                    Optimistic Updates         │                   │
+│         │                    (via API calls)            │                   │
+│         ▼                                               │                   │
+│  ┌──────────────────┐                                  │                   │
+│  │  useTodos()      │──────────────────────────────────┤                   │
+│  │  (API calls)     │         Returns txid              │                   │
+│  └──────────────────┘                                  │                   │
+│         │                                               │                   │
+│         │                    Sync via WebSocket         │                   │
+│         │                    (Real-time updates)        │                   │
+│         ▼                                               ▼                   │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                     Electric Cloud Proxy                              │  │
+│  │   (Built-in auth + shape configuration + transaction matching)        │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │  Postgres Replication
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        SUPABASE (PostgreSQL)                                │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │  TABLE: todos                                                      │    │
+│  │  - id (UUID PRIMARY KEY)                                           │    │
+│  │  - label (TEXT)                                                    │    │
+│  │  - week_number (INTEGER)                                           │    │
+│  │  - done (BOOLEAN)                                                  │    │
+│  │  - archived (BOOLEAN)                                              │    │
+│  │  - created_at (TIMESTAMPTZ)                                        │    │
+│  │  - updated_at (TIMESTAMPTZ)                                        │    │
+│  │  - device_id (TEXT)  -- For multi-device sync                      │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 1.2 Database Schema
+## Key Design Decisions
+
+### 1. Conflict Resolution: Postgres Transaction IDs (Automatic)
+
+ElectricSQL uses Postgres transaction IDs (txids) for deterministic ordering:
+- Last committed transaction wins
+- No manual conflict resolution needed
+- Automatic consistency across all devices
+- No Yjs or custom CRDT required
+
+### 2. Write Strategy: Optimistic Updates with txid Matching
+
+```
+1. User action → Update local TanStack DB collection (UI updates immediately)
+2. Call API → POST/PUT/DELETE to backend
+3. Backend → Write to Postgres, return txid
+4. Electric → Stream change with txid via WebSocket
+5. TanStack DB → Match txid, confirm optimistic update
+6. If error → Rollback optimistic update
+```
+
+### 3. Proxy: Electric Cloud Built-in
+
+Using Electric Cloud's built-in proxy for:
+- Authentication (initially simple device-based, later user-based)
+- Shape configuration (which todos to sync)
+- Transaction authorization
+
+## Implementation Phases
+
+### Phase 1: Dependencies & Configuration (1-2 hours)
+
+#### 1.1 Install Dependencies
+
+```bash
+npm install @tanstack/electric-db-collection @electric-sql/client
+```
+
+#### 1.2 Environment Variables
+
+Create `.env.local`:
+```
+# Electric Cloud
+VITE_ELECTRIC_URL=https://<your-instance>.electric-sql.cloud
+VITE_ELECTRIC_SHAPE_URL=https://<your-instance>.electric-sql.cloud/v1/shape
+
+# For API calls (writes)
+VITE_API_BASE_URL=https://your-backend.com/api
+
+# Device identification
+VITE_DEVICE_ID=<generated-or-configured>
+```
+
+#### 1.3 Supabase Schema Setup
+
+Run on your Supabase database:
 
 ```sql
--- Users table (Supabase auth)
--- Todos table with CRDT support
-CREATE TABLE todos (
+-- Enable Electric sync on the table
+-- (This is handled by Electric Cloud setup, but verify the table exists)
+
+CREATE TABLE IF NOT EXISTS todos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   label TEXT NOT NULL,
   week_number INTEGER,
@@ -142,467 +123,567 @@ CREATE TABLE todos (
   archived BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  crdt_state JSONB DEFAULT '{}' -- For CRDT synchronization
+  device_id TEXT  -- For tracking which device created/last modified
 );
 
 -- Indexes for performance
-CREATE INDEX idx_todos_user_id ON todos(user_id);
 CREATE INDEX idx_todos_week_number ON todos(week_number);
 CREATE INDEX idx_todos_done ON todos(done);
 CREATE INDEX idx_todos_archived ON todos(archived);
+CREATE INDEX idx_todos_device_id ON todos(device_id);
+
+-- Enable Row Level Security (for future multi-user support)
+ALTER TABLE todos ENABLE ROW LEVEL SECURITY;
 ```
 
-#### 1.3 CRDT Integration
+### Phase 2: Create Electric Collection (2-3 hours)
+
+#### 2.1 Update collections.ts
 
 ```typescript
-// src/lib/crdt.ts
-import * as Y from 'yjs'
-import { useLiveQuery } from '@tanstack/react-db'
-import { todosCollection } from '@/db/collections'
+// src/db/collections.ts
+import type { InferOutput } from 'valibot'
+import { createCollection } from '@tanstack/vue-db'
+import { electricCollectionOptions } from '@tanstack/electric-db-collection'
+import {
+  boolean,
+  maxLength,
+  minLength,
+  nullable,
+  number,
+  object,
+  pipe,
+  regex,
+  string,
+} from 'valibot'
 
-export function createCRDTStore() {
-  const ydoc = new Y.Doc()
+export const TodoSchema = object({
+  id: pipe(string(), minLength(1)),
+  label: pipe(
+    string(),
+    minLength(1, 'Label cannot be empty'),
+    maxLength(500, 'Label must be less than 500 characters'),
+    regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
+  ),
+  weekNumber: nullable(number()),
+  done: boolean(),
+  archived: boolean(),
+  createdAt: number(),
+  updatedAt: number(),
+  deviceId: nullable(string()), // New field for device tracking
+})
 
-  // TanStack DB persistence via LocalStorage (already handles reactivity)
-  // No additional persistence layer needed - TanStack DB handles this
-  const todos = useLiveQuery(() => todosCollection.findMany({}))
+export type Todo = InferOutput<typeof TodoSchema>
 
-  // CRDT updates will be applied to TanStack DB via sync queue
-  return { ydoc, todos }
-}
-```
+export type TodoFilter
+  = | 'backlog'
+    | 'current-week'
+    | 'future'
+    | 'unfinished'
+    | 'archived'
+    | 'finished'
 
-### Phase 2: Sync Architecture (Weeks 3-4)
+export const VALID_FILTERS: TodoFilter[] = [
+  'backlog',
+  'current-week',
+  'future',
+  'unfinished',
+  'archived',
+  'finished',
+]
 
-#### 2.1 Sync Queue System
-
-```typescript
-// src/composables/useSyncQueue.ts
-export interface SyncOperation {
-  type: 'create' | 'update' | 'delete'
-  data: Todo
-  timestamp: number
-  crdtUpdate?: Uint8Array
-}
-
-export function useSyncQueue() {
-  const queue = ref<SyncOperation[]>([])
-  const isSyncing = ref(false)
-
-  function addToQueue(operation: SyncOperation) {
-    queue.value.push(operation)
-  }
-
-  async function processQueue(): Promise<void> {
-    if (isSyncing.value) return
-
-    isSyncing.value = true
-    while (queue.value.length > 0) {
-      const operation = queue.value[0]
-      try {
-        await syncOperation(operation)
-        queue.value.shift()
-      } catch (error) {
-        // Handle sync failure
-        console.error('Sync failed:', error)
-        break
+// Electric collection for cloud sync
+export const electricTodosCollection = createCollection(
+  electricCollectionOptions({
+    id: 'electric-todos',
+    schema: TodoSchema,
+    getKey: (item) => item.id,
+    shapeOptions: {
+      url: `${import.meta.env.VITE_ELECTRIC_SHAPE_URL}/todos`,
+      params: {
+        // Sync all non-archived todos by default
+        // Archived todos can be synced on-demand
+      },
+    },
+    // Persistence handlers for optimistic updates
+    onInsert: async (item, { awaitTxId }) => {
+      // Call API to insert
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to insert todo')
       }
+      
+      const { txid } = await response.json()
+      
+      // Wait for Electric to sync this txid
+      await awaitTxId(txid)
+    },
+    onUpdate: async (id, changes, { awaitTxId }) => {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(changes),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update todo')
+      }
+      
+      const { txid } = await response.json()
+      await awaitTxId(txid)
+    },
+    onDelete: async (id, { awaitTxId }) => {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos/${id}`, {
+        method: 'DELETE',
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete todo')
+      }
+      
+      const { txid } = await response.json()
+      await awaitTxId(txid)
+    },
+  }),
+)
+
+// Keep localStorage as fallback for offline-first
+export const localTodosCollection = createCollection(
+  localStorageCollectionOptions({
+    id: 'local-todos',
+    storageKey: 'ai-todo-app-todos',
+    getKey: (item) => item.id,
+    schema: TodoSchema,
+  }),
+)
+
+export const TodoLabelSchema = pipe(
+  string(),
+  minLength(1, 'Label cannot be empty'),
+  maxLength(500, 'Label must be less than 500 characters'),
+  regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
+)
+```
+
+### Phase 3: Backend API for Writes (3-4 hours)
+
+You need a backend to handle writes and return txids. Options:
+
+#### Option A: Supabase Edge Functions (Recommended for simplicity)
+
+Create `supabase/functions/todos/index.ts`:
+
+```typescript
+import { createClient } from '@supabase/supabase-js'
+
+Deno.serve(async (req) => {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  )
+
+  const url = new URL(req.url)
+  const method = req.method
+
+  try {
+    // Start a transaction
+    const { data, error } = await supabase.rpc('begin_transaction')
+    if (error) throw error
+
+    let result
+    let txid
+
+    switch (method) {
+      case 'POST':
+        const newTodo = await req.json()
+        result = await supabase
+          .from('todos')
+          .insert(newTodo)
+          .select()
+          .single()
+        break
+
+      case 'PUT':
+        const id = url.pathname.split('/').pop()
+        const updates = await req.json()
+        result = await supabase
+          .from('todos')
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select()
+          .single()
+        break
+
+      case 'DELETE':
+        const deleteId = url.pathname.split('/').pop()
+        result = await supabase
+          .from('todos')
+          .delete()
+          .eq('id', deleteId)
+        break
+
+      default:
+        return new Response('Method not allowed', { status: 405 })
     }
-    isSyncing.value = false
-  }
 
-  return { queue, addToQueue, processQueue }
-}
+    if (result.error) throw result.error
+
+    // Get the transaction ID
+    const { data: txData } = await supabase.rpc('get_current_txid')
+    txid = txData
+
+    // Commit transaction
+    await supabase.rpc('commit_transaction')
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      data: result.data,
+      txid 
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+  } catch (error) {
+    await supabase.rpc('rollback_transaction')
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+})
 ```
 
-#### 2.2 Conflict Resolution Strategy
+#### Option B: Custom API (Express/Fastify)
+
+If you prefer a separate backend service, create REST endpoints that:
+1. Receive todo operations
+2. Execute SQL with transaction
+3. Return `{ txid, data }`
+
+### Phase 4: Update Composables (2-3 hours)
+
+#### 4.1 Create useElectricTodos.ts
 
 ```typescript
-// src/lib/conflictResolver.ts
-export function resolveConflict(localTodo: Todo, remoteTodo: Todo, crdtUpdate: Uint8Array): Todo {
-  // CRDT automatically resolves conflicts
-  // Use vector clocks for deterministic resolution
-  // Fallback to last-writer-wins if needed
-
-  // CRDT approach: apply remote changes, let CRDT merge
-  Y.applyUpdate(localTodo.crdtState, crdtUpdate)
-
-  // Return merged result
-  return {
-    ...localTodo,
-    ...remoteTodo,
-    crdtState: localTodo.crdtState.toJSON(),
-  }
-}
-```
-
-### Phase 3: Vue 3 Integration (Weeks 5-6)
-
-#### 3.1 Todo Operations with CRDT
-
-```typescript
-// src/composables/useTodosWithSync.ts
-import { useSyncQueue } from '@/composables/useSyncQueue'
-import { todosCollection } from '@/db/collections'
-import { useLiveQuery } from '@tanstack/vue-db'
+// src/composables/useElectricTodos.ts
 import { computed, ref } from 'vue'
+import { useLiveQuery } from '@tanstack/vue-db'
+import { electricTodosCollection, localTodosCollection, type Todo } from '@/db/collections'
+import { useNetworkStatus } from './useNetworkStatus'
 
-export function useTodosWithSync() {
-  const { addToQueue, processQueue } = useSyncQueue()
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+export function useElectricTodos() {
+  const { isOnline } = useNetworkStatus()
+  const isMigrating = ref(false)
+  const syncStatus = ref<'synced' | 'syncing' | 'error'>('synced')
 
-  // Live query for todos
-  const { data: todos } = useLiveQuery((q) => q.from({ todo: todosCollection }))
+  // Use electric collection when online, local when offline
+  const activeCollection = computed(() => 
+    isOnline.value ? electricTodosCollection : localTodosCollection
+  )
 
-  // Local operations
-  async function addTodo(label: string, weekNumber: number | null) {
-    const todo = {
-      id: crypto.randomUUID(),
+  // Live query from active collection
+  const { data: todos } = useLiveQuery((q) => 
+    q.from({ todo: activeCollection.value })
+  )
+
+  // Migration: Upload local todos to cloud
+  async function migrateLocalTodos() {
+    if (!isOnline.value) return
+
+    isMigrating.value = true
+    try {
+      const localTodos = localTodosCollection.utils.getAll()
+      
+      for (const todo of localTodos) {
+        // Add device_id
+        const todoWithDevice = {
+          ...todo,
+          deviceId: import.meta.env.VITE_DEVICE_ID,
+        }
+        
+        // Insert via API (will trigger Electric sync)
+        await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(todoWithDevice),
+        })
+      }
+
+      // Clear local storage after successful migration
+      localTodosCollection.utils.clear()
+      
+    } catch (error) {
+      console.error('Migration failed:', error)
+      syncStatus.value = 'error'
+    } finally {
+      isMigrating.value = false
+    }
+  }
+
+  function addTodo(label: string, weekNumber: number | null): string {
+    const id = crypto.randomUUID()
+    const now = Date.now()
+    
+    const todo: Todo = {
+      id,
       label,
       weekNumber,
       done: false,
       archived: false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      deviceId: import.meta.env.VITE_DEVICE_ID,
     }
 
-    // Add to TanStack DB
-    todosCollection.insert(todo)
+    // Insert into active collection
+    // If online: triggers onInsert handler → API call → await txid
+    // If offline: stores locally, syncs when reconnected
+    activeCollection.value.insert(todo)
+    
+    return id
+  }
 
-    // Queue for sync
-    addToQueue({
-      type: 'create',
-      data: todo,
-      timestamp: Date.now(),
+  function updateTodo(id: string, updates: Partial<Todo>): void {
+    activeCollection.value.update(id, (draft) => {
+      Object.assign(draft, updates, { 
+        updatedAt: Date.now(),
+        deviceId: import.meta.env.VITE_DEVICE_ID,
+      })
     })
   }
 
-  async function updateTodo(id: string, updates: Partial<Todo>) {
-    todosCollection.update(id, (draft) => {
-      Object.assign(draft, updates, { updatedAt: Date.now() })
-    })
-
-    addToQueue({
-      type: 'update',
-      data: { id, ...updates },
-      timestamp: Date.now(),
-    })
+  function deleteTodo(id: string): void {
+    activeCollection.value.delete(id)
   }
 
-  // Sync operations
-  async function syncWithCloud() {
-    try {
-      loading.value = true
-
-      // Upload local changes
-      const localChanges = getPendingChanges()
-      await supabase.from('todos').upsert(localChanges)
-
-      // Download remote changes
-      const remoteTodos = await supabase
-        .from('todos')
-        .select('*')
-        .order('updated_at', { ascending: false })
-
-      // Merge using CRDT
-      mergeWithCRDT(remoteTodos)
-
-      // Process sync queue
-      await processQueue()
-    } catch (err) {
-      error.value = `Sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
-    } finally {
-      loading.value = false
+  function toggleTodoDone(id: string): void {
+    const todo = todos.value?.find((t) => t.id === id)
+    if (todo) {
+      updateTodo(id, { done: !todo.done })
     }
+  }
+
+  function archiveTodo(id: string): void {
+    updateTodo(id, { archived: true })
   }
 
   return {
     todos: computed(() => todos.value ?? []),
-    loading: computed(() => loading.value),
-    error: computed(() => error.value),
+    isOnline,
+    isMigrating,
+    syncStatus,
+    migrateLocalTodos,
     addTodo,
     updateTodo,
-    syncWithCloud,
+    deleteTodo,
+    toggleTodoDone,
+    archiveTodo,
   }
 }
 ```
 
-#### 3.2 Real-time Updates
-
-```typescript
-// src/composables/useRealtimeSync.ts
-export function useRealtimeSync() {
-  const channel = supabase.channel('todos')
-
-  function subscribeToChanges(callback: (payload: any) => void) {
-    channel
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'todos',
-        },
-        callback,
-      )
-      .subscribe()
-
-    return () => supabase.removeChannel(channel)
-  }
-
-  return { subscribeToChanges }
-}
-```
-
-### Phase 4: Advanced Features (Weeks 7-8)
-
-#### 4.1 Network Status Detection
+#### 4.2 Update useNetworkStatus.ts
 
 ```typescript
 // src/composables/useNetworkStatus.ts
+import { onMounted, onUnmounted, ref } from 'vue'
+
 export function useNetworkStatus() {
   const isOnline = ref(navigator.onLine)
 
   function handleOnline() {
     isOnline.value = true
-    // Trigger sync when back online
-    syncManager.syncWhenOnline()
   }
 
   function handleOffline() {
     isOnline.value = false
   }
 
-  useEffect(() => {
+  onMounted(() => {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
+  })
 
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [])
+  onUnmounted(() => {
+    window.removeEventListener('online', handleOnline)
+    window.removeEventListener('offline', handleOffline)
+  })
 
   return { isOnline }
 }
 ```
 
-#### 4.2 Authentication Integration
+### Phase 5: UI Components Update (2-3 hours)
+
+#### 5.1 Add Sync Status Indicator
+
+Create `src/components/SyncStatus.vue`:
+
+```vue
+<template>
+  <div class="flex items-center gap-2 text-sm">
+    <div
+      class="w-2 h-2 rounded-full"
+      :class="{
+        'bg-green-500': isOnline && syncStatus === 'synced',
+        'bg-yellow-500': syncStatus === 'syncing',
+        'bg-red-500': !isOnline || syncStatus === 'error',
+      }"
+    />
+    <span class="text-gray-600">
+      {{ statusText }}
+    </span>
+    <button
+      v-if="!isOnline"
+      @click="migrateLocalTodos"
+      class="text-blue-500 hover:text-blue-700"
+    >
+      Sync when online
+    </button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useElectricTodos } from '@/composables/useElectricTodos'
+
+const { isOnline, syncStatus, migrateLocalTodos } = useElectricTodos()
+
+const statusText = computed(() => {
+  if (!isOnline.value) return 'Offline'
+  if (syncStatus.value === 'syncing') return 'Syncing...'
+  if (syncStatus.value === 'error') return 'Sync error'
+  return 'Synced'
+})
+</script>
+```
+
+#### 5.2 Update App.vue
+
+Add sync status indicator and migration button:
+
+```vue
+<template>
+  <div class="app">
+    <header>
+      <SyncStatus />
+      <!-- ... rest of header -->
+    </header>
+    <!-- ... rest of app -->
+  </div>
+</template>
+```
+
+### Phase 6: Migration from LocalStorage (1-2 hours)
+
+Create `src/composables/useMigration.ts`:
 
 ```typescript
-// src/composables/useAuth.ts
-export function useAuth() {
-  const { data: session, error } = await supabase.auth.getSession()
+import { onMounted, ref } from 'vue'
+import { localTodosCollection } from '@/db/collections'
+import { useElectricTodos } from './useElectricTodos'
 
-  // GitHub OAuth setup
-  async function signInWithGitHub() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-    })
-    return { data, error }
-  }
+export function useMigration() {
+  const hasMigrated = ref(false)
+  const { isOnline, migrateLocalTodos } = useElectricTodos()
 
-  // Restrict to pre-configured users
-  async function isAllowedUser(email: string): Promise<boolean> {
-    // Check against allowed emails list
-    // Or check user roles/permissions
-    return allowedEmails.includes(email)
-  }
+  onMounted(async () => {
+    // Check if there's local data to migrate
+    const localTodos = localTodosCollection.utils.getAll()
+    
+    if (localTodos.length > 0 && isOnline.value) {
+      // Ask user or auto-migrate
+      const shouldMigrate = confirm(
+        `Found ${localTodos.length} local todos. Upload to cloud?`
+      )
+      
+      if (shouldMigrate) {
+        await migrateLocalTodos()
+        hasMigrated.value = true
+      }
+    }
+  })
 
-  return { session, signInWithGitHub, isAllowedUser }
+  return { hasMigrated }
 }
 ```
 
-## Open Decisions and Questions
+### Phase 7: Testing & Polish (2-3 hours)
 
-### Decision 1: CRDT Library Implementation
+#### 7.1 Testing Checklist
 
-**Question**: Should we use Yjs or SyncedStore for CRDT implementation?
+- [ ] Add todo → appears immediately → syncs to cloud → appears on other device
+- [ ] Edit todo on device A → updates on device B in real-time
+- [ ] Go offline → add todo → go online → todo syncs to cloud
+- [ ] Migration: LocalStorage todos upload to cloud correctly
+- [ ] Concurrent edits: Last write wins (Postgres txid ordering)
+- [ ] Large todo list performance (>100 todos)
+- [ ] Error handling: Failed API calls roll back optimistic updates
 
-**Considerations**:
+#### 7.2 Add Error Boundaries
 
-- Yjs has more mature ecosystem and documentation
-- SyncedStore has Vue 3 native bindings
-- Yjs compatible with TanStack DB reactivity patterns
-- SyncedStore may have simpler API
+Wrap collection operations with error handling:
 
-**Recommendation**: Proceed with Yjs based on current research, but verify compatibility with existing Vue 3 + TypeScript setup.
+```typescript
+// In useElectricTodos
+function handleOperationError(error: Error, operation: string) {
+  syncStatus.value = 'error'
+  console.error(`${operation} failed:`, error)
+  // Could add toast notification here
+}
+```
 
-### Decision 2: Conflict Resolution Strategy
+## File Structure Changes
 
-**Question**: How should we handle complex conflicts that CRDT cannot resolve automatically?
+```
+src/
+├── db/
+│   └── collections.ts          # Add electricTodosCollection
+├── composables/
+│   ├── useTodos.ts             # Keep for backward compatibility
+│   ├── useElectricTodos.ts     # NEW: Main composable for electric sync
+│   ├── useNetworkStatus.ts     # NEW: Online/offline detection
+│   └── useMigration.ts         # NEW: LocalStorage → Electric migration
+├── components/
+│   └── SyncStatus.vue          # NEW: Sync status indicator
+└── ...
+```
 
-**Options**:
+## Environment Variables Required
 
-1. **Last-Writer-Wins**: Simple but may lose data
-2. **User Intervention**: Show conflict dialog with options
-3. **Merge Strategy**: Attempt to merge conflicting changes
-
-**Recommendation**: Implement user intervention for complex conflicts, with CRDT handling simple cases automatically.
-
-### Decision 3: Sync Trigger Strategy
-
-**Question**: When should automatic sync be triggered?
-
-**Options**:
-
-1. **Immediate**: Sync after every change
-2. **Batch**: Sync periodically or on app background
-3. **Network-based**: Sync when online status changes
-4. **Hybrid**: Immediate for small changes, batch for large operations
-
-**Recommendation**: Hybrid approach - immediate for small changes, batch for large operations, always sync when online status changes.
-
-### Decision 4: Allowed User Management
-
-**Question**: How should we manage the list of allowed GitHub users?
-
-**Options**:
-
-1. **Static List**: Hardcoded in environment variables
-2. **Database Table**: Dynamic management via Supabase
-3. **GitHub Team**: Use GitHub team membership for access control
-
-**Recommendation**: Start with static list in environment variables, migrate to database table for dynamic management.
-
-## Implementation Risks and Mitigation
-
-### Risk 1: CRDT Complexity
-
-**Impact**: High
-**Mitigation**:
-
-- Start with simple CRDT implementation
-- Add complexity gradually
-- Comprehensive testing of conflict scenarios
-- Fallback to simpler conflict resolution if needed
-
-### Risk 2: Offline Sync Reliability
-
-**Impact**: High
-**Mitigation**:
-
-- Implement robust sync queue with retry logic
-- TanStack DB with LocalStorage provides reliable offline storage
-- Cross-tab sync enabled via storage events
-- Provide clear user feedback on sync status
-- Handle network interruptions gracefully
-
-### Risk 3: Performance Issues
-
-**Impact**: Medium
-**Mitigation**:
-
-- Implement batch operations for multiple changes
-- Use incremental sync to reduce bandwidth
-- Optimize database queries and indexes
-- Monitor performance and optimize bottlenecks
-
-### Risk 4: Authentication Complexity
-
-**Impact**: Medium
-**Mitigation**:
-
-- Start with simple GitHub OAuth implementation
-- Implement pre-configured user list first
-- Add dynamic user management later
-- Provide clear error messages for authentication failures
-
-## Success Metrics
-
-### Functional Metrics
-
-- ✅ Offline functionality works completely
-- ✅ Real-time updates when online
-- ✅ Conflict resolution handles all scenarios
-- ✅ GitHub authentication works for allowed users
-
-### Performance Metrics
-
-- Sync time < 2 seconds for 50 todos
-- Offline operations complete < 100ms
-- Memory usage < 50MB for 1000 todos
-- Battery impact < 5% during normal usage
-
-### User Experience Metrics
-
-- No data loss in any scenario
-- Clear sync status indicators
-- Intuitive conflict resolution
-- Smooth offline-to-online transitions
-
-## Testing Strategy
-
-### Unit Tests
-
-- CRDT conflict resolution
-- Sync queue operations
-- Conflict detection and resolution
-- Offline-to-online transition
-
-### Integration Tests
-
-- Full sync flow
-- Network interruption scenarios
-- Concurrent edit conflicts
-- Authentication flow
-
-### E2E Tests
-
-- Real user workflows
-- Offline usage patterns
-- Sync reliability
-- Conflict scenarios
-
-## Prerequisites for Implementation
-
-### Environment Setup
-
-- Supabase project created
-- Database schema deployed
-- Environment variables configured
-- GitHub OAuth application created
-
-### Development Setup
-
-- Node.js 18+ installed
-- Vue 3 + TypeScript project configured
-- Testing framework set up
-- CI/CD pipeline configured
-
-### Knowledge Requirements
-
-- Vue 3 Composition API
-- TypeScript best practices
-- Supabase authentication and database
-- CRDT concepts and implementation
-- Offline-first application patterns
+```bash
+# .env.local
+VITE_ELECTRIC_URL=https://<your-instance>.electric-sql.cloud
+VITE_ELECTRIC_SHAPE_URL=https://<your-instance>.electric-sql.cloud/v1/shape
+VITE_API_BASE_URL=https://<your-supabase-project>.supabase.co/functions/v1
+VITE_DEVICE_ID=desktop-chrome-001  # Unique per device
+```
 
 ## Next Steps
 
-### Immediate Actions (Before Implementation)
+1. **Verify Electric Cloud setup**: Ensure shape URL is working
+2. **Create backend API**: Choose between Supabase Edge Functions or custom API
+3. **Test locally**: Run through all test scenarios
+4. **Deploy**: Update production environment variables
+5. **Monitor**: Check sync performance and error rates
 
-1. **Review and Update Plan**: All stakeholders review this plan and provide feedback
-2. **Confirm Decisions**: Make final decisions on open questions
-3. **Environment Setup**: Ensure Supabase and development environment are ready
-4. **Team Alignment**: Ensure all team members understand the architecture and approach
+## Success Metrics
 
-### Implementation Preparation
+- ✅ Sync time < 1 second for new todos
+- ✅ Real-time updates across devices (sub-second)
+- ✅ Offline operations work seamlessly
+- ✅ No data loss during migration
+- ✅ Automatic conflict resolution (no manual intervention)
 
-1. **Create Implementation Tasks**: Break down plan into actionable development tasks
-2. **Setup Development Environment**: Configure local development with Supabase
-3. **Create Test Data**: Prepare test data for various scenarios
-4. **Define Success Criteria**: Establish clear acceptance criteria for each phase
+## Notes
 
-### Implementation Phases
-
-1. **Phase 1**: Core infrastructure (Supabase, CRDT, sync queue)
-2. **Phase 2**: Vue 3 integration and real-time updates
-3. **Phase 3**: Advanced features (network detection, authentication)
-4. **Phase 4**: Testing, optimization, and polish
-
----
-
-**Note**: This plan is a living document and should be updated as implementation progresses and new insights are gained. Regular review meetings should be scheduled to ensure the plan remains aligned with project goals and constraints.
+- Electric handles all conflict resolution automatically via Postgres txids
+- No custom CRDT logic needed
+- Offline queue is handled by TanStack DB's optimistic updates
+- Multi-device sync is automatic via Electric shapes
+- Future multi-user support: Add `user_id` column and RLS policies
