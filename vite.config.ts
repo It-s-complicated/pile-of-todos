@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import UnpluginFonts from 'unplugin-fonts/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { qrcode } from 'vite-plugin-qrcode'
 import VueRouter from 'vue-router/vite'
 
 export default defineConfig({
@@ -54,6 +55,7 @@ export default defineConfig({
         ],
       },
     }),
+    qrcode(),
   ],
   resolve: {
     alias: {
