@@ -64,10 +64,10 @@ async function createTodo() {
 async function handleExport() {
   try {
     await exportTodos()
-    showImportMessage('Data exported successfully!', true)
+    showNotification('Data exported successfully!', true)
   }
   catch (error) {
-    showImportMessage(
+    showNotification(
       `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       false,
     )
@@ -88,14 +88,14 @@ async function handleImport(event: Event) {
   try {
     const result = await importTodos(file)
     if (result.success) {
-      showImportMessage(result.message, true)
+      showNotification(result.message, true)
     }
     else {
-      showImportMessage(result.message, false)
+      showNotification(result.message, false)
     }
   }
   catch (error) {
-    showImportMessage(
+    showNotification(
       `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       false,
     )
@@ -106,7 +106,7 @@ async function handleImport(event: Event) {
   }
 }
 
-function showImportMessage(message: string, success: boolean) {
+function showNotification(message: string, success: boolean) {
   importMessage.value = message
   importSuccess.value = success
   setTimeout(() => {
