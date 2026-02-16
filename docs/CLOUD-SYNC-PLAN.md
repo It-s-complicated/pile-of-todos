@@ -1,12 +1,102 @@
 # Cloud Sync Implementation Plan
 
-**Status**: Ready for Implementation  
-**Last Updated**: 2026-02-10  
-**Decision**: ElectricSQL Cloud + TanStack DB
+**Status**: In Progress - Option 2: Direct Electric Cloud + Drizzle Migrations  
+**Last Updated**: 2026-02-16  
+**Decision**: Direct Electric Cloud frontend + Drizzle ORM for database migrations
+
+## Quick Start Checklist
+
+- [ ] Install Drizzle dependencies: `npm install drizzle-orm drizzle-valibot pg` + dev deps
+- [ ] Create `drizzle.config.ts` with your `DATABASE_URL`
+- [ ] Create `src/db/schema.ts` with todos table definition
+- [ ] Create `src/db/connection.ts` for PostgreSQL pool
+- [ ] Add migration scripts to `package.json`
+- [ ] Run `npm run migrate:generate` to create initial migration
+- [ ] Run `npm run migrate` to apply to Supabase database
+- [ ] Verify Electric Cloud source is connected to your database
+- [ ] Update `.env.local` with all required variables
+- [ ] Test: Add a todo and verify it syncs to Supabase
 
 ## Overview
 
 This document outlines the implementation plan for adding cloud synchronization to the AI Todo App using ElectricSQL Cloud and TanStack DB.
+
+### Option 2: Direct Electric Cloud + Drizzle Migrations
+
+**Architecture Overview:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              PROJECT STRUCTURE                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐    │
+│  │   Drizzle ORM    │     │   Drizzle Kit    │     │  Migration SQL   │    │
+│  │   (Schema)       │────►│   (CLI Tool)     │────►│  (src/db/out/)   │    │
+│  └──────────────────┘     └──────────────────┘     └──────────────────┘    │
+│           │                                              │                  │
+│           │ npm run migrate:generate                     │ npm run migrate  │
+│           ▼                                              ▼                  │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                    SUPABASE POSTGRESQL                               │   │
+│  │  ┌──────────────────────────────────────────────────────────────┐  │   │
+│  │  │  TABLE: todos (created via Drizzle migrations)               │  │   │
+│  │  │  - id: uuid PRIMARY KEY                                      │  │   │
+│  │  │  - label: varchar(500)                                       │  │   │
+│  │  │  - week_number: integer (nullable)                           │  │   │
+│  │  │  - done: boolean DEFAULT false                               │  │   │
+│  │  │  - archived: boolean DEFAULT false                           │  │   │
+│  │  │  - created_at: bigint                                        │  │   │
+│  │  │  - updated_at: bigint                                        │  │   │
+│  │  │  - device_id: varchar(255) (nullable)                        │  │   │
+│  │  └──────────────────────────────────────────────────────────────┘  │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                    ▲                                        │
+│                                    │ Postgres Replication                    │
+│  ┌─────────────────────────────────┴────────────────────────────────────┐   │
+│  │                         ELECTRIC CLOUD                               │   │
+│  │  - Syncs changes from Postgres to clients via WebSocket              │   │
+│  │  - Handles shape subscriptions (real-time queries)                   │   │
+│  │  - Requires SOURCE_ID and SECRET for authentication                  │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                    ▲                                        │
+│                                    │ WebSocket Sync                          │
+│  ┌─────────────────────────────────┴────────────────────────────────────┐   │
+│  │                         CLIENT (Vue 3 SPA)                           │   │
+│  │  ┌────────────────────────────────────────────────────────────────┐  │   │
+│  │  │  Direct Electric Cloud Connection (No backend server)          │  │   │
+│  │  │  - Reads: Subscribe to shapes via VITE_ELECTRIC_SHAPE_URL      │  │   │
+│  │  │  - Writes: HTTP requests to Electric proxy endpoint            │  │   │
+│  │  │  - Returns txid for optimistic update confirmation             │  │   │
+│  │  └────────────────────────────────────────────────────────────────┘  │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Differences from Option A (Full Backend):**
+
+1. **No backend server** - Frontend connects directly to Electric Cloud
+2. **Drizzle ORM only for migrations** - Not used for runtime queries
+3. **Migration capability** - Can generate and run migrations against the database
+4. **Simpler architecture** - Good for prototypes and single-user apps
+5. **Trade-offs**: Less secure (credentials in frontend), limited auth options
+
+**Environment Variables:**
+
+```bash
+# Database (for migrations only - not used by frontend)
+DATABASE_URL=postgresql://postgres.wbsgscgtlbakvuwtitof:KFamqQYz2ykOE9Kf@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+
+# Electric Cloud (used by frontend)
+VITE_ELECTRIC_SHAPE_URL=https://svc-yappy-alpaca-ankg6kcezx.electric-sql.cloud/v1/shape
+VITE_API_BASE_URL=https://svc-yappy-alpaca-ankg6kcezx.electric-sql.cloud
+VITE_ELECTRIC_SOURCE_ID=svc-yappy-alpaca-ankg6kcezx
+VITE_ELECTRIC_SECRET=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+
+# Device identification
+VITE_DEVICE_ID=desktop-chrome-001
+```
 
 ## Architecture
 
@@ -35,9 +125,9 @@ This document outlines the implementation plan for adding cloud synchronization 
 │  │   (Built-in auth + shape configuration + transaction matching)        │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │  Postgres Replication
-                                    ▼
+                                     │
+                                     │  Postgres Replication
+                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        SUPABASE (PostgreSQL)                                │
 │  ┌────────────────────────────────────────────────────────────────────┐    │
@@ -69,11 +159,13 @@ ElectricSQL uses Postgres transaction IDs (txids) for deterministic ordering:
 ```
 1. User action → Update local TanStack DB collection (UI updates immediately)
 2. Call API → POST/PUT/DELETE to backend
-3. Backend → Write to Postgres, return txid
+3. Backend → Write to Postgres INSIDE transaction, return txid from SAME transaction
 4. Electric → Stream change with txid via WebSocket
-5. TanStack DB → Match txid, confirm optimistic update
+5. TanStack DB → Matches txid, confirms optimistic update
 6. If error → Rollback optimistic update
 ```
+
+**CRITICAL**: The txid MUST be queried inside the same transaction as the mutation.
 
 ### 3. Proxy: Electric Cloud Built-in
 
@@ -89,32 +181,169 @@ Using Electric Cloud's built-in proxy for:
 #### 1.1 Install Dependencies
 
 ```bash
-npm install @tanstack/electric-db-collection @electric-sql/client
+# Core Electric/TanStack dependencies (already installed)
+# npm install @tanstack/electric-db-collection @tanstack/vue-db
+
+# Drizzle ORM for database schema and migrations
+npm install drizzle-orm drizzle-valibot pg
+
+# Dev dependencies for Drizzle Kit
+npm install -D drizzle-kit @types/pg
 ```
 
 #### 1.2 Environment Variables
 
-Create `.env.local`:
-```
-# Electric Cloud
-VITE_ELECTRIC_URL=https://<your-instance>.electric-sql.cloud
-VITE_ELECTRIC_SHAPE_URL=https://<your-instance>.electric-sql.cloud/v1/shape
+Update `.env.local`:
+```bash
+# Database (for migrations only - NOT exposed to frontend)
+DATABASE_URL=postgresql://postgres.wbsgscgtlbakvuwtitof:KFamqQYz2ykOE9Kf@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
 
-# For API calls (writes)
-VITE_API_BASE_URL=https://your-backend.com/api
+# Electric Cloud (used by frontend)
+VITE_ELECTRIC_SHAPE_URL=https://svc-yappy-alpaca-ankg6kcezx.electric-sql.cloud/v1/shape
+VITE_API_BASE_URL=https://svc-yappy-alpaca-ankg6kcezx.electric-sql.cloud
+VITE_ELECTRIC_SOURCE_ID=svc-yappy-alpaca-ankg6kcezx
+VITE_ELECTRIC_SECRET=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 
 # Device identification
-VITE_DEVICE_ID=<generated-or-configured>
+VITE_DEVICE_ID=desktop-chrome-001
 ```
 
-#### 1.3 Supabase Schema Setup
+#### 1.3 Create Drizzle Configuration
 
-Run on your Supabase database:
+Create `drizzle.config.ts`:
+
+```typescript
+import { defineConfig } from 'drizzle-kit'
+
+export default defineConfig({
+  out: './src/db/out',
+  schema: './src/db/schema.ts',
+  dialect: 'postgresql',
+  casing: 'snake_case',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+})
+```
+
+#### 1.4 Create Database Schema
+
+Create `src/db/schema.ts`:
+
+```typescript
+import { pgTable, uuid, varchar, integer, boolean, bigint } from 'drizzle-orm/pg-core'
+import { createSelectSchema, createInsertSchema } from 'drizzle-valibot'
+import { valibot } from 'valibot'
+
+// Define the todos table matching your current TodoSchema
+export const todosTable = pgTable('todos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  label: varchar('label', { length: 500 }).notNull(),
+  weekNumber: integer('week_number'),
+  done: boolean('done').default(false).notNull(),
+  archived: boolean('archived').default(false).notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+  deviceId: varchar('device_id', { length: 255 }),
+})
+
+// Generate valibot schemas from Drizzle schema
+export const selectTodoSchema = createSelectSchema(todosTable)
+export const insertTodoSchema = createInsertSchema(todosTable)
+
+// Export types
+export type Todo = valibot.InferOutput<typeof selectTodoSchema>
+export type NewTodo = valibot.InferOutput<typeof insertTodoSchema>
+```
+
+#### 1.5 Create Database Connection (for migrations)
+
+Create `src/db/connection.ts`:
+
+```typescript
+import { drizzle } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
+
+const databaseUrl = process.env.DATABASE_URL
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is not set')
+}
+
+const pool = new Pool({ connectionString: databaseUrl })
+export const db = drizzle({ client: pool, casing: 'snake_case' })
+```
+
+#### 1.6 Add Migration Scripts
+
+Update `package.json` scripts:
+
+```json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "migrate": "drizzle-kit migrate",
+    "migrate:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix"
+  }
+}
+```
+
+#### 1.7 Generate and Run Initial Migration
+
+```bash
+# Generate migration SQL from schema
+npm run migrate:generate
+
+# This creates: src/db/out/0000_initial_schema.sql
+
+# Apply migration to database
+npm run migrate
+```
+
+**Generated Migration SQL** (in `src/db/out/0000_initial_schema.sql`):
 
 ```sql
--- Enable Electric sync on the table
--- (This is handled by Electric Cloud setup, but verify the table exists)
+CREATE TABLE IF NOT EXISTS "todos" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"label" varchar(500) NOT NULL,
+	"week_number" integer,
+	"done" boolean DEFAULT false NOT NULL,
+	"archived" boolean DEFAULT false NOT NULL,
+	"created_at" bigint NOT NULL,
+	"updated_at" bigint NOT NULL,
+	"device_id" varchar(255)
+);
 
+-- Optional: Create indexes for performance
+CREATE INDEX IF NOT EXISTS "idx_todos_week_number" ON "todos" ("week_number");
+CREATE INDEX IF NOT EXISTS "idx_todos_done" ON "todos" ("done");
+CREATE INDEX IF NOT EXISTS "idx_todos_archived" ON "todos" ("archived");
+```
+
+#### 1.8 Verify Database Setup
+
+Connect to your database and verify:
+
+```bash
+# Using the psql command with your DATABASE_URL
+psql "postgresql://postgres.wbsgscgtlbakvuwtitof:KFamqQYz2ykOE9Kf@aws-1-eu-west-1.pooler.supabase.com:5432/postgres" \
+  -c "\dt" -c "SELECT * FROM todos LIMIT 1;"
+```
+
+Or check via Supabase Dashboard:
+1. Go to your Supabase project
+2. Navigate to "Database" → "Tables"
+3. Verify the `todos` table exists with correct columns
+
+```sql
+-- Create todos table with Electric sync support
 CREATE TABLE IF NOT EXISTS todos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   label TEXT NOT NULL,
@@ -140,6 +369,11 @@ ALTER TABLE todos ENABLE ROW LEVEL SECURITY;
 
 #### 2.1 Update collections.ts
 
+**Important**: We're keeping the existing valibot TodoSchema (not using Drizzle-generated schema) because:
+1. The frontend needs valibot schemas for TanStack DB validation
+2. Drizzle-valibot generates slightly different schema shapes
+3. We want to maintain consistency with existing code
+
 ```typescript
 // src/db/collections.ts
 import type { InferOutput } from 'valibot'
@@ -157,6 +391,8 @@ import {
   string,
 } from 'valibot'
 
+// NOTE: This valibot schema is used for frontend validation
+// The database schema is defined in schema.ts and managed by Drizzle
 export const TodoSchema = object({
   id: pipe(string(), minLength(1)),
   label: pipe(
@@ -170,10 +406,13 @@ export const TodoSchema = object({
   archived: boolean(),
   createdAt: number(),
   updatedAt: number(),
-  deviceId: nullable(string()), // New field for device tracking
+  deviceId: nullable(string()), // Maps to device_id in PostgreSQL
 })
 
 export type Todo = InferOutput<typeof TodoSchema>
+
+// Type guard to ensure compatibility between valibot and Drizzle
+// Both use: id (uuid), label (varchar), weekNumber/week_number (int), etc.
 
 export type TodoFilter
   = | 'backlog'
@@ -193,6 +432,7 @@ export const VALID_FILTERS: TodoFilter[] = [
 ]
 
 // Electric collection for cloud sync
+// Handler API: receives { transaction }, returns { txid }
 export const electricTodosCollection = createCollection(
   electricCollectionOptions({
     id: 'electric-todos',
@@ -201,17 +441,21 @@ export const electricTodosCollection = createCollection(
     shapeOptions: {
       url: `${import.meta.env.VITE_ELECTRIC_SHAPE_URL}/todos`,
       params: {
-        // Sync all non-archived todos by default
-        // Archived todos can be synced on-demand
+        // Sync all todos by default
+        table: 'todos',
       },
     },
-    // Persistence handlers for optimistic updates
-    onInsert: async (item, { awaitTxId }) => {
-      // Call API to insert
+    // Persistence handlers - called before mutations
+    // Handler receives { transaction } with mutations array
+    // Must return { txid } to wait for sync confirmation
+    onInsert: async ({ transaction }) => {
+      // Get the new item from the transaction
+      const newItem = transaction.mutations[0].modified
+      
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(item),
+        body: JSON.stringify(newItem),
       })
       
       if (!response.ok) {
@@ -220,11 +464,14 @@ export const electricTodosCollection = createCollection(
       
       const { txid } = await response.json()
       
-      // Wait for Electric to sync this txid
-      await awaitTxId(txid)
+      // Return txid - TanStack DB will wait for this txid from Electric
+      return { txid }
     },
-    onUpdate: async (id, changes, { awaitTxId }) => {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos/${id}`, {
+    onUpdate: async ({ transaction }) => {
+      // Get the original item and changes from the transaction
+      const { original, changes } = transaction.mutations[0]
+      
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos/${original.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(changes),
@@ -235,10 +482,13 @@ export const electricTodosCollection = createCollection(
       }
       
       const { txid } = await response.json()
-      await awaitTxId(txid)
+      return { txid }
     },
-    onDelete: async (id, { awaitTxId }) => {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos/${id}`, {
+    onDelete: async ({ transaction }) => {
+      // Get the item being deleted
+      const { original } = transaction.mutations[0]
+      
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos/${original.id}`, {
         method: 'DELETE',
       })
       
@@ -247,7 +497,7 @@ export const electricTodosCollection = createCollection(
       }
       
       const { txid } = await response.json()
-      await awaitTxId(txid)
+      return { txid }
     },
   }),
 )
@@ -272,13 +522,100 @@ export const TodoLabelSchema = pipe(
 
 ### Phase 3: Backend API for Writes (3-4 hours)
 
-You need a backend to handle writes and return txids. Options:
+You need a backend to handle writes and return txids. With Electric Cloud, you'll use their proxy.
 
-#### Option A: Supabase Edge Functions (Recommended for simplicity)
+#### Option A: Electric Cloud Proxy (Recommended)
 
-Create `supabase/functions/todos/index.ts`:
+Electric Cloud includes a built-in proxy. Configure it to:
+1. Authenticate requests
+2. Forward mutations to Postgres
+3. Return txid from the transaction
+
+Example proxy implementation (if self-hosting proxy):
 
 ```typescript
+// proxy/todos.ts
+import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from '@electric-sql/client'
+
+const ELECTRIC_BASE_URL = 'https://<your-instance>.electric-sql.cloud/v1/shape'
+
+export async function handleTodosRequest(request: Request) {
+  const url = new URL(request.url)
+  const method = request.method
+  
+  // Check authentication here
+  // const user = await authenticate(request)
+  
+  // Handle write operations
+  if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+    return handleWrite(request, method)
+  }
+  
+  // For read operations, proxy to Electric
+  return proxyToElectric(url)
+}
+
+async function handleWrite(request: Request, method: string) {
+  // Connect to your Postgres database
+  const db = createDatabaseConnection()
+  
+  let txid: number
+  let result: any
+  
+  // CRITICAL: txid must be queried INSIDE the same transaction
+  await db.transaction(async (trx) => {
+    // Query txid FIRST, inside the transaction
+    const txidResult = await trx.execute(
+      `SELECT pg_current_xact_id()::xid::text as txid`
+    )
+    txid = parseInt(txidResult.rows[0].txid, 10)
+    
+    // Perform the mutation inside the same transaction
+    switch (method) {
+      case 'POST':
+        const newTodo = await request.json()
+        result = await trx
+          .insert('todos', newTodo)
+          .returning('*')
+        break
+        
+      case 'PUT':
+        const url = new URL(request.url)
+        const id = url.pathname.split('/').pop()
+        const updates = await request.json()
+        result = await trx('todos')
+          .where({ id })
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .returning('*')
+        break
+        
+      case 'DELETE':
+        const deleteUrl = new URL(request.url)
+        const deleteId = deleteUrl.pathname.split('/').pop()
+        result = await trx('todos')
+          .where({ id: deleteId })
+          .del()
+        break
+    }
+  })
+  
+  // Return the txid from the transaction where mutation occurred
+  return new Response(
+    JSON.stringify({ success: true, data: result, txid }),
+    { headers: { 'Content-Type': 'application/json' } }
+  )
+}
+```
+
+#### Option B: Supabase Edge Functions
+
+If using Supabase, create an edge function that:
+1. Runs mutations in a transaction
+2. Queries `pg_current_xact_id()::xid::text` inside that transaction
+3. Returns the txid
+
+```typescript
+// supabase/functions/todos/index.ts
 import { createClient } from '@supabase/supabase-js'
 
 Deno.serve(async (req) => {
@@ -291,79 +628,94 @@ Deno.serve(async (req) => {
   const method = req.method
 
   try {
-    // Start a transaction
-    const { data, error } = await supabase.rpc('begin_transaction')
-    if (error) throw error
+    let result: any
+    let txid: number | null = null
 
-    let result
-    let txid
-
-    switch (method) {
-      case 'POST':
-        const newTodo = await req.json()
-        result = await supabase
-          .from('todos')
-          .insert(newTodo)
-          .select()
-          .single()
-        break
-
-      case 'PUT':
-        const id = url.pathname.split('/').pop()
-        const updates = await req.json()
-        result = await supabase
-          .from('todos')
-          .update({ ...updates, updated_at: new Date().toISOString() })
-          .eq('id', id)
-          .select()
-          .single()
-        break
-
-      case 'DELETE':
-        const deleteId = url.pathname.split('/').pop()
-        result = await supabase
-          .from('todos')
-          .delete()
-          .eq('id', deleteId)
-        break
-
-      default:
-        return new Response('Method not allowed', { status: 405 })
-    }
-
-    if (result.error) throw result.error
-
-    // Get the transaction ID
-    const { data: txData } = await supabase.rpc('get_current_txid')
-    txid = txData
-
-    // Commit transaction
-    await supabase.rpc('commit_transaction')
-
-    return new Response(JSON.stringify({ 
-      success: true, 
-      data: result.data,
-      txid 
-    }), {
-      headers: { 'Content-Type': 'application/json' },
+    // Execute everything in a single transaction using RPC
+    const { data: txData, error: txError } = await supabase.rpc('execute_todo_operation', {
+      p_method: method,
+      p_path: url.pathname,
+      p_body: method !== 'DELETE' ? await req.json() : null,
     })
+
+    if (txError) throw txError
+
+    result = txData.result
+    txid = txData.txid
+
+    return new Response(
+      JSON.stringify({ success: true, data: result, txid }),
+      { headers: { 'Content-Type': 'application/json' } }
+    )
 
   } catch (error) {
-    await supabase.rpc('rollback_transaction')
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 })
 ```
 
-#### Option B: Custom API (Express/Fastify)
+Supabase SQL function:
 
-If you prefer a separate backend service, create REST endpoints that:
-1. Receive todo operations
-2. Execute SQL with transaction
-3. Return `{ txid, data }`
+```sql
+-- Supabase database function
+CREATE OR REPLACE FUNCTION execute_todo_operation(
+  p_method TEXT,
+  p_path TEXT,
+  p_body JSONB DEFAULT NULL
+)
+RETURNS TABLE(result JSONB, txid BIGINT) AS $$
+DECLARE
+  v_id UUID;
+  v_todo JSONB;
+  v_txid BIGINT;
+BEGIN
+  -- Get txid FIRST, before any mutations
+  SELECT pg_current_xact_id()::xid::text::bigint INTO v_txid;
+  
+  -- Extract ID from path
+  v_id := split_part(p_path, '/', 3)::UUID;
+  
+  CASE p_method
+    WHEN 'POST' THEN
+      INSERT INTO todos (
+        id, label, week_number, done, archived, 
+        created_at, updated_at, device_id
+      ) VALUES (
+        COALESCE((p_body->>'id')::UUID, gen_random_uuid()),
+        p_body->>'label',
+        (p_body->>'weekNumber')::INTEGER,
+        COALESCE((p_body->>'done')::BOOLEAN, false),
+        COALESCE((p_body->>'archived')::BOOLEAN, false),
+        COALESCE((p_body->>'createdAt')::BIGINT, extract(epoch from now()) * 1000),
+        COALESCE((p_body->>'updatedAt')::BIGINT, extract(epoch from now()) * 1000),
+        p_body->>'deviceId'
+      )
+      RETURNING to_jsonb(todos.*) INTO v_todo;
+      
+    WHEN 'PUT' THEN
+      UPDATE todos 
+      SET 
+        label = COALESCE(p_body->>'label', label),
+        week_number = COALESCE((p_body->>'weekNumber')::INTEGER, week_number),
+        done = COALESCE((p_body->>'done')::BOOLEAN, done),
+        archived = COALESCE((p_body->>'archived')::BOOLEAN, archived),
+        updated_at = extract(epoch from now()) * 1000,
+        device_id = COALESCE(p_body->>'deviceId', device_id)
+      WHERE id = v_id
+      RETURNING to_jsonb(todos.*) INTO v_todo;
+      
+    WHEN 'DELETE' THEN
+      DELETE FROM todos WHERE id = v_id
+      RETURNING to_jsonb(todos.*) INTO v_todo;
+  END CASE;
+  
+  RETURN QUERY SELECT v_todo, v_txid;
+END;
+$$ LANGUAGE plpgsql;
+```
 
 ### Phase 4: Update Composables (2-3 hours)
 
@@ -396,6 +748,8 @@ export function useElectricTodos() {
     if (!isOnline.value) return
 
     isMigrating.value = true
+    syncStatus.value = 'syncing'
+    
     try {
       const localTodos = localTodosCollection.utils.getAll()
       
@@ -407,15 +761,20 @@ export function useElectricTodos() {
         }
         
         // Insert via API (will trigger Electric sync)
-        await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/todos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(todoWithDevice),
         })
+        
+        if (!response.ok) {
+          throw new Error(`Failed to migrate todo ${todo.id}`)
+        }
       }
 
       // Clear local storage after successful migration
       localTodosCollection.utils.clear()
+      syncStatus.value = 'synced'
       
     } catch (error) {
       console.error('Migration failed:', error)
@@ -441,7 +800,7 @@ export function useElectricTodos() {
     }
 
     // Insert into active collection
-    // If online: triggers onInsert handler → API call → await txid
+    // If online: triggers onInsert handler → API call → waits for txid
     // If offline: stores locally, syncs when reconnected
     activeCollection.value.insert(todo)
     
@@ -531,7 +890,7 @@ Create `src/components/SyncStatus.vue`:
       class="w-2 h-2 rounded-full"
       :class="{
         'bg-green-500': isOnline && syncStatus === 'synced',
-        'bg-yellow-500': syncStatus === 'syncing',
+        'bg-yellow-500': syncStatus === 'syncing' || isMigrating,
         'bg-red-500': !isOnline || syncStatus === 'error',
       }"
     />
@@ -539,11 +898,12 @@ Create `src/components/SyncStatus.vue`:
       {{ statusText }}
     </span>
     <button
-      v-if="!isOnline"
+      v-if="localTodosCount > 0 && isOnline"
       @click="migrateLocalTodos"
-      class="text-blue-500 hover:text-blue-700"
+      class="text-blue-500 hover:text-blue-700 text-xs"
+      :disabled="isMigrating"
     >
-      Sync when online
+      {{ isMigrating ? 'Migrating...' : `Upload ${localTodosCount} local` }}
     </button>
   </div>
 </template>
@@ -551,11 +911,17 @@ Create `src/components/SyncStatus.vue`:
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useElectricTodos } from '@/composables/useElectricTodos'
+import { localTodosCollection } from '@/db/collections'
 
-const { isOnline, syncStatus, migrateLocalTodos } = useElectricTodos()
+const { isOnline, isMigrating, syncStatus, migrateLocalTodos } = useElectricTodos()
+
+const localTodosCount = computed(() => {
+  return localTodosCollection.utils.getAll().length
+})
 
 const statusText = computed(() => {
   if (!isOnline.value) return 'Offline'
+  if (isMigrating.value) return 'Migrating...'
   if (syncStatus.value === 'syncing') return 'Syncing...'
   if (syncStatus.value === 'error') return 'Sync error'
   return 'Synced'
@@ -565,18 +931,22 @@ const statusText = computed(() => {
 
 #### 5.2 Update App.vue
 
-Add sync status indicator and migration button:
+Add sync status indicator:
 
 ```vue
 <template>
   <div class="app">
-    <header>
+    <header class="flex justify-between items-center p-4">
+      <h1>AI Todo App</h1>
       <SyncStatus />
-      <!-- ... rest of header -->
     </header>
     <!-- ... rest of app -->
   </div>
 </template>
+
+<script setup lang="ts">
+import SyncStatus from '@/components/SyncStatus.vue'
+</script>
 ```
 
 ### Phase 6: Migration from LocalStorage (1-2 hours)
@@ -590,14 +960,17 @@ import { useElectricTodos } from './useElectricTodos'
 
 export function useMigration() {
   const hasMigrated = ref(false)
+  const hasPrompted = ref(false)
   const { isOnline, migrateLocalTodos } = useElectricTodos()
 
   onMounted(async () => {
     // Check if there's local data to migrate
     const localTodos = localTodosCollection.utils.getAll()
     
-    if (localTodos.length > 0 && isOnline.value) {
-      // Ask user or auto-migrate
+    if (localTodos.length > 0 && isOnline.value && !hasPrompted.value) {
+      hasPrompted.value = true
+      
+      // Ask user for migration
       const shouldMigrate = confirm(
         `Found ${localTodos.length} local todos. Upload to cloud?`
       )
@@ -613,7 +986,80 @@ export function useMigration() {
 }
 ```
 
-### Phase 7: Testing & Polish (2-3 hours)
+Use it in App.vue:
+
+```vue
+<script setup lang="ts">
+import { useMigration } from '@/composables/useMigration'
+
+// Initialize migration check
+useMigration()
+</script>
+```
+
+### Phase 7: Schema Evolution with Drizzle (Ongoing)
+
+When you need to modify the database schema:
+
+#### 7.1 Making Schema Changes
+
+1. **Edit `src/db/schema.ts`**:
+   ```typescript
+   // Example: Adding a new column
+   export const todosTable = pgTable('todos', {
+     // ... existing columns
+     priority: integer('priority').default(0), // New column
+   })
+   ```
+
+2. **Update frontend TodoSchema** (if needed):
+   ```typescript
+   export const TodoSchema = object({
+     // ... existing fields
+     priority: nullable(number()), // Add to valibot schema
+   })
+   ```
+
+3. **Generate migration**:
+   ```bash
+   npm run migrate:generate
+   ```
+
+4. **Review generated SQL** in `src/db/out/0001_add_priority.sql`:
+   ```sql
+   ALTER TABLE "todos" ADD COLUMN "priority" integer DEFAULT 0;
+   ```
+
+5. **Apply migration**:
+   ```bash
+   npm run migrate
+   ```
+
+#### 7.2 Migration Best Practices
+
+- **Always review generated SQL** before applying
+- **Test migrations on a copy** of production data first
+- **Make additive changes** (add columns) rather than destructive ones
+- **Use DEFAULT values** for new NOT NULL columns
+- **Version control** your migration files in `src/db/out/`
+
+#### 7.3 Troubleshooting Migrations
+
+**Error: "column already exists"**
+- Migration was already applied but Drizzle lost track
+- Fix: Mark as applied manually or reset migrations
+
+**Error: "syntax error" in generated SQL**
+- Drizzle Kit may generate incorrect SQL for complex changes
+- Fix: Edit the SQL file manually before applying
+
+**View migration status**:
+```bash
+# Check which migrations have been applied
+npx drizzle-kit check
+```
+
+### Phase 8: Testing & Debugging (2-3 hours)
 
 #### 7.1 Testing Checklist
 
@@ -625,16 +1071,67 @@ export function useMigration() {
 - [ ] Large todo list performance (>100 todos)
 - [ ] Error handling: Failed API calls roll back optimistic updates
 
-#### 7.2 Add Error Boundaries
+#### 7.2 Debugging Txid Issues
 
-Wrap collection operations with error handling:
+Enable debug logging in browser console:
+
+```javascript
+localStorage.debug = 'ts/db:electric'
+```
+
+**Common Issue: awaitTxId Stalls or Times Out**
+
+This happens when the txid returned from your API doesn't match the actual transaction ID of the mutation. This occurs when you query `pg_current_xact_id()` **outside** the same transaction that performs the mutation.
+
+**When txids DON'T match (bug):**
+```
+ts/db:electric awaitTxId called with txid 124
+ts/db:electric new txids synced from pg [123]
+// Stalls forever - 124 never arrives!
+```
+
+**When txids DO match (correct):**
+```
+ts/db:electric awaitTxId called with txid 123
+ts/db:electric new txids synced from pg [123]
+ts/db:electric awaitTxId found match for txid 123
+// Resolves immediately!
+```
+
+**The Solution**: Query txid INSIDE the transaction (see Phase 3 examples).
+
+#### 7.3 Alternative Sync Strategies (if txid issues persist)
+
+If you cannot get txid matching working, use `awaitMatch`:
 
 ```typescript
-// In useElectricTodos
-function handleOperationError(error: Error, operation: string) {
-  syncStatus.value = 'error'
-  console.error(`${operation} failed:`, error)
-  // Could add toast notification here
+import { isChangeMessage } from '@tanstack/electric-db-collection'
+
+onInsert: async ({ transaction }) => {
+  const newItem = transaction.mutations[0].modified
+  await api.todos.create(newItem)
+  
+  // Wait for matching message instead of txid
+  await collection.utils.awaitMatch(
+    (message) => {
+      return isChangeMessage(message) &&
+             message.headers.operation === 'insert' &&
+             message.value.id === newItem.id
+    },
+    5000 // timeout in ms
+  )
+}
+```
+
+Or use simple timeout for prototyping:
+
+```typescript
+onInsert: async ({ transaction }) => {
+  const newItem = transaction.mutations[0].modified
+  await api.todos.create(newItem)
+  
+  // Simple timeout - crude but usually works
+  await new Promise(resolve => setTimeout(resolve, 2000))
 }
 ```
 
@@ -643,7 +1140,14 @@ function handleOperationError(error: Error, operation: string) {
 ```
 src/
 ├── db/
-│   └── collections.ts          # Add electricTodosCollection
+│   ├── collections.ts          # Add electricTodosCollection + localTodosCollection
+│   ├── schema.ts               # NEW: Drizzle table schema
+│   ├── connection.ts           # NEW: PostgreSQL pool connection (migrations only)
+│   └── out/                    # NEW: Generated migration SQL files
+│       ├── 0000_initial_schema.sql
+│       ├── meta/
+│       │   └── _journal.json
+│       └── ...
 ├── composables/
 │   ├── useTodos.ts             # Keep for backward compatibility
 │   ├── useElectricTodos.ts     # NEW: Main composable for electric sync
@@ -651,39 +1155,156 @@ src/
 │   └── useMigration.ts         # NEW: LocalStorage → Electric migration
 ├── components/
 │   └── SyncStatus.vue          # NEW: Sync status indicator
+├── drizzle.config.ts           # NEW: Drizzle Kit configuration
 └── ...
 ```
+
+**Root-level Files:**
+- `drizzle.config.ts` - Drizzle Kit configuration for migrations
+- `.env.local` - Environment variables (DATABASE_URL for migrations, VITE_* for frontend)
 
 ## Environment Variables Required
 
 ```bash
 # .env.local
-VITE_ELECTRIC_URL=https://<your-instance>.electric-sql.cloud
-VITE_ELECTRIC_SHAPE_URL=https://<your-instance>.electric-sql.cloud/v1/shape
-VITE_API_BASE_URL=https://<your-supabase-project>.supabase.co/functions/v1
-VITE_DEVICE_ID=desktop-chrome-001  # Unique per device
+
+# =============================================================================
+# DATABASE (for migrations only - used by Drizzle Kit CLI)
+# NOT exposed to frontend - keep this secret!
+# =============================================================================
+DATABASE_URL=postgresql://postgres.wbsgscgtlbakvuwtitof:KFamqQYz2ykOE9Kf@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+
+# =============================================================================
+# ELECTRIC CLOUD (used by frontend - safe to expose with VITE_ prefix)
+# =============================================================================
+VITE_ELECTRIC_URL=https://svc-yappy-alpaca-ankg6kcezx.electric-sql.cloud
+VITE_ELECTRIC_SHAPE_URL=https://svc-yappy-alpaca-ankg6kcezx.electric-sql.cloud/v1/shape
+VITE_API_BASE_URL=https://svc-yappy-alpaca-ankg6kcezx.electric-sql.cloud
+
+# Electric Cloud credentials (used for shape subscriptions)
+VITE_ELECTRIC_SOURCE_ID=svc-yappy-alpaca-ankg6kcezx
+VITE_ELECTRIC_SECRET=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+
+# =============================================================================
+# APP CONFIGURATION
+# =============================================================================
+VITE_DEVICE_ID=desktop-chrome-001  # Unique per device/browser instance
 ```
+
+**Important Notes:**
+
+1. **DATABASE_URL**: Only used by Drizzle Kit CLI for migrations. Never import this in frontend code.
+
+2. **VITE_* variables**: Automatically exposed to frontend by Vite. These are required for Electric Cloud connection.
+
+3. **VITE_ELECTRIC_SECRET**: In Option 2 (direct connection), this is exposed to frontend. For production with sensitive data, consider Option A (backend proxy) instead.
+
+4. **VITE_DEVICE_ID**: Used to track which device created/modified todos. Generate a unique ID per device/browser combination.
+
+## Electric Cloud Setup Steps
+
+1. **Sign up for Electric Cloud**: https://electric-sql.cloud
+2. **Create a new source** and connect your Supabase Postgres database using the `DATABASE_URL`
+3. **Configure the source** in Electric Cloud dashboard:
+   - Note your `SOURCE_ID` and `SECRET` (shown after creating the source)
+   - Configure the shape URL (usually: `https://<source-id>.electric-sql.cloud/v1/shape`)
+4. **Add the todos table to Electric**:
+   - Electric automatically syncs all tables, but you may need to configure publications
+   - Ensure the `todos` table exists (run `npm run migrate` first)
+5. **Verify Electric is connected**:
+   ```bash
+   curl "https://<your-source-id>.electric-sql.cloud/v1/shape?table=todos&offset=-1"
+   ```
+6. **Update environment variables** with your actual SOURCE_ID, SECRET, and URLs
 
 ## Next Steps
 
+### Option 2 Specific Steps:
+
+1. **Install Drizzle dependencies**:
+   ```bash
+   npm install drizzle-orm drizzle-valibot pg
+   npm install -D drizzle-kit @types/pg
+   ```
+
+2. **Create Drizzle configuration files**:
+   - `drizzle.config.ts`
+   - `src/db/schema.ts`
+   - `src/db/connection.ts`
+
+3. **Generate and run initial migration**:
+   ```bash
+   npm run migrate:generate  # Creates src/db/out/0000_initial_schema.sql
+   npm run migrate           # Applies to your Supabase database
+   ```
+
+4. **Verify Electric Cloud connection**:
+   - Confirm Electric source is connected to your database
+   - Test shape endpoint: `curl $VITE_ELECTRIC_SHAPE_URL?table=todos&offset=-1`
+
+5. **Test the full flow**:
+   - `npm run dev` to start the app
+   - Add a todo locally (should sync to cloud)
+   - Check Supabase to confirm data arrived
+   - Verify Electric is streaming changes
+
+6. **Deploy when ready**:
+   - Ensure `.env.local` is in `.gitignore` (contains secrets)
+   - Set environment variables on your hosting platform
+   - Run `npm run migrate` on production database
+
+### General Next Steps:
+
 1. **Verify Electric Cloud setup**: Ensure shape URL is working
-2. **Create backend API**: Choose between Supabase Edge Functions or custom API
-3. **Test locally**: Run through all test scenarios
-4. **Deploy**: Update production environment variables
-5. **Monitor**: Check sync performance and error rates
+2. **Test locally**: Run through all test scenarios with debug logging enabled
+3. **Deploy**: Update production environment variables
+4. **Monitor**: Check sync performance and error rates
 
 ## Success Metrics
 
+### Sync Performance:
 - ✅ Sync time < 1 second for new todos
 - ✅ Real-time updates across devices (sub-second)
 - ✅ Offline operations work seamlessly
 - ✅ No data loss during migration
 - ✅ Automatic conflict resolution (no manual intervention)
+- ✅ No txid timeouts or stalls
 
-## Notes
+### Database Management:
+- ✅ Drizzle migrations generate correct SQL
+- ✅ `npm run migrate` applies migrations successfully
+- ✅ Schema changes tracked in version control (`src/db/out/`)
+- ✅ Database schema matches Drizzle schema definition
+- ✅ No manual SQL required for schema changes
 
+## Important Notes
+
+### Critical Implementation Details:
+
+- **CRITICAL**: Query `pg_current_xact_id()::xid::text` INSIDE the transaction that performs the mutation (handled by Electric Cloud proxy)
 - Electric handles all conflict resolution automatically via Postgres txids
 - No custom CRDT logic needed
 - Offline queue is handled by TanStack DB's optimistic updates
 - Multi-device sync is automatic via Electric shapes
 - Future multi-user support: Add `user_id` column and RLS policies
+
+### Option 2 Specific Notes:
+
+- **No backend server required** - Frontend connects directly to Electric Cloud
+- **Drizzle is only for migrations** - Not used for runtime queries
+- **DATABASE_URL is CLI-only** - Never import in frontend code
+- **VITE_ELECTRIC_SECRET is exposed** - This is acceptable for single-user apps, but consider Option A (backend proxy) for multi-user apps with sensitive data
+- **Migration workflow**: Edit schema.ts → Generate migration → Review SQL → Apply to database
+
+### Security Considerations for Option 2:
+
+⚠️ **Direct Electric Cloud connection exposes credentials in frontend**:
+- `VITE_ELECTRIC_SECRET` is visible in browser dev tools
+- Acceptable for: Personal apps, prototypes, low-security data
+- NOT recommended for: Multi-user apps, sensitive data, production customer-facing apps
+
+**Migration to Option A (backend proxy) later**:
+1. Create a backend API (Express/Hono/Fastify)
+2. Move Electric credentials to backend environment
+3. Update frontend to call your API instead of Electric directly
+4. No database migration needed - same PostgreSQL database
