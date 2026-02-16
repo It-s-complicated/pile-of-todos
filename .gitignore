@@ -25,5 +25,5 @@ dist-ssr
 
 session-ses*.md
 
-.agents
+.agents/skills
 .opencode
