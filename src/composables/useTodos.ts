@@ -1,5 +1,5 @@
 import type { Todo } from '../db/collections'
-import { todosCollection } from '../db/collections'
+import { getCurrentDeviceId, todosCollection } from '../db/collections'
 
 export function useTodos() {
   function getAllTodos(): Todo[] {
@@ -17,6 +17,7 @@ export function useTodos() {
       archived: false,
       createdAt: now,
       updatedAt: now,
+      deviceId: getCurrentDeviceId(),
     }
     todosCollection.insert(todo)
     return id
@@ -24,7 +25,10 @@ export function useTodos() {
 
   function updateTodo(id: string, updates: Partial<Todo>): void {
     todosCollection.update(id, (draft) => {
-      Object.assign(draft, updates, { updatedAt: Date.now() })
+      Object.assign(draft, updates, {
+        updatedAt: Date.now(),
+        deviceId: draft.deviceId ?? null,
+      })
     })
   }
 
@@ -36,6 +40,7 @@ export function useTodos() {
     todosCollection.update(id, (draft) => {
       draft.archived = true
       draft.updatedAt = Date.now()
+      draft.deviceId = draft.deviceId ?? null
     })
   }
 
@@ -45,6 +50,7 @@ export function useTodos() {
       todosCollection.update(id, (draft) => {
         draft.done = !todo.done
         draft.updatedAt = Date.now()
+        draft.deviceId = draft.deviceId ?? null
       })
     }
   }

@@ -13,8 +13,13 @@ import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
 import { ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDataExport } from './composables/useDataExport'
+import { useMigration } from './composables/useMigration'
 import { useWeekNumber } from './composables/useWeekNumber'
-import { todosCollection } from './db/collections'
+import { getCurrentDeviceId, todosCollection } from './db/collections'
+import SyncStatus from './components/SyncStatus.vue'
+
+// Initialize migration check
+useMigration()
 
 const route = useRoute()
 const { getCurrentWeekNumber } = useWeekNumber()
@@ -56,6 +61,7 @@ async function createTodo() {
     archived: false,
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    deviceId: getCurrentDeviceId(),
   })
   newTodoLabel.value = ''
   newTodoWeek.value = null
@@ -136,15 +142,18 @@ const id = useId()
 <template>
   <div class="max-w-3xl mx-auto px-6 py-8 min-h-screen">
     <!-- Header -->
-    <header class="mb-6 sm:mb-8 lg:mb-10">
-      <h1
-        class="font-[Playfair_Display] text-2xl sm:text-3xl lg:text-4xl font-bold text-navy mb-1 sm:mb-2 tracking-tight"
-      >
-        Editorial Tasks
-      </h1>
-      <p class="text-text-muted text-sm font-[Source_Sans_3] hidden sm:block">
-        Organize your editorial planning with precision
-      </p>
+    <header class="mb-6 sm:mb-8 lg:mb-10 flex justify-between items-start">
+      <div>
+        <h1
+          class="font-[Playfair_Display] text-2xl sm:text-3xl lg:text-4xl font-bold text-navy mb-1 sm:mb-2 tracking-tight"
+        >
+          Editorial Tasks
+        </h1>
+        <p class="text-text-muted text-sm font-[Source_Sans_3] hidden sm:block">
+          Organize your editorial planning with precision
+        </p>
+      </div>
+      <SyncStatus />
     </header>
 
     <!-- Navigation -->

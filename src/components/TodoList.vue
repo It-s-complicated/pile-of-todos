@@ -53,7 +53,10 @@ const selectedTodo = ref<Todo | null>(null)
 
 function handleUpdate(id: string, updates: Partial<Todo>) {
   todosCollection.update(id, (draft) => {
-    Object.assign(draft, updates, { updatedAt: Date.now() })
+    Object.assign(draft, updates, {
+      updatedAt: Date.now(),
+      deviceId: draft.deviceId ?? null,
+    })
   })
 }
 
@@ -61,6 +64,7 @@ function handleArchive(id: string) {
   todosCollection.update(id, (draft) => {
     draft.archived = true
     draft.updatedAt = Date.now()
+    draft.deviceId = draft.deviceId ?? null
   })
 }
 
@@ -79,6 +83,7 @@ function confirmMove(weekNumber: number | null) {
     todosCollection.update(selectedTodo.value.id, (draft) => {
       draft.weekNumber = weekNumber
       draft.updatedAt = Date.now()
+      draft.deviceId = draft.deviceId ?? null
     })
   }
   closeWeekSelector()
