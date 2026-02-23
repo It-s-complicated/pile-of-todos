@@ -5,7 +5,7 @@ import { FileText } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useWeekNumber } from '../composables/useWeekNumber'
-import { todosCollection, VALID_FILTERS } from '../db/collections'
+import { getActiveCollection, VALID_FILTERS } from '../db/collections'
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
@@ -18,8 +18,9 @@ const filter = computed(() =>
   VALID_FILTERS.includes(rawFilter.value) ? rawFilter.value : 'backlog',
 )
 
-// Single live query for all todos - called in component context
-const { data: allTodos, isReady } = useLiveQuery(q => q.from({ todo: todosCollection }))
+const activeCollection = getActiveCollection()
+
+const { data: allTodos, isReady } = useLiveQuery(q => q.from({ todo: activeCollection }))
 
 // Loading state
 const loading = computed(() => !isReady.value)
@@ -52,7 +53,7 @@ const showWeekSelector = ref(false)
 const selectedTodo = ref<Todo | null>(null)
 
 function handleUpdate(id: string, updates: Partial<Todo>) {
-  todosCollection.update(id, (draft) => {
+  activeCollection.update(id, (draft) => {
     Object.assign(draft, updates, {
       updatedAt: Date.now(),
       deviceId: draft.deviceId ?? null,
@@ -61,7 +62,7 @@ function handleUpdate(id: string, updates: Partial<Todo>) {
 }
 
 function handleArchive(id: string) {
-  todosCollection.update(id, (draft) => {
+  activeCollection.update(id, (draft) => {
     draft.archived = true
     draft.updatedAt = Date.now()
     draft.deviceId = draft.deviceId ?? null
@@ -80,7 +81,7 @@ function closeWeekSelector() {
 
 function confirmMove(weekNumber: number | null) {
   if (selectedTodo.value) {
-    todosCollection.update(selectedTodo.value.id, (draft) => {
+    activeCollection.update(selectedTodo.value.id, (draft) => {
       draft.weekNumber = weekNumber
       draft.updatedAt = Date.now()
       draft.deviceId = draft.deviceId ?? null

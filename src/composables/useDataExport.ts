@@ -1,11 +1,11 @@
 import type { InferOutput } from 'valibot'
 import { array, object, safeParse, string } from 'valibot'
-import { TodoSchema, todosCollection } from '../db/collections'
+import { todoSchema, todosCollection } from '../db/collections'
 
 const ExportDataSchema = object({
   version: string(),
   exportedAt: string(),
-  todos: array(TodoSchema),
+  todos: array(todoSchema),
 })
 
 type ExportData = InferOutput<typeof ExportDataSchema>

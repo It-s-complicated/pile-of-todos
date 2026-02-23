@@ -41,21 +41,25 @@ export function useElectricTodos() {
     syncStatus.value = 'syncing'
 
     try {
-      const localTodos = localTodosCollection.toArray
+      const localTodos = localTodosCollection.utils.getAll()
 
       for (const todo of localTodos) {
-        // Ensure deviceId is set
         const todoWithDevice = {
           ...todo,
           deviceId: todo.deviceId || getCurrentDeviceId(),
         }
 
-        // Insert via API (will trigger Electric sync)
-        const proxyUrl = import.meta.env.VITE_ELECTRIC_PROXY_URL || import.meta.env.VITE_API_BASE_URL
-        const originUrl = new URL(`${proxyUrl}/v1/shape`)
-        originUrl.searchParams.set('source_id', import.meta.env.VITE_ELECTRIC_SOURCE_ID!)
-        originUrl.searchParams.set('secret', import.meta.env.VITE_ELECTRIC_SECRET!)
-        const response = await fetch(originUrl, {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL
+        const url = new URL(`${apiUrl}/todos-stream`)
+        const sourceId = import.meta.env.VITE_ELECTRIC_SOURCE_ID
+        const secret = import.meta.env.VITE_ELECTRIC_SECRET
+
+        if (sourceId && secret) {
+          url.searchParams.set('source_id', sourceId)
+          url.searchParams.set('secret', secret)
+        }
+
+        const response = await fetch(url.toString(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(todoWithDevice),
@@ -129,7 +133,9 @@ export function useElectricTodos() {
 
   // Get count of local-only todos that haven't been migrated
   const localTodosCount = computed(() => {
-    return localTodosCollection.toArray.length
+    // console.log(Array.from(localTodosCollection.entries()))
+    return Array.from(localTodosCollection.entries()).length
+    // return localTodosCollection.utils.getAll().length
   })
 
   // Check if migration is needed (has local data and electric is configured)

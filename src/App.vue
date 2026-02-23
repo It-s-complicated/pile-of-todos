@@ -15,7 +15,7 @@ import { useRoute } from 'vue-router'
 import { useDataExport } from './composables/useDataExport'
 import { useMigration } from './composables/useMigration'
 import { useWeekNumber } from './composables/useWeekNumber'
-import { getCurrentDeviceId, todosCollection } from './db/collections'
+import { getCurrentDeviceId, getActiveCollection } from './db/collections'
 import SyncStatus from './components/SyncStatus.vue'
 
 // Initialize migration check
@@ -53,7 +53,7 @@ async function createTodo() {
     return
   }
 
-  todosCollection.insert({
+  getActiveCollection().insert({
     id: crypto.randomUUID(),
     label: trimmedLabel,
     weekNumber: newTodoWeek.value,

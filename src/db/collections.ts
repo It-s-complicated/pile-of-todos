@@ -12,8 +12,9 @@ import {
   regex,
   string,
 } from 'valibot'
+import { ShapeStream } from '@electric-sql/client'
 
-export const TodoSchema = object({
+export const todoSchema = object({
   id: pipe(string(), minLength(1)),
   label: pipe(
     string(),
@@ -29,7 +30,7 @@ export const TodoSchema = object({
   deviceId: nullable(string()),
 })
 
-export type Todo = InferOutput<typeof TodoSchema>
+export type Todo = InferOutput<typeof todoSchema>
 
 export type TodoFilter
   = | 'backlog'
@@ -54,7 +55,7 @@ export const localTodosCollection = createCollection(
     id: 'local-todos',
     storageKey: 'ai-todo-app-todos',
     getKey: item => item.id,
-    schema: TodoSchema,
+    schema: todoSchema,
   }),
 )
 
@@ -75,24 +76,31 @@ function getDeviceId(): string {
   return import.meta.env.VITE_DEVICE_ID || `device-${crypto.randomUUID().slice(0, 8)}`
 }
 
+const stream = new ShapeStream({
+  url: prepareElectricShapeUrl().toString(),
+  params: {
+    table: `todos`,
+  },
+})
+
 /**
  * Prepares the Electric SQL shape URL with authentication
  * Adds source_id and secret for Electric Cloud authentication
  */
-function prepareElectricShapeUrl(): string {
+function prepareElectricShapeUrl(): URL {
   const electricUrl = getElectricUrl()
   const shapeUrl = new URL(`${electricUrl}/v1/shape`)
-  
+
   // Add Electric Cloud authentication if configured
   const sourceId = import.meta.env.VITE_ELECTRIC_SOURCE_ID
   const secret = import.meta.env.VITE_ELECTRIC_SECRET
-  
+
   if (sourceId && secret) {
     shapeUrl.searchParams.set('source_id', sourceId)
     shapeUrl.searchParams.set('secret', secret)
   }
-  
-  return shapeUrl.toString()
+
+  return shapeUrl
 }
 
 /**
@@ -100,35 +108,30 @@ function prepareElectricShapeUrl(): string {
  * Mirrors the query param handling from the proxy
  */
 function prepareApiUrl(path: string = ''): string {
-  const electricUrl = getElectricUrl()
-  const apiUrl = new URL(`${electricUrl}${path}`)
-  
-  // Add Electric Cloud authentication if configured
-  const sourceId = import.meta.env.VITE_ELECTRIC_SOURCE_ID
-  const secret = import.meta.env.VITE_ELECTRIC_SECRET
-  
-  if (sourceId && secret) {
-    apiUrl.searchParams.set('source_id', sourceId)
-    apiUrl.searchParams.set('secret', secret)
+  const electricUrl = prepareElectricShapeUrl()
+  if (path) {
+    electricUrl.searchParams.set('table', path)
   }
-  
-  return apiUrl.toString()
-}
 
+  // const apiUrl = new URL(`${electricUrl}/${path}`)
+
+  return electricUrl.toString()
+}
 export const electricTodosCollection = createCollection(
   electricCollectionOptions({
     id: 'electric-todos',
-    schema: TodoSchema,
+    schema: todoSchema,
     getKey: item => item.id,
     shapeOptions: {
-      url: prepareElectricShapeUrl(),
+      url: prepareElectricShapeUrl().toString(),
       params: {
         table: 'todos',
       },
     },
     onInsert: async ({ transaction }) => {
       const { modified: newTodo } = transaction.mutations[0]
-      const response = await fetch(prepareApiUrl('/todos'), {
+
+      const response = await fetch(prepareApiUrl('todos-stream'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTodo),
@@ -143,7 +146,7 @@ export const electricTodosCollection = createCollection(
     },
     onUpdate: async ({ transaction }) => {
       const { modified: updatedTodo } = transaction.mutations[0]
-      const response = await fetch(prepareApiUrl(`/todos/${updatedTodo.id}`), {
+      const response = await fetch(prepareApiUrl(`/todos-stream/${updatedTodo.id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedTodo),
@@ -158,7 +161,7 @@ export const electricTodosCollection = createCollection(
     },
     onDelete: async ({ transaction }) => {
       const { original: deletedTodo } = transaction.mutations[0]
-      const response = await fetch(prepareApiUrl(`/todos/${deletedTodo.id}`), {
+      const response = await fetch(prepareApiUrl(`/todos-stream/${deletedTodo.id}`), {
         method: 'DELETE',
       })
 
