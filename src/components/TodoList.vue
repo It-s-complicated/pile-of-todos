@@ -4,12 +4,14 @@ import { useLiveQuery } from '@tanstack/vue-db'
 import { FileText } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useNetworkStatus } from '../composables/useNetworkStatus'
 import { useWeekNumber } from '../composables/useWeekNumber'
 import { getActiveCollection, VALID_FILTERS } from '../db/collections'
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
 const { getCurrentWeekNumber } = useWeekNumber()
+const { isOnline } = useNetworkStatus()
 const route = useRoute()
 
 const currentWeek = getCurrentWeekNumber()
@@ -18,9 +20,9 @@ const filter = computed(() =>
   VALID_FILTERS.includes(rawFilter.value) ? rawFilter.value : 'backlog',
 )
 
-const activeCollection = getActiveCollection()
+const activeCollection = computed(() => getActiveCollection(isOnline.value))
 
-const { data: allTodos, isReady } = useLiveQuery((q) => q.from({ todo: activeCollection }))
+const { data: allTodos, isReady } = useLiveQuery((q) => q.from({ todo: activeCollection.value }))
 
 // Loading state
 const loading = computed(() => !isReady.value)
@@ -53,7 +55,7 @@ const showWeekSelector = ref(false)
 const selectedTodo = ref<Todo | null>(null)
 
 function handleUpdate(id: string, updates: Partial<Todo>) {
-  activeCollection.update(id, (draft) => {
+  activeCollection.value.update(id, (draft) => {
     Object.assign(draft, updates, {
       updatedAt: Date.now(),
       deviceId: draft.deviceId ?? null,
@@ -62,7 +64,7 @@ function handleUpdate(id: string, updates: Partial<Todo>) {
 }
 
 function handleArchive(id: string) {
-  activeCollection.update(id, (draft) => {
+  activeCollection.value.update(id, (draft) => {
     draft.archived = true
     draft.updatedAt = Date.now()
     draft.deviceId = draft.deviceId ?? null
@@ -81,7 +83,7 @@ function closeWeekSelector() {
 
 function confirmMove(weekNumber: number | null) {
   if (selectedTodo.value) {
-    activeCollection.update(selectedTodo.value.id, (draft) => {
+    activeCollection.value.update(selectedTodo.value.id, (draft) => {
       draft.weekNumber = weekNumber
       draft.updatedAt = Date.now()
       draft.deviceId = draft.deviceId ?? null

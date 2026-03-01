@@ -1,7 +1,8 @@
 import type { InferOutput } from 'valibot'
 import { createCollection, localStorageCollectionOptions } from '@tanstack/vue-db'
 import { electricCollectionOptions } from '@tanstack/electric-db-collection'
-import { supabase } from '@/lib/supabase'
+import { snakeCamelMapper } from '@electric-sql/client'
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase'
 import {
   boolean,
   maxLength,
@@ -65,8 +66,13 @@ export const todosCollection = localTodosCollection
 /**
  * Gets the Electric SQL endpoint URL based on environment configuration
  */
-function getElectricUrl(): string {
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:30000'
+function getElectricShapeUrl(): string {
+  if (import.meta.env.VITE_ELECTRIC_SHAPE_URL) {
+    return import.meta.env.VITE_ELECTRIC_SHAPE_URL
+  }
+
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:30000'
+  return `${apiBaseUrl.replace(/\/+$/, '')}/v1/shape`
 }
 
 /**
@@ -81,8 +87,7 @@ function getDeviceId(): string {
  * Adds source_id and secret for Electric Cloud authentication
  */
 function prepareElectricShapeUrl(): URL {
-  const electricUrl = getElectricUrl()
-  const shapeUrl = new URL(`${electricUrl}/v1/shape`)
+  const shapeUrl = new URL(getElectricShapeUrl())
 
   // Add Electric Cloud authentication if configured
   const sourceId = import.meta.env.VITE_ELECTRIC_SOURCE_ID
@@ -95,6 +100,16 @@ function prepareElectricShapeUrl(): URL {
 
   return shapeUrl
 }
+
+function requireSupabaseClient() {
+  const client = getSupabaseClient()
+
+  if (!client) {
+    throw new Error('Cloud sync is not configured: missing Supabase credentials')
+  }
+
+  return client
+}
 export const electricTodosCollection = createCollection(
   electricCollectionOptions({
     id: 'electric-todos',
@@ -102,12 +117,17 @@ export const electricTodosCollection = createCollection(
     getKey: (item) => item.id,
     shapeOptions: {
       url: prepareElectricShapeUrl().toString(),
+      columnMapper: snakeCamelMapper(),
+      parser: {
+        int8: (value) => Number(value),
+      },
       params: {
         table: 'todos',
       },
     },
     onInsert: async ({ transaction }) => {
       const { modified: newTodo } = transaction.mutations[0]
+      const supabase = requireSupabaseClient()
 
       const { error } = await supabase.from('todos').insert({
         id: newTodo.id,
@@ -121,45 +141,55 @@ export const electricTodosCollection = createCollection(
       })
 
       if (error) throw new Error(error.message)
-      return { txid: Date.now() }
     },
     onUpdate: async ({ transaction }) => {
-      const { modified: updatedTodo } = transaction.mutations[0]
+      const mutation = transaction.mutations[0]
+      const { changes, original } = mutation
+      const supabase = requireSupabaseClient()
+
+      const updatePayload: Record<string, unknown> = {}
+
+      if (`label` in changes) updatePayload.label = changes.label
+      if (`weekNumber` in changes) updatePayload.week_number = changes.weekNumber ?? null
+      if (`done` in changes) updatePayload.done = changes.done
+      if (`archived` in changes) updatePayload.archived = changes.archived
+      if (`updatedAt` in changes) updatePayload.updated_at = changes.updatedAt
+      if (`deviceId` in changes) updatePayload.device_id = changes.deviceId
+
+      if (Object.keys(updatePayload).length === 0) {
+        return
+      }
 
       const { error } = await supabase
         .from('todos')
-        .update({
-          label: updatedTodo.label,
-          week_number: updatedTodo.weekNumber,
-          done: updatedTodo.done,
-          archived: updatedTodo.archived,
-          updated_at: updatedTodo.updatedAt,
-          device_id: updatedTodo.deviceId,
-        })
-        .eq('id', updatedTodo.id)
+        .update(updatePayload)
+        .eq('id', original.id)
 
       if (error) throw new Error(error.message)
-      return { txid: Date.now() }
     },
     onDelete: async ({ transaction }) => {
       const { original: deletedTodo } = transaction.mutations[0]
+      const supabase = requireSupabaseClient()
 
       const { error } = await supabase.from('todos').delete().eq('id', deletedTodo.id)
 
       if (error) throw new Error(error.message)
-      return { txid: Date.now() }
     },
   }),
 )
 
 // Helper to check if Electric sync is configured
 export function isElectricConfigured(): boolean {
-  return !!import.meta.env.VITE_API_BASE_URL
+  // Reconnect sync uses Supabase directly; API base URL is optional for offline-first mode.
+  return isSupabaseConfigured()
 }
 
 // Helper to get the active collection based on configuration
-export function getActiveCollection() {
-  return isElectricConfigured() ? electricTodosCollection : localTodosCollection
+export function getActiveCollection(isOnline = navigator.onLine) {
+  void isOnline
+  // Always read/write from local storage so todos remain available offline.
+  // Cloud sync runs separately and reconciles with this local collection.
+  return localTodosCollection
 }
 
 // Helper to get device ID for tracking

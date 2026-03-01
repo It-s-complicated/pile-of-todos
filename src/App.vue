@@ -13,13 +13,9 @@ import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
 import { ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDataExport } from './composables/useDataExport'
-import { useMigration } from './composables/useMigration'
 import { useWeekNumber } from './composables/useWeekNumber'
 import { getCurrentDeviceId, getActiveCollection } from './db/collections'
 import SyncStatus from './components/SyncStatus.vue'
-
-// Initialize migration check
-useMigration()
 
 const route = useRoute()
 const { getCurrentWeekNumber } = useWeekNumber()

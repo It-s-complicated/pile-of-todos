@@ -1,6 +1,7 @@
 import type { InferOutput } from 'valibot'
 import { array, object, safeParse, string } from 'valibot'
-import { todoSchema, todosCollection } from '../db/collections'
+import { useNetworkStatus } from './useNetworkStatus'
+import { getActiveCollection, todoSchema } from '../db/collections'
 
 const ExportDataSchema = object({
   version: string(),
@@ -11,8 +12,11 @@ const ExportDataSchema = object({
 type ExportData = InferOutput<typeof ExportDataSchema>
 
 export function useDataExport() {
+  const { isOnline } = useNetworkStatus()
+
   function exportTodos(): void {
-    const allTodos = todosCollection.utils.getAll()
+    const activeCollection = getActiveCollection(isOnline.value)
+    const allTodos = activeCollection.toArray
     const exportData: ExportData = {
       version: '2',
       exportedAt: new Date().toISOString(),
@@ -47,10 +51,17 @@ export function useDataExport() {
       }
 
       const validatedTodos = result.output.todos
+      const activeCollection = getActiveCollection(isOnline.value)
 
       // Clear existing data and bulk insert
-      todosCollection.utils.clear()
-      todosCollection.utils.bulkInsert(validatedTodos)
+      const existingIds = Array.from(activeCollection.keys())
+      if (existingIds.length > 0) {
+        activeCollection.delete(existingIds)
+      }
+
+      if (validatedTodos.length > 0) {
+        activeCollection.insert(validatedTodos)
+      }
 
       return {
         success: true,

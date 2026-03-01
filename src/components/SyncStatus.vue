@@ -2,8 +2,7 @@
 import { computed } from 'vue'
 import { useElectricTodos } from '@/composables/useElectricTodos'
 
-const { isOnline, isMigrating, syncStatus, localTodosCount, needsMigration, migrateLocalTodos } =
-  useElectricTodos()
+const { isOnline, isMigrating, syncStatus, needsMigration, migrateLocalTodos } = useElectricTodos()
 
 const statusConfig = computed(() => {
   if (!isOnline.value) {
@@ -16,7 +15,7 @@ const statusConfig = computed(() => {
   if (isMigrating.value) {
     return {
       dotClass: 'bg-yellow-500 animate-pulse',
-      text: 'Migrating...',
+      text: 'Syncing...',
       textClass: 'text-yellow-600',
     }
   }
@@ -63,7 +62,7 @@ const statusConfig = computed(() => {
       @click="migrateLocalTodos"
       class="ml-2 rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600 transition-colors hover:bg-blue-100"
     >
-      Upload {{ localTodosCount }} local
+      Retry sync
     </button>
   </div>
 </template>

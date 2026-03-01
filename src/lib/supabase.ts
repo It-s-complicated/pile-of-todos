@@ -1,10 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabasePublishableKey = import.meta.env.VITE_SUPABASE_KEY
+const supabaseApiKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_KEY
 
-if (!supabaseUrl || !supabasePublishableKey) {
-  throw new Error('Missing Supabase configuration')
+let cachedClient: ReturnType<typeof createClient<any>> | null = null
+
+export function isSupabaseConfigured(): boolean {
+  return !!supabaseUrl && !!supabaseApiKey
 }
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey)
+export function getSupabaseClient() {
+  if (!isSupabaseConfigured()) {
+    return null
+  }
+
+  if (!cachedClient) {
+    cachedClient = createClient<any>(supabaseUrl!, supabaseApiKey!)
+  }
+
+  return cachedClient
+}

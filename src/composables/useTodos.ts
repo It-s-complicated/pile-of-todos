@@ -3,7 +3,7 @@ import { getCurrentDeviceId, todosCollection } from '../db/collections'
 
 export function useTodos() {
   function getAllTodos(): Todo[] {
-    return todosCollection.utils.getAll()
+    return todosCollection.toArray
   }
 
   function addTodo(label: string, weekNumber: number | null): string {
@@ -45,7 +45,7 @@ export function useTodos() {
   }
 
   function toggleTodoDone(id: string): void {
-    const todo = todosCollection.utils.get(id)
+    const todo = todosCollection.get(id)
     if (todo) {
       todosCollection.update(id, (draft) => {
         draft.done = !todo.done
