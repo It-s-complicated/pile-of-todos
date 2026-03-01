@@ -32,7 +32,7 @@ export function useDataExport() {
 
   async function importTodos(
     file: File,
-  ): Promise<{ success: boolean, message: string, count?: number }> {
+  ): Promise<{ success: boolean; message: string; count?: number }> {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
@@ -42,7 +42,7 @@ export function useDataExport() {
 
       if (!result.success) {
         const issue = result.issues[0]
-        const path = issue.path?.map(p => (typeof p === 'string' ? p : p.key)).join('.') || 'root'
+        const path = issue.path?.map((p) => (typeof p === 'string' ? p : p.key)).join('.') || 'root'
         return { success: false, message: `Validation error at ${path}: ${issue.message}` }
       }
 
@@ -57,8 +57,7 @@ export function useDataExport() {
         message: `Successfully imported ${validatedTodos.length} todos`,
         count: validatedTodos.length,
       }
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof SyntaxError) {
         return { success: false, message: 'Invalid JSON file' }
       }

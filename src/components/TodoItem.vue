@@ -71,7 +71,7 @@ function cancelEdit() {
 
 <template>
   <div
-    class="group flex items-center gap-4 bg-white rounded-lg border border-border p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+    class="group flex items-center gap-4 rounded-lg border border-border bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
     :style="{ borderLeft: `3px solid ${statusColor}` }"
   >
     <!-- Custom Checkbox -->
@@ -80,36 +80,36 @@ function cancelEdit() {
       role="checkbox"
       :aria-checked="isChecked"
       :aria-label="isChecked ? 'Mark as incomplete' : 'Mark as complete'"
-      class="relative size-5 scroll-pr-0.5 shrink-0 rounded border-2 border-navy transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2"
+      class="relative size-5 shrink-0 scroll-pr-0.5 rounded border-2 border-navy transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2"
       :class="{ 'bg-navy': isChecked, 'bg-white': !isChecked }"
       @click="toggleDone"
     >
       <Check
         v-if="isChecked"
-        class="absolute inset-0 w-full h-full text-white p-0.5 transition-transform duration-200"
+        class="absolute inset-0 h-full w-full p-0.5 text-white transition-transform duration-200"
         :class="{ 'animate-checkmark': isChecked }"
         stroke-width="3"
       />
     </button>
 
     <!-- Content -->
-    <div class="flex-1 min-w-0">
+    <div class="min-w-0 flex-1">
       <input
         v-if="isEditing"
         v-model="editLabel"
-        class="w-full px-2 py-1 bg-cream border border-border rounded text-navy focus:outline-none focus:border-navy focus:ring-1 focus:ring-navy/10"
+        class="w-full rounded border border-border bg-cream px-2 py-1 text-navy focus:border-navy focus:ring-1 focus:ring-navy/10 focus:outline-none"
         @blur="saveEdit"
         @keyup.enter="saveEdit"
         @keyup.esc="cancelEdit"
-      >
+      />
       <div v-else class="cursor-pointer" @dblclick="startEdit">
         <p
           class="text-base leading-snug transition-all duration-200"
-          :class="{ 'line-through text-text-muted': todo.done, 'text-navy': !todo.done }"
+          :class="{ 'text-text-muted line-through': todo.done, 'text-navy': !todo.done }"
         >
           {{ todo.label }}
         </p>
-        <p class="text-xs text-text-muted mt-1 font-mono flex items-center gap-1.5">
+        <p class="mt-1 flex items-center gap-1.5 font-mono text-xs text-text-muted">
           <Calendar class="size-3" stroke-width="1.5" />
           {{ weekStatusLabel }}
         </p>
@@ -118,11 +118,11 @@ function cancelEdit() {
 
     <!-- Actions -->
     <div
-      class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+      class="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
     >
       <button
         type="button"
-        class="p-2 text-text-muted hover:text-navy hover:bg-cream rounded-md transition-all duration-150"
+        class="rounded-md p-2 text-text-muted transition-all duration-150 hover:bg-cream hover:text-navy"
         title="Move to different week"
         @click="$emit('move')"
       >
@@ -130,7 +130,7 @@ function cancelEdit() {
       </button>
       <button
         type="button"
-        class="p-2 text-text-muted hover:text-danger hover:bg-danger-light rounded-md transition-all duration-150"
+        class="rounded-md p-2 text-text-muted transition-all duration-150 hover:bg-danger-light hover:text-danger"
         title="Archive"
         @click="$emit('archive')"
       >

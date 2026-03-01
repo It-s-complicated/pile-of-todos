@@ -1,7 +1,7 @@
-import { loadEnvFile } from 'node:process';
+import { loadEnvFile } from 'node:process'
 import { defineConfig } from 'drizzle-kit'
 
-loadEnvFile(".env.local")
+loadEnvFile('.env.local')
 export default defineConfig({
   out: './src/db/out',
   schema: './src/db/schema.ts',

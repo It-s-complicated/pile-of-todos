@@ -9,12 +9,8 @@ const currentWeek = computed(() => getCurrentWeekNumber())
 
 <template>
   <div class="mb-6">
-    <h2 class="font-[Playfair_Display] text-2xl font-semibold text-navy mb-2">
-      Current Week
-    </h2>
-    <p class="text-sm text-text-muted font-mono">
-      Week {{ currentWeek }} · Tasks for this week
-    </p>
+    <h2 class="mb-2 font-[Playfair_Display] text-2xl font-semibold text-navy">Current Week</h2>
+    <p class="font-mono text-sm text-text-muted">Week {{ currentWeek }} · Tasks for this week</p>
   </div>
   <TodoList />
 </template>

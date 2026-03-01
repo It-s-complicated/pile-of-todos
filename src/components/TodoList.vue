@@ -20,7 +20,7 @@ const filter = computed(() =>
 
 const activeCollection = getActiveCollection()
 
-const { data: allTodos, isReady } = useLiveQuery(q => q.from({ todo: activeCollection }))
+const { data: allTodos, isReady } = useLiveQuery((q) => q.from({ todo: activeCollection }))
 
 // Loading state
 const loading = computed(() => !isReady.value)
@@ -31,19 +31,19 @@ const filteredTodos = computed(() => {
 
   switch (filter.value) {
     case 'backlog':
-      return todos.filter(t => t.weekNumber === null && !t.archived)
+      return todos.filter((t) => t.weekNumber === null && !t.archived)
     case 'current-week':
-      return todos.filter(t => t.weekNumber === currentWeek && !t.archived)
+      return todos.filter((t) => t.weekNumber === currentWeek && !t.archived)
     case 'future':
-      return todos.filter(t => t.weekNumber !== null && t.weekNumber > currentWeek && !t.archived)
+      return todos.filter((t) => t.weekNumber !== null && t.weekNumber > currentWeek && !t.archived)
     case 'unfinished':
       return todos.filter(
-        t => t.weekNumber !== null && t.weekNumber < currentWeek && !t.done && !t.archived,
+        (t) => t.weekNumber !== null && t.weekNumber < currentWeek && !t.done && !t.archived,
       )
     case 'archived':
-      return todos.filter(t => t.archived === true)
+      return todos.filter((t) => t.archived === true)
     case 'finished':
-      return todos.filter(t => t.done === true && t.archived === false)
+      return todos.filter((t) => t.done === true && t.archived === false)
     default:
       return todos
   }
@@ -117,24 +117,24 @@ const emptyStateMessage = computed(() => {
 <template>
   <div class="flex flex-col gap-3">
     <!-- Loading State -->
-    <div v-if="loading" class="text-center py-12">
+    <div v-if="loading" class="py-12 text-center">
       <div class="inline-flex items-center gap-2 text-text-muted">
-        <div class="size-5 border-2 border-border border-t-navy rounded-full animate-spin" />
+        <div class="size-5 animate-spin rounded-full border-2 border-border border-t-navy" />
         <span class="text-sm font-medium">Loading tasks...</span>
       </div>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="filteredTodos.length === 0" class="text-center py-16 px-4">
+    <div v-else-if="filteredTodos.length === 0" class="px-4 py-16 text-center">
       <div class="inline-flex flex-col items-center gap-4">
-        <div class="size-16 rounded-full bg-cream flex items-center justify-center">
+        <div class="flex size-16 items-center justify-center rounded-full bg-cream">
           <FileText class="size-8 text-border-hover" stroke-width="1.5" />
         </div>
         <div>
           <p class="font-[Playfair_Display] text-lg font-medium text-navy">
             {{ emptyStateMessage.title }}
           </p>
-          <p class="text-sm text-text-muted mt-1">
+          <p class="mt-1 text-sm text-text-muted">
             {{ emptyStateMessage.subtitle }}
           </p>
         </div>
@@ -166,7 +166,7 @@ const emptyStateMessage = computed(() => {
     >
       <div
         v-if="showWeekSelector"
-        class="fixed inset-0 bg-navy/40 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4 backdrop-blur-sm"
         @click="closeWeekSelector"
       >
         <div @click.stop>

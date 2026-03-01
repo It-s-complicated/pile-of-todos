@@ -45,20 +45,16 @@ const weekOptions = [
 </script>
 
 <template>
-  <div class="bg-white rounded-xl shadow-lg p-6 max-w-md w-full animate-fade-in-up">
+  <div class="animate-fade-in-up w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="mb-6 flex items-center justify-between">
       <div>
-        <h3 class="font-[Playfair_Display] text-xl font-semibold text-navy">
-          Move to Week
-        </h3>
-        <p class="text-sm text-text-muted mt-1">
-          Select a destination for this task
-        </p>
+        <h3 class="font-[Playfair_Display] text-xl font-semibold text-navy">Move to Week</h3>
+        <p class="mt-1 text-sm text-text-muted">Select a destination for this task</p>
       </div>
       <button
         type="button"
-        class="p-2 text-text-muted hover:text-navy hover:bg-cream rounded-lg transition-all duration-150"
+        class="rounded-lg p-2 text-text-muted transition-all duration-150 hover:bg-cream hover:text-navy"
         @click="cancel"
       >
         <X class="size-5" stroke-width="1.5" />
@@ -66,12 +62,12 @@ const weekOptions = [
     </div>
 
     <!-- Week Options -->
-    <div class="space-y-2 mb-6">
+    <div class="mb-6 space-y-2">
       <button
         v-for="option in weekOptions"
         :key="option.value ?? 'backlog'"
         type="button"
-        class="w-full flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 text-left"
+        class="flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-200"
         :class="
           selectedWeek === option.value
             ? 'border-coral bg-cream'
@@ -80,7 +76,7 @@ const weekOptions = [
         @click="selectedWeek = option.value"
       >
         <div
-          class="size-5 rounded-full border-2 flex items-center justify-center transition-all duration-200"
+          class="flex size-5 items-center justify-center rounded-full border-2 transition-all duration-200"
           :class="selectedWeek === option.value ? 'border-coral bg-coral' : 'border-border'"
         >
           <div v-if="selectedWeek === option.value" class="size-2 rounded-full bg-white" />
@@ -100,14 +96,14 @@ const weekOptions = [
     <div class="flex gap-3">
       <button
         type="button"
-        class="flex-1 px-4 py-2.5 bg-coral text-white rounded-lg text-sm font-semibold cursor-pointer transition-all duration-150 hover:bg-coral-dark hover:shadow-md active:scale-[0.98]"
+        class="flex-1 cursor-pointer rounded-lg bg-coral px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-coral-dark hover:shadow-md active:scale-[0.98]"
         @click="confirm"
       >
         Move Task
       </button>
       <button
         type="button"
-        class="px-4 py-2.5 bg-cream text-text-secondary rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-border active:scale-[0.98]"
+        class="cursor-pointer rounded-lg bg-cream px-4 py-2.5 text-sm font-medium text-text-secondary transition-all duration-150 hover:bg-border active:scale-[0.98]"
         @click="cancel"
       >
         Cancel

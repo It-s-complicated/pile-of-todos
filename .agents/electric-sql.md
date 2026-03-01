@@ -49,8 +49,7 @@ const serve = async ({ request }: { request: Request }) => {
 
   // Pass Electric protocol params
   url.searchParams.forEach((v, k) => {
-    if (ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(k))
-      origin.searchParams.set(k, v)
+    if (ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(k)) origin.searchParams.set(k, v)
   })
 
   // Server decides shape
@@ -95,7 +94,7 @@ export const todoCollection = createCollection(
       return { txid }
     },
     // onUpdate/onDelete same pattern
-  })
+  }),
 )
 ```
 
@@ -131,7 +130,7 @@ export function TodoList() {
       .from({ todo: todoCollection })
       .where(({ todo }) => eq(todo.completed, false))
       .orderBy(({ todo }) => todo.created_at, 'desc')
-      .limit(50)
+      .limit(50),
   )
   return (
     <ul>
@@ -153,7 +152,7 @@ const { data } = useLiveQuery(
       .from({ todo: todoCollection })
       .orderBy(({ todo }) => todo.createdAt, direction)
       .limit(50),
-  [direction]
+  [direction],
 )
 ```
 
@@ -207,10 +206,7 @@ const bootstrapTodoListAction = createOptimisticAction<string>({
   },
   mutationFn: async (listId, itemText) => {
     const { txid } = await api.todos.bootstrapTodoList({ listId, itemText })
-    await Promise.all([
-      listCollection.utils.awaitTxId(txid),
-      todoCollection.utils.awaitTxId(txid),
-    ])
+    await Promise.all([listCollection.utils.awaitTxId(txid), todoCollection.utils.awaitTxId(txid)])
   },
 })
 ```
@@ -313,9 +309,7 @@ npm install @tanstack/{angular,react,solid,svelte,vue}-db
 
 ```ts
 import { useLiveQuery } from '...'
-const { data, isLoading } = useLiveQuery((q) =>
-  q.from({ todos: todosCollection })
-)
+const { data, isLoading } = useLiveQuery((q) => q.from({ todos: todosCollection }))
 ```
 
 **React Native:** Requires `react-native-random-uuid` + import in entry point

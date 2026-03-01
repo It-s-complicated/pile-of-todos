@@ -1,6 +1,7 @@
 import type { InferOutput } from 'valibot'
 import { createCollection, localStorageCollectionOptions } from '@tanstack/vue-db'
 import { electricCollectionOptions } from '@tanstack/electric-db-collection'
+import { supabase } from '@/lib/supabase'
 import {
   boolean,
   maxLength,
@@ -12,7 +13,6 @@ import {
   regex,
   string,
 } from 'valibot'
-import { ShapeStream } from '@electric-sql/client'
 
 export const todoSchema = object({
   id: pipe(string(), minLength(1)),
@@ -32,13 +32,13 @@ export const todoSchema = object({
 
 export type Todo = InferOutput<typeof todoSchema>
 
-export type TodoFilter
-  = | 'backlog'
-    | 'current-week'
-    | 'future'
-    | 'unfinished'
-    | 'archived'
-    | 'finished'
+export type TodoFilter =
+  | 'backlog'
+  | 'current-week'
+  | 'future'
+  | 'unfinished'
+  | 'archived'
+  | 'finished'
 
 export const VALID_FILTERS: TodoFilter[] = [
   'backlog',
@@ -54,7 +54,7 @@ export const localTodosCollection = createCollection(
   localStorageCollectionOptions({
     id: 'local-todos',
     storageKey: 'ai-todo-app-todos',
-    getKey: item => item.id,
+    getKey: (item) => item.id,
     schema: todoSchema,
   }),
 )
@@ -76,13 +76,6 @@ function getDeviceId(): string {
   return import.meta.env.VITE_DEVICE_ID || `device-${crypto.randomUUID().slice(0, 8)}`
 }
 
-const stream = new ShapeStream({
-  url: prepareElectricShapeUrl().toString(),
-  params: {
-    table: `todos`,
-  },
-})
-
 /**
  * Prepares the Electric SQL shape URL with authentication
  * Adds source_id and secret for Electric Cloud authentication
@@ -102,26 +95,11 @@ function prepareElectricShapeUrl(): URL {
 
   return shapeUrl
 }
-
-/**
- * Prepares an API URL for write operations (POST/PUT/DELETE)
- * Mirrors the query param handling from the proxy
- */
-function prepareApiUrl(path: string = ''): string {
-  const electricUrl = prepareElectricShapeUrl()
-  if (path) {
-    electricUrl.searchParams.set('table', path)
-  }
-
-  // const apiUrl = new URL(`${electricUrl}/${path}`)
-
-  return electricUrl.toString()
-}
 export const electricTodosCollection = createCollection(
   electricCollectionOptions({
     id: 'electric-todos',
     schema: todoSchema,
-    getKey: item => item.id,
+    getKey: (item) => item.id,
     shapeOptions: {
       url: prepareElectricShapeUrl().toString(),
       params: {
@@ -131,46 +109,45 @@ export const electricTodosCollection = createCollection(
     onInsert: async ({ transaction }) => {
       const { modified: newTodo } = transaction.mutations[0]
 
-      const response = await fetch(prepareApiUrl('todos-stream'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTodo),
+      const { error } = await supabase.from('todos').insert({
+        id: newTodo.id,
+        label: newTodo.label,
+        week_number: newTodo.weekNumber,
+        done: newTodo.done,
+        archived: newTodo.archived,
+        created_at: newTodo.createdAt,
+        updated_at: newTodo.updatedAt,
+        device_id: newTodo.deviceId,
       })
 
-      if (!response.ok) {
-        throw new Error(`Failed to insert todo: ${response.statusText}`)
-      }
-
-      const { txid } = await response.json()
-      return { txid }
+      if (error) throw new Error(error.message)
+      return { txid: Date.now() }
     },
     onUpdate: async ({ transaction }) => {
       const { modified: updatedTodo } = transaction.mutations[0]
-      const response = await fetch(prepareApiUrl(`/todos-stream/${updatedTodo.id}`), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTodo),
-      })
 
-      if (!response.ok) {
-        throw new Error(`Failed to update todo: ${response.statusText}`)
-      }
+      const { error } = await supabase
+        .from('todos')
+        .update({
+          label: updatedTodo.label,
+          week_number: updatedTodo.weekNumber,
+          done: updatedTodo.done,
+          archived: updatedTodo.archived,
+          updated_at: updatedTodo.updatedAt,
+          device_id: updatedTodo.deviceId,
+        })
+        .eq('id', updatedTodo.id)
 
-      const { txid } = await response.json()
-      return { txid }
+      if (error) throw new Error(error.message)
+      return { txid: Date.now() }
     },
     onDelete: async ({ transaction }) => {
       const { original: deletedTodo } = transaction.mutations[0]
-      const response = await fetch(prepareApiUrl(`/todos-stream/${deletedTodo.id}`), {
-        method: 'DELETE',
-      })
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete todo: ${response.statusText}`)
-      }
+      const { error } = await supabase.from('todos').delete().eq('id', deletedTodo.id)
 
-      const { txid } = await response.json()
-      return { txid }
+      if (error) throw new Error(error.message)
+      return { txid: Date.now() }
     },
   }),
 )

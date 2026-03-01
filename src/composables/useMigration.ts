@@ -16,7 +16,7 @@ export function useMigration() {
       // Ask user for migration after a short delay to let UI settle
       setTimeout(async () => {
         const shouldMigrate = confirm(
-          `Found local todos that haven't been synced to the cloud. Upload them now?`
+          `Found local todos that haven't been synced to the cloud. Upload them now?`,
         )
 
         if (shouldMigrate) {

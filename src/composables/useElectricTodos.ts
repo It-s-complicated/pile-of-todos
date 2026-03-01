@@ -7,6 +7,7 @@ import {
   localTodosCollection,
   type Todo,
 } from '@/db/collections'
+import { supabase } from '@/lib/supabase'
 import { useNetworkStatus } from './useNetworkStatus'
 
 export type SyncStatus = 'synced' | 'syncing' | 'error' | 'local-only'
@@ -27,9 +28,7 @@ export function useElectricTodos() {
   })
 
   // Live query from active collection
-  const { data: todos, isReady } = useLiveQuery((q) =>
-    q.from({ todo: activeCollection.value }),
-  )
+  const { data: todos, isReady } = useLiveQuery((q) => q.from({ todo: activeCollection.value }))
 
   // Migration: Upload local todos to cloud
   async function migrateLocalTodos(): Promise<boolean> {
@@ -44,29 +43,19 @@ export function useElectricTodos() {
       const localTodos = localTodosCollection.utils.getAll()
 
       for (const todo of localTodos) {
-        const todoWithDevice = {
-          ...todo,
-          deviceId: todo.deviceId || getCurrentDeviceId(),
-        }
-
-        const apiUrl = import.meta.env.VITE_API_BASE_URL
-        const url = new URL(`${apiUrl}/todos-stream`)
-        const sourceId = import.meta.env.VITE_ELECTRIC_SOURCE_ID
-        const secret = import.meta.env.VITE_ELECTRIC_SECRET
-
-        if (sourceId && secret) {
-          url.searchParams.set('source_id', sourceId)
-          url.searchParams.set('secret', secret)
-        }
-
-        const response = await fetch(url.toString(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(todoWithDevice),
+        const { error } = await supabase.from('todos').insert({
+          id: todo.id,
+          label: todo.label,
+          week_number: todo.weekNumber,
+          done: todo.done,
+          archived: todo.archived,
+          created_at: todo.createdAt,
+          updated_at: todo.updatedAt,
+          device_id: todo.deviceId || getCurrentDeviceId(),
         })
 
-        if (!response.ok) {
-          throw new Error(`Failed to migrate todo ${todo.id}: ${response.statusText}`)
+        if (error) {
+          throw new Error(`Failed to migrate todo ${todo.id}: ${error.message}`)
         }
       }
 
@@ -74,13 +63,11 @@ export function useElectricTodos() {
       localTodosCollection.utils.clear()
       syncStatus.value = 'synced'
       return true
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Migration failed:', error)
       syncStatus.value = 'error'
       return false
-    }
-    finally {
+    } finally {
       isMigrating.value = false
     }
   }
