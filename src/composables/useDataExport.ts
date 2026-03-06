@@ -18,7 +18,7 @@ export function useDataExport() {
     const activeCollection = getActiveCollection(isOnline.value)
     const allTodos = activeCollection.toArray
     const exportData: ExportData = {
-      version: '2',
+      version: '3',
       exportedAt: new Date().toISOString(),
       todos: allTodos,
     }

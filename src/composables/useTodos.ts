@@ -18,6 +18,7 @@ export function useTodos() {
       createdAt: now,
       updatedAt: now,
       deviceId: getCurrentDeviceId(),
+      deletedAt: null,
     }
     todosCollection.insert(todo)
     return id
@@ -33,7 +34,11 @@ export function useTodos() {
   }
 
   function deleteTodo(id: string): void {
-    todosCollection.delete(id)
+    todosCollection.update(id, (draft) => {
+      draft.deletedAt = Date.now()
+      draft.updatedAt = Date.now()
+      draft.deviceId = getCurrentDeviceId()
+    })
   }
 
   function archiveTodo(id: string): void {

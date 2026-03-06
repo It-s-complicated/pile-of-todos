@@ -12,6 +12,7 @@ export const todosTable = pgTable('todos', {
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
   updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   deviceId: varchar('device_id', { length: 255 }),
+  deletedAt: bigint('deleted_at', { mode: 'number' }),
 })
 
 // Generate valibot schemas from Drizzle schema for type safety

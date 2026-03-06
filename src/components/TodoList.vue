@@ -29,7 +29,7 @@ const loading = computed(() => !isReady.value)
 
 // Filtered todos computed from the live query
 const filteredTodos = computed(() => {
-  const todos = allTodos.value ?? []
+  const todos = (allTodos.value ?? []).filter((todo) => todo.deletedAt === null)
 
   switch (filter.value) {
     case 'backlog':

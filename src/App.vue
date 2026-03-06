@@ -58,6 +58,7 @@ async function createTodo() {
     createdAt: Date.now(),
     updatedAt: Date.now(),
     deviceId: getCurrentDeviceId(),
+    deletedAt: null,
   })
   newTodoLabel.value = ''
   newTodoWeek.value = null

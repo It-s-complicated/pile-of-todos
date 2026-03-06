@@ -2,7 +2,7 @@ import type { InferOutput } from 'valibot'
 import { createCollection, localStorageCollectionOptions } from '@tanstack/vue-db'
 import { electricCollectionOptions } from '@tanstack/electric-db-collection'
 import { snakeCamelMapper } from '@electric-sql/client'
-import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase'
+import { isSupabaseConfigured } from '@/lib/supabase'
 import {
   boolean,
   maxLength,
@@ -10,6 +10,7 @@ import {
   nullable,
   number,
   object,
+  optional,
   pipe,
   regex,
   string,
@@ -29,6 +30,7 @@ export const todoSchema = object({
   createdAt: number(),
   updatedAt: number(),
   deviceId: nullable(string()),
+  deletedAt: optional(nullable(number()), null),
 })
 
 export type Todo = InferOutput<typeof todoSchema>
@@ -101,15 +103,6 @@ function prepareElectricShapeUrl(): URL {
   return shapeUrl
 }
 
-function requireSupabaseClient() {
-  const client = getSupabaseClient()
-
-  if (!client) {
-    throw new Error('Cloud sync is not configured: missing Supabase credentials')
-  }
-
-  return client
-}
 export const electricTodosCollection = createCollection(
   electricCollectionOptions({
     id: 'electric-todos',
@@ -125,63 +118,13 @@ export const electricTodosCollection = createCollection(
         table: 'todos',
       },
     },
-    onInsert: async ({ transaction }) => {
-      const { modified: newTodo } = transaction.mutations[0]
-      const supabase = requireSupabaseClient()
-
-      const { error } = await supabase.from('todos').insert({
-        id: newTodo.id,
-        label: newTodo.label,
-        week_number: newTodo.weekNumber,
-        done: newTodo.done,
-        archived: newTodo.archived,
-        created_at: newTodo.createdAt,
-        updated_at: newTodo.updatedAt,
-        device_id: newTodo.deviceId,
-      })
-
-      if (error) throw new Error(error.message)
-    },
-    onUpdate: async ({ transaction }) => {
-      const mutation = transaction.mutations[0]
-      const { changes, original } = mutation
-      const supabase = requireSupabaseClient()
-
-      const updatePayload: Record<string, unknown> = {}
-
-      if (`label` in changes) updatePayload.label = changes.label
-      if (`weekNumber` in changes) updatePayload.week_number = changes.weekNumber ?? null
-      if (`done` in changes) updatePayload.done = changes.done
-      if (`archived` in changes) updatePayload.archived = changes.archived
-      if (`updatedAt` in changes) updatePayload.updated_at = changes.updatedAt
-      if (`deviceId` in changes) updatePayload.device_id = changes.deviceId
-
-      if (Object.keys(updatePayload).length === 0) {
-        return
-      }
-
-      const { error } = await supabase
-        .from('todos')
-        .update(updatePayload)
-        .eq('id', original.id)
-
-      if (error) throw new Error(error.message)
-    },
-    onDelete: async ({ transaction }) => {
-      const { original: deletedTodo } = transaction.mutations[0]
-      const supabase = requireSupabaseClient()
-
-      const { error } = await supabase.from('todos').delete().eq('id', deletedTodo.id)
-
-      if (error) throw new Error(error.message)
-    },
   }),
 )
 
 // Helper to check if Electric sync is configured
 export function isElectricConfigured(): boolean {
-  // Reconnect sync uses Supabase directly; API base URL is optional for offline-first mode.
-  return isSupabaseConfigured()
+  const hasElectricReadConfig = !!import.meta.env.VITE_ELECTRIC_SHAPE_URL || !!import.meta.env.VITE_API_BASE_URL
+  return hasElectricReadConfig && isSupabaseConfigured()
 }
 
 // Helper to get the active collection based on configuration

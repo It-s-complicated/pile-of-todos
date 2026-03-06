@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useElectricTodos } from '@/composables/useElectricTodos'
 
-const { isOnline, isMigrating, syncStatus, needsMigration, migrateLocalTodos } = useElectricTodos()
+const { isOnline, isMigrating, syncStatus, needsSync, syncTodos } = useElectricTodos()
 
 const statusConfig = computed(() => {
   if (!isOnline.value) {
@@ -33,6 +33,13 @@ const statusConfig = computed(() => {
       textClass: 'text-red-600',
     }
   }
+  if (syncStatus.value === 'stale') {
+    return {
+      dotClass: 'bg-amber-500',
+      text: 'Out of date',
+      textClass: 'text-amber-700',
+    }
+  }
   if (syncStatus.value === 'local-only') {
     return {
       dotClass: 'bg-gray-400',
@@ -58,8 +65,8 @@ const statusConfig = computed(() => {
       {{ statusConfig.text }}
     </span>
     <button
-      v-if="needsMigration && !isMigrating"
-      @click="migrateLocalTodos"
+      v-if="needsSync && !isMigrating"
+      @click="syncTodos"
       class="ml-2 rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600 transition-colors hover:bg-blue-100"
     >
       Retry sync
