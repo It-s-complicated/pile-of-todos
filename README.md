@@ -33,6 +33,66 @@ Create `.env.local` for frontend variables and (if using Drizzle migration/push 
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Required for Drizzle commands (`migrate`, `db:push`, `db:studio`, etc.) | PostgreSQL connection string for schema management tooling. | Drizzle commands fail at startup. Frontend app runtime is unaffected. |
 
+## Authentication architecture decision
+
+This repository is currently a frontend-only Vue/Vite app plus database tooling. There is no dedicated backend runtime in this codebase for handling OAuth callbacks, issuing sessions, or validating server-side allowlists.
+
+Because of that architecture, we are **not** using a client-only better-auth setup. Instead, we use **Supabase Auth (GitHub OAuth)** and enforce access control with **JWT claims + Postgres RLS policies**.
+
+### Why this decision
+
+- No Express/Nest/Fastify/Next API runtime exists in this repo.
+- Vite dev/build scripts and browser-side composables are the primary runtime surface.
+- Drizzle is used for schema/tooling, not as an always-on backend service.
+
+If contributors later introduce a dedicated backend service, then reevaluate whether better-auth should be hosted there (where callbacks, session issuance, and secure env-based allowlists can be enforced server-side).
+
+### Supabase GitHub OAuth + allowlist implementation
+
+1. **Enable GitHub OAuth in Supabase Auth**
+   - Configure the GitHub provider in Supabase dashboard.
+   - Add your local and production callback URLs in both GitHub OAuth app and Supabase Auth settings.
+
+2. **Attach allowlist info in JWT claims**
+   - Maintain the allowlist server-side in Supabase (for example, via an auth hook/claim enrichment function that checks approved emails or GitHub IDs).
+   - Add a boolean claim such as `app_metadata.allowed = true` for approved users.
+   - Do not trust client-side checks alone for allowlist enforcement.
+
+3. **Enforce with RLS policies in Postgres**
+   - Enable RLS on synced tables.
+   - Require the allowlist claim in all read/write policies.
+
+Example policy pattern:
+
+```sql
+alter table public.todos enable row level security;
+
+create policy "allowed users can select todos"
+on public.todos
+for select
+using ((auth.jwt() -> 'app_metadata' ->> 'allowed')::boolean = true);
+
+create policy "allowed users can insert todos"
+on public.todos
+for insert
+with check ((auth.jwt() -> 'app_metadata' ->> 'allowed')::boolean = true);
+
+create policy "allowed users can update todos"
+on public.todos
+for update
+using ((auth.jwt() -> 'app_metadata' ->> 'allowed')::boolean = true)
+with check ((auth.jwt() -> 'app_metadata' ->> 'allowed')::boolean = true);
+
+create policy "allowed users can delete todos"
+on public.todos
+for delete
+using ((auth.jwt() -> 'app_metadata' ->> 'allowed')::boolean = true);
+```
+
+4. **Keep anon key usage bounded by RLS**
+   - The frontend uses Supabase anon credentials.
+   - Effective access control must come from authenticated JWT claims and RLS, not from hidden frontend variables.
+
 ## Scripts
 
 From `package.json`:
