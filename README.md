@@ -33,6 +33,12 @@ Create `.env.local` for frontend variables and (if using Drizzle migration/push 
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Required for Drizzle commands (`migrate`, `db:push`, `db:studio`, etc.) | PostgreSQL connection string for schema management tooling. | Drizzle commands fail at startup. Frontend app runtime is unaffected. |
 
+## Auth and backend architecture note
+
+- Current app is frontend-only; auth is handled by Supabase Auth.
+- If migrating to better-auth later, add a backend service first.
+- If/when a backend is introduced, re-evaluate replacing Supabase auth flows with better-auth in that backend layer.
+
 ## Scripts
 
 From `package.json`:
