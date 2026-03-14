@@ -15,6 +15,13 @@
       "when": 1772829821917,
       "tag": "0001_burly_red_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773515296753,
+      "tag": "0002_rich_skrulls",
+      "breakpoints": true
     }
   ]
 }

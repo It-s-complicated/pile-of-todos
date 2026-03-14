@@ -5,26 +5,13 @@ import {
   getCurrentDeviceId,
   isElectricConfigured,
   localTodosCollection,
-  type Todo,
 } from '@/db/collections'
-import { getSupabaseClient } from '@/lib/supabase'
+import type { Todo } from '@/db/collections'
+import { getSupabaseClient, useSupabaseAuthState } from '@/lib/supabase'
+import { buildRemoteTodoRow, shouldPushTodoForUser } from '@/lib/todo-sync'
 import { useNetworkStatus } from './useNetworkStatus'
 
 export type SyncStatus = 'synced' | 'syncing' | 'error' | 'local-only' | 'stale'
-
-function toRemoteRow(todo: Todo) {
-  return {
-    id: todo.id,
-    label: todo.label,
-    week_number: todo.weekNumber,
-    done: todo.done,
-    archived: todo.archived,
-    created_at: todo.createdAt,
-    updated_at: todo.updatedAt,
-    device_id: todo.deviceId || getCurrentDeviceId(),
-    deleted_at: todo.deletedAt,
-  }
-}
 
 function isSameTodo(left: Todo, right: Todo): boolean {
   return (
@@ -35,6 +22,7 @@ function isSameTodo(left: Todo, right: Todo): boolean {
     left.createdAt === right.createdAt &&
     left.updatedAt === right.updatedAt &&
     left.deviceId === right.deviceId &&
+    left.userId === right.userId &&
     left.deletedAt === right.deletedAt
   )
 }
@@ -62,6 +50,7 @@ function applyRemoteTodoToLocal(todo: Todo) {
     draft.createdAt = todo.createdAt
     draft.updatedAt = todo.updatedAt
     draft.deviceId = todo.deviceId
+    draft.userId = todo.userId
     draft.deletedAt = todo.deletedAt
   })
 }
@@ -76,6 +65,7 @@ function needsRemoteWrite(localTodo: Todo, remoteTodo: Todo | undefined) {
 
 export function useElectricTodos() {
   const { isOnline } = useNetworkStatus()
+  const { isReady: isAuthReady, userId: authenticatedUserId } = useSupabaseAuthState()
   const isSyncing = ref(false)
   const isRemoteReady = ref(false)
   const hasSyncedOnce = ref(false)
@@ -92,16 +82,25 @@ export function useElectricTodos() {
 
   const localSnapshot = computed(() => localTodos.value ?? [])
   const remoteSnapshot = computed(() => remoteTodos.value ?? [])
+  const scopedRemoteSnapshot = computed(() =>
+    remoteSnapshot.value.filter((todo) => todo.userId === authenticatedUserId.value),
+  )
 
   const localTodosCount = computed(() => Array.from(localTodosCollection.entries()).length)
 
   function getPendingLocalTodos(localTodosToCheck: Todo[], remoteTodosToCompare: Todo[]) {
     const remoteById = new Map(remoteTodosToCompare.map((todo) => [todo.id, todo]))
-    return localTodosToCheck.filter((todo) => needsRemoteWrite(todo, remoteById.get(todo.id)))
+    return localTodosToCheck.filter((todo) => {
+      if (!shouldPushTodoForUser(todo, authenticatedUserId.value)) {
+        return false
+      }
+
+      return needsRemoteWrite(todo, remoteById.get(todo.id))
+    })
   }
 
   const needsSync = computed(() => {
-    if (!isElectricConfigured() || !isOnline.value) {
+    if (!isElectricConfigured() || !isOnline.value || !authenticatedUserId.value) {
       return false
     }
 
@@ -113,11 +112,16 @@ export function useElectricTodos() {
       return true
     }
 
-    return getPendingLocalTodos(localSnapshot.value, remoteSnapshot.value).length > 0
+    return getPendingLocalTodos(localSnapshot.value, scopedRemoteSnapshot.value).length > 0
   })
 
   const syncStatus = computed<SyncStatus>(() => {
-    if (!isElectricConfigured() || !isOnline.value) {
+    if (
+      !isOnline.value ||
+      !isElectricConfigured() ||
+      !authenticatedUserId.value ||
+      !isAuthReady.value
+    ) {
       return 'local-only'
     }
 
@@ -137,11 +141,17 @@ export function useElectricTodos() {
   })
 
   function getPushFingerprint(localTodosToPush: Todo[]) {
-    return localTodosToPush.map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`).join('|')
+    return localTodosToPush
+      .map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
+      .join('|')
   }
 
   async function pushLocalTodos(localTodosToPush: Todo[]) {
-    if (localTodosToPush.length === 0) {
+    const pushableTodos = localTodosToPush.filter((todo) =>
+      shouldPushTodoForUser(todo, authenticatedUserId.value),
+    )
+
+    if (pushableTodos.length === 0) {
       return false
     }
 
@@ -151,15 +161,18 @@ export function useElectricTodos() {
       throw new Error('Cloud sync is not configured: missing Supabase credentials')
     }
 
-    const pushFingerprint = getPushFingerprint(localTodosToPush)
+    const pushFingerprint = getPushFingerprint(pushableTodos)
 
     if (pushFingerprint === lastPushedFingerprint) {
       return false
     }
 
-    const { error } = await supabase.from('todos').upsert(localTodosToPush.map(toRemoteRow), {
-      onConflict: 'id',
-    })
+    const { error } = await supabase.from('todos').upsert(
+      pushableTodos.map((todo) => buildRemoteTodoRow(todo, getCurrentDeviceId())),
+      {
+        onConflict: 'id',
+      },
+    )
 
     if (error) {
       throw new Error(error.message)
@@ -197,7 +210,7 @@ export function useElectricTodos() {
   }
 
   async function syncTodos(): Promise<boolean> {
-    if (!isOnline.value || !isElectricConfigured()) {
+    if (!isOnline.value || !isElectricConfigured() || !authenticatedUserId.value) {
       return false
     }
 
@@ -214,15 +227,18 @@ export function useElectricTodos() {
         isRemoteReady.value = true
       }
 
-      await reconcileRemoteTodos(remoteSnapshot.value)
-      const pendingLocalTodos = getPendingLocalTodos(localSnapshot.value, remoteSnapshot.value)
+      await reconcileRemoteTodos(scopedRemoteSnapshot.value)
+      const pendingLocalTodos = getPendingLocalTodos(
+        localSnapshot.value,
+        scopedRemoteSnapshot.value,
+      )
 
       await pushLocalTodos(pendingLocalTodos)
 
       hasSyncedOnce.value = true
       lastSyncedAt.value = Date.now()
       syncError.value = false
-      return getPendingLocalTodos(localSnapshot.value, remoteSnapshot.value).length === 0
+      return getPendingLocalTodos(localSnapshot.value, scopedRemoteSnapshot.value).length === 0
     } catch (error) {
       console.error('Sync failed:', error)
       syncError.value = true
@@ -250,6 +266,7 @@ export function useElectricTodos() {
       createdAt: now,
       updatedAt: now,
       deviceId: getCurrentDeviceId(),
+      userId: authenticatedUserId.value,
       deletedAt: null,
     })
 
@@ -284,7 +301,21 @@ export function useElectricTodos() {
   watch(
     () => isOnline.value,
     (online) => {
-      if (online && isElectricConfigured()) {
+      if (online && isElectricConfigured() && authenticatedUserId.value) {
+        void syncTodos()
+      }
+    },
+    { immediate: true },
+  )
+
+  watch(
+    () => authenticatedUserId.value,
+    (userId) => {
+      lastPushedFingerprint = ''
+      isRemoteReady.value = false
+      syncError.value = false
+
+      if (userId && isOnline.value && isElectricConfigured()) {
         void syncTodos()
       }
     },
@@ -303,11 +334,16 @@ export function useElectricTodos() {
 
   watch(
     () =>
-      remoteSnapshot.value
+      scopedRemoteSnapshot.value
         .map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
         .join('|'),
     () => {
-      if (!isElectricConfigured() || !isOnline.value || !isRemoteReady.value) {
+      if (
+        !isElectricConfigured() ||
+        !isOnline.value ||
+        !isRemoteReady.value ||
+        !authenticatedUserId.value
+      ) {
         return
       }
 
@@ -322,7 +358,12 @@ export function useElectricTodos() {
         ?.map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
         .join('|') ?? '',
     () => {
-      if (!isElectricConfigured() || !isOnline.value || isApplyingRemote.value) {
+      if (
+        !isElectricConfigured() ||
+        !isOnline.value ||
+        isApplyingRemote.value ||
+        !authenticatedUserId.value
+      ) {
         return
       }
 

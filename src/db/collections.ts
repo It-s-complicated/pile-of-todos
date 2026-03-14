@@ -2,7 +2,9 @@ import type { InferOutput } from 'valibot'
 import { createCollection, localStorageCollectionOptions } from '@tanstack/vue-db'
 import { electricCollectionOptions } from '@tanstack/electric-db-collection'
 import { snakeCamelMapper } from '@electric-sql/client'
-import { isSupabaseConfigured } from '@/lib/supabase'
+import type { ExternalParamsRecord } from '@electric-sql/client'
+import { getSupabaseAccessToken, getSupabaseUserId, isSupabaseConfigured } from '@/lib/supabase'
+import { getElectricUserScope } from '@/lib/supabase-config'
 import {
   boolean,
   maxLength,
@@ -30,6 +32,7 @@ export const todoSchema = object({
   createdAt: number(),
   updatedAt: number(),
   deviceId: nullable(string()),
+  userId: optional(nullable(string()), null),
   deletedAt: optional(nullable(number()), null),
 })
 
@@ -110,20 +113,29 @@ export const electricTodosCollection = createCollection(
     getKey: (item) => item.id,
     shapeOptions: {
       url: prepareElectricShapeUrl().toString(),
+      headers: {
+        Authorization: async () => {
+          const accessToken = await getSupabaseAccessToken()
+          return accessToken ? `Bearer ${accessToken}` : ''
+        },
+      },
       columnMapper: snakeCamelMapper(),
       parser: {
         int8: (value) => Number(value),
       },
       params: {
         table: 'todos',
-      },
+        where: async () => getElectricUserScope(await getSupabaseUserId()).where,
+        params: async () => getElectricUserScope(await getSupabaseUserId()).params,
+      } as unknown as ExternalParamsRecord,
     },
   }),
 )
 
 // Helper to check if Electric sync is configured
 export function isElectricConfigured(): boolean {
-  const hasElectricReadConfig = !!import.meta.env.VITE_ELECTRIC_SHAPE_URL || !!import.meta.env.VITE_API_BASE_URL
+  const hasElectricReadConfig =
+    !!import.meta.env.VITE_ELECTRIC_SHAPE_URL || !!import.meta.env.VITE_API_BASE_URL
   return hasElectricReadConfig && isSupabaseConfigured()
 }
 

@@ -16,21 +16,21 @@ Create `.env.local` for frontend variables and (if using Drizzle migration/push 
 
 ### Frontend (Vite) variables
 
-| Variable | Required | Purpose | Behavior when missing |
-| --- | --- | --- | --- |
-| `VITE_SUPABASE_URL` | Optional (required for cloud sync) | Supabase project URL used by the client. | App still works locally; cloud sync is disabled and status becomes **Local only**. |
-| `VITE_SUPABASE_ANON_KEY` (or `VITE_SUPABASE_KEY`) | Optional (required for cloud sync) | Supabase API key used for read/write sync calls. | Same as above: offline/local mode continues, remote sync/migration is unavailable. |
-| `VITE_ELECTRIC_SHAPE_URL` | Optional | Direct Electric shape endpoint URL. | Falls back to `VITE_API_BASE_URL + /v1/shape`; no user-facing break for local mode. |
-| `VITE_API_BASE_URL` | Optional | Base URL used to derive Electric shape URL when explicit shape URL is not set. | Defaults to `http://localhost:30000`; local-only todo behavior still works. |
-| `VITE_ELECTRIC_SOURCE_ID` | Optional | Electric Cloud source identifier, appended as shape query param. | Shape URL omits source auth params. |
-| `VITE_ELECTRIC_SECRET` | Optional | Electric Cloud secret, appended as shape query param. | Shape URL omits source auth params. |
-| `VITE_DEVICE_ID` | Optional | Stable device identifier attached to todo writes. | Runtime-generated `device-xxxxxxxx` value is used. |
-| `VITE_ELECTRIC_PROXY_URL` | Optional | Reserved env key in typings for Electric proxy-based setups. | Not used by current app code; no behavior change. |
+| Variable                  | Required                           | Purpose                                                                        | Behavior when missing                                                               |
+| ------------------------- | ---------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`       | Optional (required for cloud sync) | Supabase project URL used by the client.                                       | App still works locally; cloud sync is disabled and status becomes **Local only**.  |
+| `VITE_SUPABASE_ANON_KEY`  | Optional (required for cloud sync) | Supabase anon/publishable key used for authenticated read/write sync calls.    | Same as above: offline/local mode continues, remote sync/migration is unavailable.  |
+| `VITE_ELECTRIC_SHAPE_URL` | Optional                           | Direct Electric shape endpoint URL.                                            | Falls back to `VITE_API_BASE_URL + /v1/shape`; no user-facing break for local mode. |
+| `VITE_API_BASE_URL`       | Optional                           | Base URL used to derive Electric shape URL when explicit shape URL is not set. | Defaults to `http://localhost:30000`; local-only todo behavior still works.         |
+| `VITE_ELECTRIC_SOURCE_ID` | Optional                           | Electric Cloud source identifier, appended as shape query param.               | Shape URL omits source auth params.                                                 |
+| `VITE_ELECTRIC_SECRET`    | Optional                           | Electric Cloud secret, appended as shape query param.                          | Shape URL omits source auth params.                                                 |
+| `VITE_DEVICE_ID`          | Optional                           | Stable device identifier attached to todo writes.                              | Runtime-generated `device-xxxxxxxx` value is used.                                  |
+| `VITE_ELECTRIC_PROXY_URL` | Optional                           | Reserved env key in typings for Electric proxy-based setups.                   | Not used by current app code; no behavior change.                                   |
 
 ### Backend/tooling variable
 
-| Variable | Required | Purpose | Behavior when missing |
-| --- | --- | --- | --- |
+| Variable       | Required                                                                | Purpose                                                     | Behavior when missing                                                 |
+| -------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
 | `DATABASE_URL` | Required for Drizzle commands (`migrate`, `db:push`, `db:studio`, etc.) | PostgreSQL connection string for schema management tooling. | Drizzle commands fail at startup. Frontend app runtime is unaffected. |
 
 ## Auth and backend architecture note
@@ -52,7 +52,8 @@ To integrate Supabase authentication correctly in this frontend-only app:
 5. Verify session behavior in the browser:
    - Sign in/out flows complete successfully.
    - Refreshing the page restores the user session.
-   - Sync status transitions out of **Local only** when config and connectivity are valid.
+   - Sync status transitions out of **Local only** only when config, connectivity, and an authenticated session are all present.
+   - Todos created while signed out remain local-only until you explicitly claim or migrate them.
 6. Keep using Supabase Auth in the frontend until a backend exists; do not add better-auth client/server packages at this stage.
 
 ## Scripts
@@ -148,9 +149,18 @@ Type-check only (without building):
 - **Syncing...**: migration/reconciliation is in progress.
 - **Sync error**: a cloud operation failed; use **Retry sync** after checking credentials/connectivity.
 - **Local only**: cloud sync is unavailable (either offline or missing Supabase config).
+- **Local only** also covers signed-out sessions: authenticated sync is intentionally disabled until a Supabase user session exists.
 
 ### Common fixes
 
 - Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` if sync never leaves **Local only**.
+- Confirm you are signed in before expecting remote sync; the app no longer falls back to unauthenticated writes.
 - Confirm your Supabase table/schema matches expected `todos` columns.
 - If Drizzle tooling fails, set `DATABASE_URL` before running migration or studio commands.
+
+## Supabase write hardening
+
+- `todos.user_id` is now the ownership column used by both RLS policies and Electric read scoping.
+- The browser client accepts only `VITE_SUPABASE_ANON_KEY`; `VITE_SUPABASE_KEY` is no longer recognized.
+- Remote sync writes run only for the authenticated owner, and Electric reads are filtered to that same `user_id`.
+- Existing hosted rows with `NULL user_id` must be backfilled to a real Supabase auth user before a follow-up migration can safely mark `user_id` as `NOT NULL`.

@@ -1,6 +1,6 @@
 {
-  "id": "1dd55fec-bdba-4079-a7f1-00ed4c9842ce",
-  "prevId": "e57ac27c-cdd6-4bda-9576-9bb2616154ea",
+  "id": "8f01dde8-b74b-4b0d-86be-7891121a1dde",
+  "prevId": "1dd55fec-bdba-4079-a7f1-00ed4c9842ce",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -59,6 +59,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "deleted_at": {
           "name": "deleted_at",
           "type": "bigint",
@@ -66,7 +72,23 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_todos_user_id": {
+          "name": "idx_todos_user_id",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

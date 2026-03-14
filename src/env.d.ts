@@ -9,7 +9,6 @@ interface ImportMetaEnv {
   readonly VITE_DEVICE_ID: string | undefined
   readonly VITE_SUPABASE_URL: string | undefined
   readonly VITE_SUPABASE_ANON_KEY: string | undefined
-  readonly VITE_SUPABASE_KEY: string | undefined
 }
 
 interface ImportMeta {

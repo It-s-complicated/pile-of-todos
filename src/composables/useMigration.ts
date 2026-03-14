@@ -13,6 +13,7 @@ export function useMigration() {
       migrationPending.value = true
 
       setTimeout(async () => {
+        // eslint-disable-next-line no-alert
         const shouldMigrate = confirm(`Local changes need to be synchronized. Retry sync now?`)
 
         if (shouldMigrate) {

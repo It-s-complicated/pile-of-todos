@@ -18,6 +18,7 @@ export function useTodos() {
       createdAt: now,
       updatedAt: now,
       deviceId: getCurrentDeviceId(),
+      userId: null,
       deletedAt: null,
     }
     todosCollection.insert(todo)
