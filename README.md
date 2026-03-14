@@ -39,6 +39,22 @@ Create `.env.local` for frontend variables and (if using Drizzle migration/push 
 - If migrating to better-auth later, add a backend service first.
 - If/when a backend is introduced, re-evaluate replacing Supabase auth flows with better-auth in that backend layer.
 
+### Supabase Auth integration checklist
+
+To integrate Supabase authentication correctly in this frontend-only app:
+
+1. Create a Supabase project and enable the authentication providers you plan to support (for example email/password or OAuth).
+2. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` so the client can initialize Supabase.
+3. Configure **Auth > URL Configuration** in Supabase:
+   - Set the site URL for your environment (dev/prod).
+   - Add all allowed redirect URLs used by your app.
+4. Ensure the `todos` table policies are compatible with authenticated access (RLS + policies that match your auth model) before enabling shared cloud usage.
+5. Verify session behavior in the browser:
+   - Sign in/out flows complete successfully.
+   - Refreshing the page restores the user session.
+   - Sync status transitions out of **Local only** when config and connectivity are valid.
+6. Keep using Supabase Auth in the frontend until a backend exists; do not add better-auth client/server packages at this stage.
+
 ## Scripts
 
 From `package.json`:
