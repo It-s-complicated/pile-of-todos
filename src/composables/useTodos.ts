@@ -1,9 +1,16 @@
 import type { Todo } from '../db/collections'
-import { getCurrentDeviceId, todosCollection } from '../db/collections'
+import { getActiveCollection, getCurrentDeviceId } from '../db/collections'
+import { useAuth } from './useAuth'
 
 export function useTodos() {
+  const { accessState, userId } = useAuth()
+
+  function getCollection() {
+    return getActiveCollection(accessState.value === 'approved' ? userId.value : null)
+  }
+
   function getAllTodos(): Todo[] {
-    return todosCollection.toArray
+    return getCollection().toArray
   }
 
   function addTodo(label: string, weekNumber: number | null): string {
@@ -18,15 +25,15 @@ export function useTodos() {
       createdAt: now,
       updatedAt: now,
       deviceId: getCurrentDeviceId(),
-      userId: null,
+      userId: accessState.value === 'approved' ? userId.value : null,
       deletedAt: null,
     }
-    todosCollection.insert(todo)
+    getCollection().insert(todo)
     return id
   }
 
   function updateTodo(id: string, updates: Partial<Todo>): void {
-    todosCollection.update(id, (draft) => {
+    getCollection().update(id, (draft) => {
       Object.assign(draft, updates, {
         updatedAt: Date.now(),
         deviceId: draft.deviceId ?? null,
@@ -35,7 +42,7 @@ export function useTodos() {
   }
 
   function deleteTodo(id: string): void {
-    todosCollection.update(id, (draft) => {
+    getCollection().update(id, (draft) => {
       draft.deletedAt = Date.now()
       draft.updatedAt = Date.now()
       draft.deviceId = getCurrentDeviceId()
@@ -43,7 +50,7 @@ export function useTodos() {
   }
 
   function archiveTodo(id: string): void {
-    todosCollection.update(id, (draft) => {
+    getCollection().update(id, (draft) => {
       draft.archived = true
       draft.updatedAt = Date.now()
       draft.deviceId = draft.deviceId ?? null
@@ -51,9 +58,10 @@ export function useTodos() {
   }
 
   function toggleTodoDone(id: string): void {
-    const todo = todosCollection.get(id)
+    const collection = getCollection()
+    const todo = collection.get(id)
     if (todo) {
-      todosCollection.update(id, (draft) => {
+      collection.update(id, (draft) => {
         draft.done = !todo.done
         draft.updatedAt = Date.now()
         draft.deviceId = draft.deviceId ?? null

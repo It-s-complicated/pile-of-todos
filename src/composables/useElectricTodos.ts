@@ -1,17 +1,30 @@
 import { computed, ref, watch } from 'vue'
 import { useLiveQuery } from '@tanstack/vue-db'
+
 import {
   electricTodosCollection,
+  getActiveCollection,
   getCurrentDeviceId,
+  getGuestCollection,
   isElectricConfigured,
-  localTodosCollection,
 } from '@/db/collections'
 import type { Todo } from '@/db/collections'
-import { getSupabaseClient, useSupabaseAuthState } from '@/lib/supabase'
+import { shouldShowGuestClaimPrompt } from '@/lib/auth-allowlist'
+import { getSupabaseClient, setSupabaseAuthError } from '@/lib/supabase'
+import { claimGuestTodos } from '@/lib/todo-storage'
 import { buildRemoteTodoRow, shouldPushTodoForUser } from '@/lib/todo-sync'
+import { useAuth } from './useAuth'
 import { useNetworkStatus } from './useNetworkStatus'
 
 export type SyncStatus = 'synced' | 'syncing' | 'error' | 'local-only' | 'stale'
+
+function normalizeTodo(todo: Todo): Todo {
+  return {
+    ...todo,
+    userId: todo.userId ?? null,
+    deletedAt: todo.deletedAt ?? null,
+  }
+}
 
 function isSameTodo(left: Todo, right: Todo): boolean {
   return (
@@ -34,27 +47,6 @@ function shouldRemoteWin(localTodo: Todo, remoteTodo: Todo) {
   )
 }
 
-function applyRemoteTodoToLocal(todo: Todo) {
-  const existing = localTodosCollection.get(todo.id)
-
-  if (!existing) {
-    localTodosCollection.insert(todo)
-    return
-  }
-
-  localTodosCollection.update(todo.id, (draft) => {
-    draft.label = todo.label
-    draft.weekNumber = todo.weekNumber
-    draft.done = todo.done
-    draft.archived = todo.archived
-    draft.createdAt = todo.createdAt
-    draft.updatedAt = todo.updatedAt
-    draft.deviceId = todo.deviceId
-    draft.userId = todo.userId
-    draft.deletedAt = todo.deletedAt
-  })
-}
-
 function needsRemoteWrite(localTodo: Todo, remoteTodo: Todo | undefined) {
   if (!remoteTodo) {
     return true
@@ -65,7 +57,13 @@ function needsRemoteWrite(localTodo: Todo, remoteTodo: Todo | undefined) {
 
 export function useElectricTodos() {
   const { isOnline } = useNetworkStatus()
-  const { isReady: isAuthReady, userId: authenticatedUserId } = useSupabaseAuthState()
+  const {
+    accessState,
+    isAuthReady,
+    isAuthenticated,
+    signOut,
+    userId: authenticatedUserId,
+  } = useAuth()
   const isSyncing = ref(false)
   const isRemoteReady = ref(false)
   const hasSyncedOnce = ref(false)
@@ -73,25 +71,79 @@ export function useElectricTodos() {
   const lastSyncedAt = ref<number | null>(null)
   const isApplyingRemote = ref(false)
   const syncQueued = ref(false)
+  const handledClaimPromptUserIds = ref<string[]>([])
   let lastPushedFingerprint = ''
 
-  const { data: localTodos, isReady } = useLiveQuery((q) => q.from({ todo: localTodosCollection }))
+  const activeUserId = computed(() =>
+    accessState.value === 'approved' ? authenticatedUserId.value : null,
+  )
+  const activeLocalCollection = computed(() => getActiveCollection(activeUserId.value))
+  const guestTodosCollection = getGuestCollection()
+
+  const { data: localTodos, isReady } = useLiveQuery(
+    (q) => q.from({ todo: activeLocalCollection.value }).select(({ todo }) => todo),
+    [activeLocalCollection],
+  )
+  const { data: guestTodos } = useLiveQuery((q) =>
+    q.from({ todo: guestTodosCollection }).select(({ todo }) => todo),
+  )
   const { data: remoteTodos, isReady: isRemoteQueryReady } = useLiveQuery((q) =>
-    q.from({ todo: electricTodosCollection }),
+    q.from({ todo: electricTodosCollection }).select(({ todo }) => todo),
   )
 
-  const localSnapshot = computed(() => localTodos.value ?? [])
-  const remoteSnapshot = computed(() => remoteTodos.value ?? [])
+  const localSnapshot = computed(() => (localTodos.value ?? []).map((todo) => normalizeTodo(todo)))
+  const guestSnapshot = computed(() => (guestTodos.value ?? []).map((todo) => normalizeTodo(todo)))
+  const remoteSnapshot = computed(() =>
+    (remoteTodos.value ?? []).map((todo) => normalizeTodo(todo)),
+  )
   const scopedRemoteSnapshot = computed(() =>
-    remoteSnapshot.value.filter((todo) => todo.userId === authenticatedUserId.value),
+    remoteSnapshot.value.filter((todo) => todo.userId === activeUserId.value),
+  )
+  const guestTodoCount = computed(
+    () => guestSnapshot.value.filter((todo) => todo.deletedAt === null).length,
+  )
+  const hasHandledClaimPrompt = computed(() =>
+    activeUserId.value === null
+      ? false
+      : handledClaimPromptUserIds.value.includes(activeUserId.value),
+  )
+  const claimPromptVisible = computed(() =>
+    shouldShowGuestClaimPrompt({
+      isAuthenticated: isAuthenticated.value && accessState.value === 'approved',
+      guestTodoCount: guestTodoCount.value,
+      hasHandledClaimPrompt: hasHandledClaimPrompt.value,
+    }),
   )
 
-  const localTodosCount = computed(() => Array.from(localTodosCollection.entries()).length)
+  const localTodosCount = computed(() => localSnapshot.value.length)
+
+  function applyRemoteTodoToLocal(todo: Todo) {
+    const collection = activeLocalCollection.value
+    const existing = collection.get(todo.id)
+
+    if (!existing) {
+      collection.insert(todo)
+      return
+    }
+
+    collection.update(todo.id, (draft) => {
+      draft.label = todo.label
+      draft.weekNumber = todo.weekNumber
+      draft.done = todo.done
+      draft.archived = todo.archived
+      draft.createdAt = todo.createdAt
+      draft.updatedAt = todo.updatedAt
+      draft.deviceId = todo.deviceId
+      draft.userId = todo.userId
+      draft.deletedAt = todo.deletedAt
+    })
+  }
 
   function getPendingLocalTodos(localTodosToCheck: Todo[], remoteTodosToCompare: Todo[]) {
     const remoteById = new Map(remoteTodosToCompare.map((todo) => [todo.id, todo]))
+
     return localTodosToCheck.filter((todo) => {
-      if (!shouldPushTodoForUser(todo, authenticatedUserId.value)) {
+      if (!shouldPushTodoForUser(todo, activeUserId.value)) {
         return false
       }
 
@@ -100,7 +152,12 @@ export function useElectricTodos() {
   }
 
   const needsSync = computed(() => {
-    if (!isElectricConfigured() || !isOnline.value || !authenticatedUserId.value) {
+    if (
+      !isElectricConfigured() ||
+      !isOnline.value ||
+      !activeUserId.value ||
+      claimPromptVisible.value
+    ) {
       return false
     }
 
@@ -116,12 +173,11 @@ export function useElectricTodos() {
   })
 
   const syncStatus = computed<SyncStatus>(() => {
-    if (
-      !isOnline.value ||
-      !isElectricConfigured() ||
-      !authenticatedUserId.value ||
-      !isAuthReady.value
-    ) {
+    if (!isOnline.value || !isElectricConfigured() || !activeUserId.value || !isAuthReady.value) {
+      return 'local-only'
+    }
+
+    if (claimPromptVisible.value) {
       return 'local-only'
     }
 
@@ -148,7 +204,7 @@ export function useElectricTodos() {
 
   async function pushLocalTodos(localTodosToPush: Todo[]) {
     const pushableTodos = localTodosToPush.filter((todo) =>
-      shouldPushTodoForUser(todo, authenticatedUserId.value),
+      shouldPushTodoForUser(todo, activeUserId.value),
     )
 
     if (pushableTodos.length === 0) {
@@ -156,13 +212,11 @@ export function useElectricTodos() {
     }
 
     const supabase = getSupabaseClient()
-
     if (!supabase) {
       throw new Error('Cloud sync is not configured: missing Supabase credentials')
     }
 
     const pushFingerprint = getPushFingerprint(pushableTodos)
-
     if (pushFingerprint === lastPushedFingerprint) {
       return false
     }
@@ -210,7 +264,12 @@ export function useElectricTodos() {
   }
 
   async function syncTodos(): Promise<boolean> {
-    if (!isOnline.value || !isElectricConfigured() || !authenticatedUserId.value) {
+    if (
+      !isOnline.value ||
+      !isElectricConfigured() ||
+      !activeUserId.value ||
+      claimPromptVisible.value
+    ) {
       return false
     }
 
@@ -253,11 +312,53 @@ export function useElectricTodos() {
     }
   }
 
+  function markClaimPromptHandled(userId: string) {
+    if (!handledClaimPromptUserIds.value.includes(userId)) {
+      handledClaimPromptUserIds.value = [...handledClaimPromptUserIds.value, userId]
+    }
+  }
+
+  async function claimGuestTodosToAccount(): Promise<boolean> {
+    if (!activeUserId.value) {
+      return false
+    }
+
+    const guestTodosToClaim = guestSnapshot.value.filter((todo) => todo.deletedAt === null)
+    if (guestTodosToClaim.length > 0) {
+      activeLocalCollection.value.insert(
+        claimGuestTodos(guestTodosToClaim, activeUserId.value, Date.now()),
+      )
+      guestTodosCollection.delete(guestTodosToClaim.map((todo) => todo.id))
+    }
+
+    markClaimPromptHandled(activeUserId.value)
+
+    if (isOnline.value && isElectricConfigured()) {
+      await syncTodos()
+    }
+
+    return true
+  }
+
+  async function keepGuestTodosSeparate(): Promise<boolean> {
+    if (!activeUserId.value) {
+      return false
+    }
+
+    markClaimPromptHandled(activeUserId.value)
+
+    if (isOnline.value && isElectricConfigured()) {
+      await syncTodos()
+    }
+
+    return true
+  }
+
   function addTodo(label: string, weekNumber: number | null): string {
     const id = crypto.randomUUID()
     const now = Date.now()
 
-    localTodosCollection.insert({
+    activeLocalCollection.value.insert({
       id,
       label,
       weekNumber,
@@ -266,7 +367,7 @@ export function useElectricTodos() {
       createdAt: now,
       updatedAt: now,
       deviceId: getCurrentDeviceId(),
-      userId: authenticatedUserId.value,
+      userId: activeUserId.value,
       deletedAt: null,
     })
 
@@ -274,7 +375,7 @@ export function useElectricTodos() {
   }
 
   function updateTodo(id: string, updates: Partial<Omit<Todo, 'id'>>): void {
-    localTodosCollection.update(id, (draft) => {
+    activeLocalCollection.value.update(id, (draft) => {
       Object.assign(draft, updates, {
         updatedAt: Date.now(),
         deviceId: getCurrentDeviceId(),
@@ -288,7 +389,6 @@ export function useElectricTodos() {
 
   function toggleTodoDone(id: string): void {
     const todo = localSnapshot.value.find((item) => item.id === id)
-
     if (todo && todo.deletedAt === null) {
       updateTodo(id, { done: !todo.done })
     }
@@ -301,7 +401,7 @@ export function useElectricTodos() {
   watch(
     () => isOnline.value,
     (online) => {
-      if (online && isElectricConfigured() && authenticatedUserId.value) {
+      if (online && isElectricConfigured() && activeUserId.value && !claimPromptVisible.value) {
         void syncTodos()
       }
     },
@@ -309,17 +409,32 @@ export function useElectricTodos() {
   )
 
   watch(
-    () => authenticatedUserId.value,
+    () => activeUserId.value,
     (userId) => {
       lastPushedFingerprint = ''
       isRemoteReady.value = false
       syncError.value = false
+      hasSyncedOnce.value = false
+      lastSyncedAt.value = null
+      syncQueued.value = false
 
-      if (userId && isOnline.value && isElectricConfigured()) {
+      if (userId && isOnline.value && isElectricConfigured() && !claimPromptVisible.value) {
         void syncTodos()
       }
     },
     { immediate: true },
+  )
+
+  watch(
+    () => accessState.value,
+    (nextAccessState) => {
+      if (nextAccessState !== 'denied') {
+        return
+      }
+
+      setSupabaseAuthError('This GitHub account is not approved for sync access.')
+      void signOut()
+    },
   )
 
   watch(
@@ -342,7 +457,8 @@ export function useElectricTodos() {
         !isElectricConfigured() ||
         !isOnline.value ||
         !isRemoteReady.value ||
-        !authenticatedUserId.value
+        !activeUserId.value ||
+        claimPromptVisible.value
       ) {
         return
       }
@@ -355,14 +471,15 @@ export function useElectricTodos() {
   watch(
     () =>
       localSnapshot.value
-        ?.map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
-        .join('|') ?? '',
+        .map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
+        .join('|'),
     () => {
       if (
         !isElectricConfigured() ||
         !isOnline.value ||
         isApplyingRemote.value ||
-        !authenticatedUserId.value
+        !activeUserId.value ||
+        claimPromptVisible.value
       ) {
         return
       }
@@ -378,11 +495,15 @@ export function useElectricTodos() {
     isMigrating: computed(() => isSyncing.value),
     syncStatus,
     localTodosCount,
+    guestTodoCount,
+    claimPromptVisible,
     lastSyncedAt: computed(() => lastSyncedAt.value),
     needsSync,
     needsMigration: needsSync,
     isElectricEnabled: isElectricConfigured(),
     syncTodos,
+    claimGuestTodos: claimGuestTodosToAccount,
+    keepGuestTodosSeparate,
     migrateLocalTodos: syncTodos,
     addTodo,
     updateTodo,

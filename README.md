@@ -16,16 +16,17 @@ Create `.env.local` for frontend variables and (if using Drizzle migration/push 
 
 ### Frontend (Vite) variables
 
-| Variable                  | Required                           | Purpose                                                                        | Behavior when missing                                                               |
-| ------------------------- | ---------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`       | Optional (required for cloud sync) | Supabase project URL used by the client.                                       | App still works locally; cloud sync is disabled and status becomes **Local only**.  |
-| `VITE_SUPABASE_ANON_KEY`  | Optional (required for cloud sync) | Supabase anon/publishable key used for authenticated read/write sync calls.    | Same as above: offline/local mode continues, remote sync/migration is unavailable.  |
-| `VITE_ELECTRIC_SHAPE_URL` | Optional                           | Direct Electric shape endpoint URL.                                            | Falls back to `VITE_API_BASE_URL + /v1/shape`; no user-facing break for local mode. |
-| `VITE_API_BASE_URL`       | Optional                           | Base URL used to derive Electric shape URL when explicit shape URL is not set. | Defaults to `http://localhost:30000`; local-only todo behavior still works.         |
-| `VITE_ELECTRIC_SOURCE_ID` | Optional                           | Electric Cloud source identifier, appended as shape query param.               | Shape URL omits source auth params.                                                 |
-| `VITE_ELECTRIC_SECRET`    | Optional                           | Electric Cloud secret, appended as shape query param.                          | Shape URL omits source auth params.                                                 |
-| `VITE_DEVICE_ID`          | Optional                           | Stable device identifier attached to todo writes.                              | Runtime-generated `device-xxxxxxxx` value is used.                                  |
-| `VITE_ELECTRIC_PROXY_URL` | Optional                           | Reserved env key in typings for Electric proxy-based setups.                   | Not used by current app code; no behavior change.                                   |
+| Variable                           | Required                           | Purpose                                                                        | Behavior when missing                                                               |
+| ---------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`                | Optional (required for cloud sync) | Supabase project URL used by the client.                                       | App still works locally; cloud sync is disabled and status becomes **Local only**.  |
+| `VITE_SUPABASE_ANON_KEY`           | Optional (required for cloud sync) | Supabase anon/publishable key used for authenticated read/write sync calls.    | Same as above: offline/local mode continues, remote sync/migration is unavailable.  |
+| `VITE_ELECTRIC_SHAPE_URL`          | Optional                           | Direct Electric shape endpoint URL.                                            | Falls back to `VITE_API_BASE_URL + /v1/shape`; no user-facing break for local mode. |
+| `VITE_API_BASE_URL`                | Optional                           | Base URL used to derive Electric shape URL when explicit shape URL is not set. | Defaults to `http://localhost:30000`; local-only todo behavior still works.         |
+| `VITE_ELECTRIC_SOURCE_ID`          | Optional                           | Electric Cloud source identifier, appended as shape query param.               | Shape URL omits source auth params.                                                 |
+| `VITE_ELECTRIC_SECRET`             | Optional                           | Electric Cloud secret, appended as shape query param.                          | Shape URL omits source auth params.                                                 |
+| `VITE_DEVICE_ID`                   | Optional                           | Stable device identifier attached to todo writes.                              | Runtime-generated `device-xxxxxxxx` value is used.                                  |
+| `VITE_ELECTRIC_PROXY_URL`          | Optional                           | Reserved env key in typings for Electric proxy-based setups.                   | Not used by current app code; no behavior change.                                   |
+| `VITE_APPROVED_GITHUB_PROVIDER_ID` | Optional                           | Approved GitHub `provider_id` used by the UI to explain allowlist denials.     | Supabase-side hook remains the source of truth; UI diagnostics are less specific.   |
 
 ### Backend/tooling variable
 
@@ -55,6 +56,38 @@ To integrate Supabase authentication correctly in this frontend-only app:
    - Sync status transitions out of **Local only** only when config, connectivity, and an authenticated session are all present.
    - Todos created while signed out remain local-only until you explicitly claim or migrate them.
 6. Keep using Supabase Auth in the frontend until a backend exists; do not add better-auth client/server packages at this stage.
+
+## GitHub auth single-user sync
+
+The app now keeps two local todo buckets:
+
+- guest todos in `ai-todo-app-todos-guest`
+- one account-local bucket per Supabase user id in `ai-todo-app-todos-user:<user-id>`
+
+Authenticated sync runs only for the approved GitHub account bucket. Guest todos stay local until the signed-in user either claims them into the account bucket or keeps them separate.
+
+### Supabase setup
+
+1. Enable the GitHub provider in Supabase Auth and add your local/prod redirect URLs.
+2. Apply [`src/db/out/0003_github_auth_allowlist.sql`](src/db/out/0003_github_auth_allowlist.sql).
+3. Replace the placeholder `REPLACE_WITH_APPROVED_GITHUB_PROVIDER_ID` row in `public.github_auth_allowlist` with the single approved GitHub `provider_id`.
+4. Register the `before-user-created` hook with the Postgres function URI:
+   `pg-functions://postgres/public/hook_allow_single_github_identity`
+5. Optionally set `VITE_APPROVED_GITHUB_PROVIDER_ID` in `.env.local` so the UI can explain denials using the same provider id.
+
+### How to obtain the approved GitHub provider_id
+
+- Complete one allowed GitHub sign-in in a safe environment, then inspect `auth.users.raw_app_meta_data`, `auth.identities`, or the hook payload for the GitHub identity.
+- Use the GitHub identity `provider_id` as the row stored in `public.github_auth_allowlist`.
+- The database allowlist is the source of truth; the frontend env var is diagnostic only.
+
+### Guest claim flow
+
+- While signed out, new todos and imports go to the guest bucket and keep `userId = null`.
+- After the approved user signs in, the app pauses sync if guest todos exist and shows a one-time claim prompt.
+- Accepting the prompt rewrites guest rows to the current authenticated `userId`, moves them into the account bucket, and starts sync automatically.
+- Declining leaves the guest bucket intact and starts sync against the signed-in account bucket only.
+- Signing out returns the UI to the guest bucket without deleting the account-local cache.
 
 ## Scripts
 
@@ -155,6 +188,7 @@ Type-check only (without building):
 
 - Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` if sync never leaves **Local only**.
 - Confirm you are signed in before expecting remote sync; the app no longer falls back to unauthenticated writes.
+- If GitHub sign-in redirects back with an auth error, verify the approved `provider_id` seed row and the registered auth hook function.
 - Confirm your Supabase table/schema matches expected `todos` columns.
 - If Drizzle tooling fails, set `DATABASE_URL` before running migration or studio commands.
 

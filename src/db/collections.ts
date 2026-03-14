@@ -5,6 +5,7 @@ import { snakeCamelMapper } from '@electric-sql/client'
 import type { ExternalParamsRecord } from '@electric-sql/client'
 import { getSupabaseAccessToken, getSupabaseUserId, isSupabaseConfigured } from '@/lib/supabase'
 import { getElectricUserScope } from '@/lib/supabase-config'
+import { getActiveStorageKey } from '@/lib/todo-storage'
 import {
   boolean,
   maxLength,
@@ -55,15 +56,33 @@ export const VALID_FILTERS: TodoFilter[] = [
   'finished',
 ]
 
-// LocalStorage collection for offline-first support
-export const localTodosCollection = createCollection(
-  localStorageCollectionOptions({
-    id: 'local-todos',
-    storageKey: 'ai-todo-app-todos',
-    getKey: (item) => item.id,
-    schema: todoSchema,
-  }),
-)
+function createLocalTodosCollection(storageKey: string) {
+  return createCollection(
+    localStorageCollectionOptions({
+      id: `local-todos-${storageKey.replace(/[^a-z0-9:]+/gi, '-')}`,
+      storageKey,
+      getKey: (item) => item.id,
+      schema: todoSchema,
+    }),
+  )
+}
+
+const localCollectionCache = new Map<string, ReturnType<typeof createLocalTodosCollection>>()
+
+export function getLocalTodosCollection(userId: string | null) {
+  const storageKey = getActiveStorageKey(userId)
+  const existingCollection = localCollectionCache.get(storageKey)
+
+  if (existingCollection) {
+    return existingCollection
+  }
+
+  const collection = createLocalTodosCollection(storageKey)
+  localCollectionCache.set(storageKey, collection)
+  return collection
+}
+
+export const localTodosCollection = getLocalTodosCollection(null)
 
 // Keep original export for backward compatibility during migration
 export const todosCollection = localTodosCollection
@@ -139,11 +158,13 @@ export function isElectricConfigured(): boolean {
   return hasElectricReadConfig && isSupabaseConfigured()
 }
 
-// Helper to get the active collection based on configuration
-export function getActiveCollection(isOnline = navigator.onLine) {
-  void isOnline
-  // Always read/write from local storage so todos remain available offline.
-  // Cloud sync runs separately and reconciles with this local collection.
+// Always read/write from local storage so todos remain available offline.
+// Cloud sync runs separately and reconciles with the active local bucket.
+export function getActiveCollection(userId: string | null = null) {
+  return getLocalTodosCollection(userId)
+}
+
+export function getGuestCollection() {
   return localTodosCollection
 }
 
