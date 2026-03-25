@@ -55,6 +55,12 @@ function needsRemoteWrite(localTodo: Todo, remoteTodo: Todo | undefined) {
   return localTodo.updatedAt > remoteTodo.updatedAt
 }
 
+function getTodoFingerprint(todos: Todo[]) {
+  return todos
+    .map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
+    .join('|')
+}
+
 export function useElectricTodos() {
   const { isOnline } = useNetworkStatus()
   const {
@@ -73,6 +79,7 @@ export function useElectricTodos() {
   const syncQueued = ref(false)
   const handledClaimPromptUserIds = ref<string[]>([])
   let lastPushedFingerprint = ''
+  const isElectricEnabled = isElectricConfigured()
 
   const activeUserId = computed(() =>
     accessState.value === 'approved' ? authenticatedUserId.value : null,
@@ -116,6 +123,28 @@ export function useElectricTodos() {
   )
 
   const localTodosCount = computed(() => localSnapshot.value.length)
+  const localSyncFingerprint = computed(() => getTodoFingerprint(localSnapshot.value))
+  const remoteSyncFingerprint = computed(() => getTodoFingerprint(scopedRemoteSnapshot.value))
+  const canSync = computed(
+    () =>
+      isElectricEnabled &&
+      isOnline.value &&
+      activeUserId.value !== null &&
+      !claimPromptVisible.value,
+  )
+  const canSyncWithRemote = computed(() => canSync.value && isRemoteReady.value)
+  const syncActivationKey = computed(() => (canSync.value ? activeUserId.value : null))
+  const shouldMarkRemoteReady = computed(() => canSync.value && isRemoteQueryReady.value)
+  const remoteSyncTrigger = computed(() =>
+    canSyncWithRemote.value && activeUserId.value
+      ? `${activeUserId.value}:${remoteSyncFingerprint.value}`
+      : null,
+  )
+  const localSyncTrigger = computed(() =>
+    canSync.value && !isApplyingRemote.value && activeUserId.value
+      ? `${activeUserId.value}:${localSyncFingerprint.value}`
+      : null,
+  )
 
   function applyRemoteTodoToLocal(todo: Todo) {
     const collection = activeLocalCollection.value
@@ -152,12 +181,7 @@ export function useElectricTodos() {
   }
 
   const needsSync = computed(() => {
-    if (
-      !isElectricConfigured() ||
-      !isOnline.value ||
-      !activeUserId.value ||
-      claimPromptVisible.value
-    ) {
+    if (!canSync.value) {
       return false
     }
 
@@ -173,7 +197,7 @@ export function useElectricTodos() {
   })
 
   const syncStatus = computed<SyncStatus>(() => {
-    if (!isOnline.value || !isElectricConfigured() || !activeUserId.value || !isAuthReady.value) {
+    if (!isOnline.value || !isElectricEnabled || !activeUserId.value || !isAuthReady.value) {
       return 'local-only'
     }
 
@@ -266,7 +290,7 @@ export function useElectricTodos() {
   async function syncTodos(): Promise<boolean> {
     if (
       !isOnline.value ||
-      !isElectricConfigured() ||
+      !isElectricEnabled ||
       !activeUserId.value ||
       claimPromptVisible.value
     ) {
@@ -333,7 +357,7 @@ export function useElectricTodos() {
 
     markClaimPromptHandled(activeUserId.value)
 
-    if (isOnline.value && isElectricConfigured()) {
+    if (isOnline.value && isElectricEnabled) {
       await syncTodos()
     }
 
@@ -347,7 +371,7 @@ export function useElectricTodos() {
 
     markClaimPromptHandled(activeUserId.value)
 
-    if (isOnline.value && isElectricConfigured()) {
+    if (isOnline.value && isElectricEnabled) {
       await syncTodos()
     }
 
@@ -399,30 +423,15 @@ export function useElectricTodos() {
   }
 
   watch(
-    () => isOnline.value,
-    (online) => {
-      if (online && isElectricConfigured() && activeUserId.value && !claimPromptVisible.value) {
-        void syncTodos()
-      }
-    },
-    { immediate: true },
-  )
-
-  watch(
     () => activeUserId.value,
-    (userId) => {
+    () => {
       lastPushedFingerprint = ''
       isRemoteReady.value = false
       syncError.value = false
       hasSyncedOnce.value = false
       lastSyncedAt.value = null
       syncQueued.value = false
-
-      if (userId && isOnline.value && isElectricConfigured() && !claimPromptVisible.value) {
-        void syncTodos()
-      }
     },
-    { immediate: true },
   )
 
   watch(
@@ -438,9 +447,9 @@ export function useElectricTodos() {
   )
 
   watch(
-    () => isRemoteQueryReady.value,
-    (ready) => {
-      if (ready) {
+    () => shouldMarkRemoteReady.value,
+    (shouldMarkReady) => {
+      if (shouldMarkReady) {
         isRemoteReady.value = true
       }
     },
@@ -448,18 +457,19 @@ export function useElectricTodos() {
   )
 
   watch(
-    () =>
-      scopedRemoteSnapshot.value
-        .map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
-        .join('|'),
-    () => {
-      if (
-        !isElectricConfigured() ||
-        !isOnline.value ||
-        !isRemoteReady.value ||
-        !activeUserId.value ||
-        claimPromptVisible.value
-      ) {
+    () => syncActivationKey.value,
+    (key) => {
+      if (key) {
+        void syncTodos()
+      }
+    },
+    { immediate: true },
+  )
+
+  watch(
+    () => remoteSyncTrigger.value,
+    (trigger) => {
+      if (!trigger) {
         return
       }
 
@@ -469,18 +479,9 @@ export function useElectricTodos() {
   )
 
   watch(
-    () =>
-      localSnapshot.value
-        .map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
-        .join('|'),
-    () => {
-      if (
-        !isElectricConfigured() ||
-        !isOnline.value ||
-        isApplyingRemote.value ||
-        !activeUserId.value ||
-        claimPromptVisible.value
-      ) {
+    () => localSyncTrigger.value,
+    (trigger) => {
+      if (!trigger) {
         return
       }
 
@@ -500,7 +501,7 @@ export function useElectricTodos() {
     lastSyncedAt: computed(() => lastSyncedAt.value),
     needsSync,
     needsMigration: needsSync,
-    isElectricEnabled: isElectricConfigured(),
+    isElectricEnabled,
     syncTodos,
     claimGuestTodos: claimGuestTodosToAccount,
     keepGuestTodosSeparate,
