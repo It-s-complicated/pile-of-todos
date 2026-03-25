@@ -25,3 +25,18 @@ A Vue 3 + TanStack DB todo application with weekly planning features.
 - [Electric SQL + TanStack DB](.agents/electric-sql.md)
 - [Styling](.agents/styling.md)
 - [Architecture](.agents/architecture.md)
+
+<!-- intent-skills:start -->
+# Skill mappings - when working in these areas, load the linked skill file into context.
+skills:
+  - task: "working on Vue 3 todo views, composables, and live queries"
+    load: "node_modules/@tanstack/vue-db/skills/vue-db/SKILL.md"
+  - task: "working on TanStack DB collections, local storage, and valibot schemas"
+    load: "node_modules/@tanstack/db/skills/db-core/collection-setup/SKILL.md"
+  - task: "working on Electric SQL sync, shape params, and per-user todo syncing"
+    load: "node_modules/@electric-sql/client/skills/electric-shapes/SKILL.md"
+  - task: "debugging stale, slow, or broken Electric sync"
+    load: "node_modules/@electric-sql/client/skills/electric-debugging/SKILL.md"
+  - task: "updating Drizzle or Postgres schema and migrations for synced todos"
+    load: "node_modules/@electric-sql/client/skills/electric-orm/SKILL.md"
+<!-- intent-skills:end -->
