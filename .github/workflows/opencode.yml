@@ -31,4 +31,4 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
-          model: opencode/glm-5-free
+          model: opencode-go/minimax-m2.7
