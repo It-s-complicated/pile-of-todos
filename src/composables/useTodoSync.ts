@@ -76,7 +76,7 @@ export function useTodoSync(): TodoSyncState {
   const lastSyncedAt = computed(() =>
     todoData.auth.activeUserId.value === null
       ? null
-      : lastSyncedAtByUser.value[todoData.auth.activeUserId.value] ?? null,
+      : (lastSyncedAtByUser.value[todoData.auth.activeUserId.value] ?? null),
   )
   const hasSyncedOnce = computed(() => lastSyncedAt.value !== null)
   const needsSync = computed(() => {
@@ -166,7 +166,9 @@ export function useTodoSync(): TodoSyncState {
   }
 
   async function pushLocalTodos(localTodosToPush: Todo[], activeUserId: string) {
-    const pushableTodos = localTodosToPush.filter((todo) => shouldPushTodoForUser(todo, activeUserId))
+    const pushableTodos = localTodosToPush.filter((todo) =>
+      shouldPushTodoForUser(todo, activeUserId),
+    )
 
     if (pushableTodos.length === 0) {
       return false

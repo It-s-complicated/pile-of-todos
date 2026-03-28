@@ -1,12 +1,28 @@
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import UnpluginFonts from 'unplugin-fonts/vite'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vite-plus'
 import { VitePWA } from 'vite-plugin-pwa'
 import { qrcode } from 'vite-plugin-qrcode'
 import VueRouter from 'vue-router/vite'
 
 export default defineConfig({
+  staged: {
+    '*': 'vp check --fix',
+  },
+  lint: {
+    ignorePatterns: ['.agents/**', '.opencode/**', 'docs/**', 'src/*.d.ts'],
+    options: { typeAware: true, typeCheck: true },
+  },
+  fmt: {
+    ignorePatterns: ['.agents/**', '.opencode/**', 'docs/**', 'src/*.d.ts'],
+    singleQuote: true,
+    semi: false,
+    experimentalTailwindcss: {
+      stylesheet: './src/style.css',
+      attributes: [':class'],
+    },
+  },
   plugins: [
     VueRouter({
       dts: 'src/route-map.d.ts',

@@ -5,8 +5,7 @@ import { useElectricTodos } from '@/composables/useElectricTodos'
 import { useSyncElectricTodos } from '@/composables/useSyncElectricTodos'
 
 const { accessState, authError, isAuthenticated } = useAuth()
-const { canRetrySync, claimPromptVisible, isOnline, isMigrating, syncStatus } =
-  useElectricTodos()
+const { canRetrySync, claimPromptVisible, isOnline, isMigrating, syncStatus } = useElectricTodos()
 const { syncTodos } = useSyncElectricTodos()
 
 const statusConfig = computed(() => {

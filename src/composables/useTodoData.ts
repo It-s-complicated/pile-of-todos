@@ -33,9 +33,7 @@ function needsRemoteWrite(localTodo: Todo, remoteTodo: Todo | undefined) {
 }
 
 function getTodoFingerprint(todos: Todo[]) {
-  return todos
-    .map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
-    .join('|')
+  return todos.map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`).join('|')
 }
 
 function getPendingLocalTodos(
