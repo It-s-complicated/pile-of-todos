@@ -11,11 +11,13 @@ A Vue 3 + TanStack DB todo application with weekly planning features.
 
 ## Tech Stack
 
-- **Framework**: Vue 3.5+ with Composition API
-- **Build Tool**: Vite 7.2+
-- **Database**: TanStack DB (LocalStorage) with valibot validation
-- **Styling**: Tailwind CSS 4.1+ with Vite plugin
-- **TypeScript**: 5.9+ with strict mode enabled
+- **Framework**: Vue 3.5+ with Composition API and Vue Router 5 typed routing
+- **Build Tooling**: Vite 8
+- **Data Layer**: TanStack DB (`@tanstack/vue-db`) with local-first LocalStorage persistence and Valibot validation
+- **Sync/Backend**: ElectricSQL client + `@tanstack/electric-db-collection`, Supabase Auth, and Postgres
+- **Database Tooling**: Drizzle ORM + Drizzle Kit for schema and migrations
+- **Styling**: Tailwind CSS 4.2+ via `@tailwindcss/vite`, plus `unplugin-fonts`
+- **Language/Tooling**: TypeScript 6, `vue-tsc`, Oxlint, and OXC formatter
 
 ## Guidelines
 
