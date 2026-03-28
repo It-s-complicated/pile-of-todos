@@ -47,5 +47,8 @@
     "vite-plugin-qrcode": "^0.4.1",
     "vue-tsc": "^3.2.6",
     "workbox-window": "^7.4.0"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.3"
   }
 }
