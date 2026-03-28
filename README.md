@@ -132,7 +132,7 @@ Type-check only (without building):
   - Reactive online/offline browser connectivity tracking.
 - `useWeekNumber.ts`
   - Week-number utility logic for planning buckets.
-- `useMigration.ts`, `useCloudSync.ts`
+- `useCloudSync.ts`
   - Supporting sync abstractions.
 
 ### `src/components`
