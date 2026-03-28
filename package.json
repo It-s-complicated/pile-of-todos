@@ -19,10 +19,10 @@
   },
   "dependencies": {
     "@electric-sql/client": "^1.5.13",
-    "@supabase/supabase-js": "^2.100.0",
-    "@tanstack/electric-db-collection": "^0.2.42",
-    "@tanstack/vue-db": "^0.0.111",
-    "drizzle-orm": "^0.45.1",
+    "@supabase/supabase-js": "^2.100.1",
+    "@tanstack/electric-db-collection": "^0.2.43",
+    "@tanstack/vue-db": "^0.0.112",
+    "drizzle-orm": "^0.45.2",
     "drizzle-valibot": "^0.4.2",
     "lucide-vue-next": "^1.0.0",
     "pg": "^8.20.0",
@@ -42,9 +42,9 @@
     "tailwindcss": "^4.2.2",
     "typescript": "~6.0.2",
     "unplugin-fonts": "^1.4.0",
-    "vite": "^8.0.2",
+    "vite": "^8.0.3",
     "vite-plugin-pwa": "^1.2.0",
-    "vite-plugin-qrcode": "^0.4.0",
+    "vite-plugin-qrcode": "^0.4.1",
     "vue-tsc": "^3.2.6",
     "workbox-window": "^7.4.0"
   }

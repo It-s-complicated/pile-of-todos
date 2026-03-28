@@ -194,3 +194,22 @@ Once implementation starts, create a second document or task breakdown for:
 - client auth flow changes
 - test coverage for RLS behavior
 - rollout/backfill steps for any existing hosted data
+
+## GitHub auth rollout order
+
+Use this order for the single-user GitHub rollout:
+
+1. Seed `public.github_auth_allowlist` with the one approved GitHub `provider_id`.
+2. Register `public.hook_allow_single_github_identity` as the Supabase `before-user-created` auth hook.
+3. Backfill existing hosted `todos.user_id` rows for the approved account before enabling the new client flow.
+4. Verify RLS and Electric read scoping with the approved account.
+5. Enable the frontend GitHub auth flow and validate guest claim behavior.
+6. Only after the hosted dataset is fully backfilled, consider a follow-up migration to make `todos.user_id` `not null`.
+
+## Operational notes
+
+- The approved GitHub identity is keyed by the GitHub OAuth `provider_id`, not by email.
+- Keep the placeholder seed row out of production; replace it before enabling the hook.
+- The hook function needs `supabase_auth_admin` access to the `public` schema, the allowlist table, and the hook function itself.
+- Validate the hook in Supabase by attempting one allowed sign-in and one denied sign-in before rollout.
+- Confirm existing hosted rows are backfilled to the approved `user_id` before you rely on authenticated sync, or previously synced rows will disappear from the scoped Electric dataset.

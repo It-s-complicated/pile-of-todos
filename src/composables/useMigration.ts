@@ -1,11 +1,13 @@
 import { onMounted, ref } from 'vue'
 import { useElectricTodos } from './useElectricTodos'
+import { useSyncElectricTodos } from './useSyncElectricTodos'
 
 export function useMigration() {
   const hasMigrated = ref(false)
   const hasPrompted = ref(false)
   const migrationPending = ref(false)
-  const { isOnline, needsSync, syncTodos } = useElectricTodos()
+  const { isOnline, needsSync } = useElectricTodos()
+  const { syncTodos } = useSyncElectricTodos()
 
   onMounted(async () => {
     if (needsSync.value && isOnline.value && !hasPrompted.value) {

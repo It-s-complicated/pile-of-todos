@@ -4,14 +4,22 @@ import { useLiveQuery } from '@tanstack/vue-db'
 import { FileText } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { useNetworkStatus } from '../composables/useNetworkStatus'
+import { useAuth } from '../composables/useAuth'
 import { useWeekNumber } from '../composables/useWeekNumber'
 import { getActiveCollection, VALID_FILTERS } from '../db/collections'
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
+function normalizeTodo(todo: Todo): Todo {
+  return {
+    ...todo,
+    userId: todo.userId ?? null,
+    deletedAt: todo.deletedAt ?? null,
+  }
+}
+
 const { getCurrentWeekNumber } = useWeekNumber()
-const { isOnline } = useNetworkStatus()
+const { accessState, userId } = useAuth()
 const route = useRoute()
 
 const currentWeek = getCurrentWeekNumber()
@@ -20,16 +28,22 @@ const filter = computed(() =>
   VALID_FILTERS.includes(rawFilter.value) ? rawFilter.value : 'backlog',
 )
 
-const activeCollection = computed(() => getActiveCollection(isOnline.value))
+const activeCollection = computed(() =>
+  getActiveCollection(accessState.value === 'approved' ? userId.value : null),
+)
 
-const { data: allTodos, isReady } = useLiveQuery((q) => q.from({ todo: activeCollection.value }))
+const { data: allTodos, isReady } = useLiveQuery(
+  (q) => q.from({ todo: activeCollection.value }).select(({ todo }) => todo),
+  [activeCollection],
+)
 
 // Loading state
 const loading = computed(() => !isReady.value)
+const normalizedTodos = computed(() => (allTodos.value ?? []).map((todo) => normalizeTodo(todo)))
 
 // Filtered todos computed from the live query
 const filteredTodos = computed(() => {
-  const todos = (allTodos.value ?? []).filter((todo) => todo.deletedAt === null)
+  const todos = normalizedTodos.value.filter((todo) => todo.deletedAt === null)
 
   switch (filter.value) {
     case 'backlog':

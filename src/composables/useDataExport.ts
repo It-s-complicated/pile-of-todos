@@ -1,7 +1,8 @@
 import type { InferOutput } from 'valibot'
 import { array, object, safeParse, string } from 'valibot'
-import { useNetworkStatus } from './useNetworkStatus'
+import { assignImportedTodos } from '@/lib/todo-storage'
 import { getActiveCollection, todoSchema } from '../db/collections'
+import { useAuth } from './useAuth'
 
 const ExportDataSchema = object({
   version: string(),
@@ -12,10 +13,14 @@ const ExportDataSchema = object({
 type ExportData = InferOutput<typeof ExportDataSchema>
 
 export function useDataExport() {
-  const { isOnline } = useNetworkStatus()
+  const { accessState, userId } = useAuth()
+
+  function getActiveUserId() {
+    return accessState.value === 'approved' ? userId.value : null
+  }
 
   function exportTodos(): void {
-    const activeCollection = getActiveCollection(isOnline.value)
+    const activeCollection = getActiveCollection(getActiveUserId())
     const allTodos = activeCollection.toArray
     const exportData: ExportData = {
       version: '3',
@@ -50,8 +55,8 @@ export function useDataExport() {
         return { success: false, message: `Validation error at ${path}: ${issue.message}` }
       }
 
-      const validatedTodos = result.output.todos
-      const activeCollection = getActiveCollection(isOnline.value)
+      const activeCollection = getActiveCollection(getActiveUserId())
+      const validatedTodos = assignImportedTodos(result.output.todos, getActiveUserId(), Date.now())
 
       // Clear existing data and bulk insert
       const existingIds = Array.from(activeCollection.keys())

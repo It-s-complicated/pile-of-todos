@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_DEVICE_ID: string | undefined
   readonly VITE_SUPABASE_URL: string | undefined
   readonly VITE_SUPABASE_ANON_KEY: string | undefined
+  readonly VITE_APPROVED_GITHUB_PROVIDER_ID: string | undefined
 }
 
 interface ImportMeta {

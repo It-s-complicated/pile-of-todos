@@ -12,14 +12,19 @@ import {
 import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
 import { ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
+import AuthStatus from './components/AuthStatus.vue'
 import { useDataExport } from './composables/useDataExport'
+import { useElectricTodos } from './composables/useElectricTodos'
+import { useSyncElectricTodos } from './composables/useSyncElectricTodos'
 import { useWeekNumber } from './composables/useWeekNumber'
-import { getCurrentDeviceId, getActiveCollection } from './db/collections'
 import SyncStatus from './components/SyncStatus.vue'
 
 const route = useRoute()
 const { getCurrentWeekNumber } = useWeekNumber()
 const { exportTodos, importTodos } = useDataExport()
+useSyncElectricTodos()
+const { addTodo, claimGuestTodos, claimPromptVisible, guestTodoCount, keepGuestTodosSeparate } =
+  useElectricTodos()
 
 const newTodoLabel = ref('')
 const newTodoWeek = ref<number | null>(null)
@@ -49,17 +54,7 @@ async function createTodo() {
     return
   }
 
-  getActiveCollection().insert({
-    id: crypto.randomUUID(),
-    label: trimmedLabel,
-    weekNumber: newTodoWeek.value,
-    done: false,
-    archived: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    deviceId: getCurrentDeviceId(),
-    deletedAt: null,
-  })
+  addTodo(trimmedLabel, newTodoWeek.value)
   newTodoLabel.value = ''
   newTodoWeek.value = null
 }
@@ -146,8 +141,42 @@ const id = useId()
           Organize your editorial planning with precision
         </p>
       </div>
-      <SyncStatus />
+      <div class="flex flex-col items-end gap-3">
+        <SyncStatus />
+        <AuthStatus />
+      </div>
     </header>
+
+    <section
+      v-if="claimPromptVisible"
+      class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm sm:mb-8"
+    >
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm font-semibold text-amber-900">Claim guest todos before sync starts</p>
+          <p class="mt-1 text-sm text-amber-800">
+            {{ guestTodoCount }} guest todo{{ guestTodoCount === 1 ? '' : 's' }} found in this
+            browser. Move them into your signed-in account, or keep them in the guest bucket.
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <button
+            type="button"
+            class="cursor-pointer rounded-full bg-amber-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-950"
+            @click="claimGuestTodos"
+          >
+            Claim todos
+          </button>
+          <button
+            type="button"
+            class="cursor-pointer rounded-full border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100"
+            @click="keepGuestTodosSeparate"
+          >
+            Keep separate
+          </button>
+        </div>
+      </div>
+    </section>
 
     <!-- Navigation -->
     <nav class="mb-6 flex flex-wrap gap-2 sm:mb-8">
