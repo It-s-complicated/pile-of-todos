@@ -29,5 +29,6 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
-          model: opencode-go/MINIMAX-M2.7
+          model: opencode/glm-5-free
