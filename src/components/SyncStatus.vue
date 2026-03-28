@@ -2,10 +2,12 @@
 import { computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { useElectricTodos } from '@/composables/useElectricTodos'
+import { useSyncElectricTodos } from '@/composables/useSyncElectricTodos'
 
 const { accessState, authError, isAuthenticated } = useAuth()
-const { claimPromptVisible, isOnline, isMigrating, syncStatus, needsSync, syncTodos } =
+const { canRetrySync, claimPromptVisible, isOnline, isMigrating, syncStatus } =
   useElectricTodos()
+const { syncTodos } = useSyncElectricTodos()
 
 const statusConfig = computed(() => {
   if (!isOnline.value) {
@@ -89,7 +91,7 @@ const statusConfig = computed(() => {
       {{ statusConfig.text }}
     </span>
     <button
-      v-if="needsSync && !isMigrating && !claimPromptVisible"
+      v-if="canRetrySync"
       @click="syncTodos"
       class="ml-2 rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600 transition-colors hover:bg-blue-100"
     >

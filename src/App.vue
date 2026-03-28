@@ -15,12 +15,14 @@ import { useRoute } from 'vue-router'
 import AuthStatus from './components/AuthStatus.vue'
 import { useDataExport } from './composables/useDataExport'
 import { useElectricTodos } from './composables/useElectricTodos'
+import { useSyncElectricTodos } from './composables/useSyncElectricTodos'
 import { useWeekNumber } from './composables/useWeekNumber'
 import SyncStatus from './components/SyncStatus.vue'
 
 const route = useRoute()
 const { getCurrentWeekNumber } = useWeekNumber()
 const { exportTodos, importTodos } = useDataExport()
+useSyncElectricTodos()
 const { addTodo, claimGuestTodos, claimPromptVisible, guestTodoCount, keepGuestTodosSeparate } =
   useElectricTodos()
 
