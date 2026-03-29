@@ -79,12 +79,20 @@ Recommended write sequence:
 4. Send the mutation to the Postgres write endpoint.
 5. Require the write response to return the accepted `mutationId`, `todoId`, and authoritative Postgres transaction identifier (`txid`).
 6. Move the ledger entry to `accepted-awaiting-sync` only after Postgres accepts the write and returns that confirmation contract.
-7. Keep the mutation pending until Electric sync-back shows the accepted change from that txid or a newer Postgres state that unambiguously includes it.
-8. Mark the ledger entry resolved only after that sync-back confirmation.
+7. Keep the mutation pending until Electric sync-back proves the accepted effect.
+8. Mark the ledger entry resolved only after that proof is present.
 
 Use stable client-generated todo IDs so create retries are idempotent. Combine `todoId` and `mutationId` to prevent duplicate effects across retries and reconnects.
 
 Txid-backed sync-back confirmation is mandatory for this architecture. The client must distinguish **Postgres accepted the write** from **Electric has delivered the confirmed Postgres result**. A mutation is not complete until the ledger has both acceptance metadata and sync-back confirmation.
+
+Confirmation proof is operation-specific:
+
+- **Create**: Electric must show a confirmed row with the same `todoId` in the rebuilt baseline after the accepted `txid`.
+- **Update**: Electric must show the same `todoId` with every field targeted by that mutation set to the accepted values in the rebuilt baseline after the accepted `txid`.
+- **Delete**: Electric must no longer show that `todoId` in the rebuilt baseline after the accepted `txid`.
+
+Snapshot content by itself is not sufficient unless it satisfies the operation-specific proof above after the accepted `txid`. There is no weaker snapshot-only confirmation path.
 
 Pending mutation statuses should be explicit, for example:
 
@@ -104,7 +112,7 @@ If Electric delivers a Postgres change for the same `todoId` while a local mutat
 - **Pending create**: keep rendering the optimistic todo until Electric shows the created row for that `todoId`, then replace the optimistic copy with the confirmed row.
 - **Pending update**: keep the local optimistic fields visible for the fields being mutated. Non-overlapping fields may update from Electric immediately.
 - **Pending delete**: keep the todo hidden in the merged view even if Electric still shows the pre-delete row until the delete is confirmed or rejected.
-- **Confirmed newer Postgres state**: if Electric shows a state that clearly includes the local change, mark the mutation confirmed even if additional Postgres-side fields also changed.
+- **Confirmed newer Postgres state**: if Electric satisfies the operation-specific confirmation proof, mark the mutation confirmed even if additional Postgres-side fields also changed.
 - **Rejected or conflicting result from Postgres**: drop the optimistic overlay for that mutation and show the confirmed Postgres row.
 
 This app should not attempt per-field collaborative merges beyond those rules. The local pending mutation wins visually for its targeted fields until Postgres either confirms or rejects it.
@@ -133,6 +141,8 @@ After refetch, unmatched pending mutations must resolve by operation type:
 - **Update**: if the baseline reflects the intended field values, mark confirmed; if the baseline still shows the old values and there is no acceptance record, keep `queued` or `retryable-error`; if Postgres rejected the update, mark `rejected` and restore the confirmed row.
 - **Delete**: if the baseline no longer contains the `todoId`, mark confirmed; if the row is still present and there is no acceptance record, keep `queued` or `retryable-error`; if Postgres rejected the delete, mark `rejected` and show the confirmed row again.
 
+Fail fast on accepted-but-unconfirmed mutations. If a mutation already has accepted metadata including `txid`, Electric has reset, refetched, or resumed, and the rebuilt confirmed baseline still does not satisfy the confirmation proof for that mutation, do not downgrade it to ordinary retryable work. Move it to an invariant-violation or quarantined degraded state, stop treating it as a normal pending retry, and surface the problem loudly for operator debugging.
+
 ## 7. Auth expiry handling
 
 Auth expiry is a transport and write-path problem, not a reason to fork local data ownership.
@@ -156,8 +166,8 @@ If the authenticated user actually changes, quarantine the old user’s pending 
 The current app may still contain guest or local data from the older local-first model. Migration should be explicit:
 
 - existing guest/local todos become migration input, not a permanent parallel source of truth
-- on first run of the new model, import those rows into a user-scoped pending migration partition
-- if no authenticated user exists, keep them as pre-auth migration data only; do not treat them as normal synced todos yet
+- on first run of the new model, import those rows into a clearly separate **pre-auth guest migration partition**
+- if no authenticated user exists, keep them in that pre-auth guest migration partition only; do not treat them as normal synced todos yet
 - once the user authenticates and chooses to keep that data, create normal pending `create` mutations with stable client `todoId` values and send them through the single mutation API
 - after Postgres acceptance and Electric confirmation, remove the legacy guest/local copy
 - if the user declines migration, keep the legacy dataset quarantined and out of the merged synced view
