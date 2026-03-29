@@ -1,22 +1,21 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "src/route-map.d.ts"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "types": ["vite/client"],
+    "types": ["vite-plus/client"],
+    "lib": ["WebWorker", "esnext", "dom"],
     "paths": {
       "@/*": ["./src/*"]
     },
-
+    "rootDir": "./src",
     /* Linting */
-    "strict": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noUncheckedSideEffectImports": true
+    "erasableSyntaxOnly": true
   },
   "vueCompilerOptions": {
     "plugins": ["vue-router/volar/sfc-typed-router", "vue-router/volar/sfc-route-blocks"]
-  },
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "./src/route-map.d.ts"]
+  }
 }

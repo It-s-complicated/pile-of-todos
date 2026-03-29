@@ -5,7 +5,6 @@ import { defineConfig } from 'vite-plus'
 import { VitePWA } from 'vite-plugin-pwa'
 import { qrcode } from 'vite-plugin-qrcode'
 import VueRouter from 'vue-router/vite'
-import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
   staged: {
@@ -30,6 +29,7 @@ export default defineConfig({
     }),
     vue(),
     tailwindcss(),
+    // @ts-expect-error - this is some vite 8 + ts 6 issue
     UnpluginFonts({
       google: {
         families: [
@@ -73,8 +73,10 @@ export default defineConfig({
       },
     }),
     qrcode(),
-    tsconfigPaths(),
   ],
+  resolve: {
+    tsconfigPaths: true,
+  },
   test: {
     include: ['src/**/*.test.ts'],
   },
