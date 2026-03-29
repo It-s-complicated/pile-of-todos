@@ -2,7 +2,7 @@
 
 ## Summary
 
-Adopt a hybrid sync model for todos. Postgres is the durable source of truth. Electric is read and sync transport only. The client keeps a confirmed baseline from Electric plus a pending mutation ledger used for optimistic UI, retries, and recovery. The UI reads one merged todo view and never chooses between separate local and remote selectors.
+Adopt a hybrid sync model for todos. Postgres is the durable source of truth. Electric is read and sync transport only. The client keeps a confirmed baseline from Electric plus a pending mutation ledger used for optimistic UI, retries, and recovery. Every accepted write must be confirmed by txid-backed sync-back before it is considered complete. The UI reads one merged todo view and never chooses between separate local and Postgres selectors.
 
 ## 1. Problem statement
 
@@ -10,7 +10,7 @@ The current sync shape mixes concerns between local persistence, remote durabili
 
 The approved direction is to simplify the mental model:
 
-- remote data owns durability and final acceptance
+- Postgres owns durability and final acceptance
 - Electric owns read-side sync transport
 - local state owns optimistic presentation and temporary pending work only
 
@@ -24,11 +24,11 @@ Use a hybrid model with three distinct layers:
 2. **Pending mutation ledger**: local records describing optimistic creates, updates, and deletes that have been sent, are queued, or need recovery.
 3. **Sync transport state**: connection/auth/stream status for Electric and mutation delivery status for the write path.
 
-The app derives a single merged read model by overlaying pending mutations on top of the confirmed baseline. Callers never read from separate local and remote collections.
+The app derives a single merged read model by overlaying pending mutations on top of the confirmed baseline. Callers never read from separate local and Postgres collections.
 
 ## 3. Data ownership split
 
-### Remote / Postgres
+### Postgres
 
 Postgres is the durable source of truth for accepted todos. It is authoritative for:
 
@@ -65,25 +65,26 @@ Behavior by state:
 - **Offline**: the app continues to render the last confirmed baseline plus queued optimistic changes from the ledger.
 - **Reconnecting**: Electric refreshes the confirmed baseline; the ledger is reconciled against newly confirmed rows.
 
-This preserves one consistent selector path for the UI. Components should not branch into “local todos” vs “remote todos” logic.
+This preserves one consistent selector path for the UI. Components should not branch into “local todos” vs “Postgres todos” logic.
 
 ## 5. Write flow
 
-All writes go through one mutation API. Callers must not update local and remote state separately.
+All writes go through one mutation API backed by the Postgres write endpoint. Callers must not update local state and Postgres separately.
 
 Recommended write sequence:
 
 1. Generate a stable `todoId` on the client for creates.
 2. Generate a unique `mutationId` for every create, update, or delete attempt.
 3. Insert a pending ledger entry and optimistically project it into the merged read model.
-4. Send the mutation to the server write endpoint.
-5. Record the server response, including any transaction or acknowledgment metadata needed for sync-back confirmation.
-6. Keep the mutation pending until the confirmed baseline reflects the accepted change.
-7. Mark the ledger entry resolved once the Electric stream confirms the matching state.
+4. Send the mutation to the Postgres write endpoint.
+5. Require the write response to return the accepted `mutationId`, `todoId`, and authoritative Postgres transaction identifier (`txid`).
+6. Move the ledger entry to `accepted-awaiting-sync` only after Postgres accepts the write and returns that confirmation contract.
+7. Keep the mutation pending until Electric sync-back shows the accepted change from that txid or a newer Postgres state that unambiguously includes it.
+8. Mark the ledger entry resolved only after that sync-back confirmation.
 
 Use stable client-generated todo IDs so create retries are idempotent. Combine `todoId` and `mutationId` to prevent duplicate effects across retries and reconnects.
 
-When available, store the server transaction identifier (for example a Postgres txid) on the pending mutation. That allows the client to distinguish **request accepted** from **change observed in the Electric stream**. The ledger entry should remain in `accepted-awaiting-sync` until the matching sync-back arrives.
+Txid-backed sync-back confirmation is mandatory for this architecture. The client must distinguish **Postgres accepted the write** from **Electric has delivered the confirmed Postgres result**. A mutation is not complete until the ledger has both acceptance metadata and sync-back confirmation.
 
 Pending mutation statuses should be explicit, for example:
 
@@ -95,6 +96,18 @@ Pending mutation statuses should be explicit, for example:
 - `rejected`
 
 The important distinction is between server acceptance and confirmed sync-back. A write is not fully done when the request returns success; it is done when Electric reflects the accepted result in the confirmed baseline.
+
+### Conflict resolution while a local mutation is pending
+
+If Electric delivers a Postgres change for the same `todoId` while a local mutation is still pending, use these rules:
+
+- **Pending create**: keep rendering the optimistic todo until Electric shows the created row for that `todoId`, then replace the optimistic copy with the confirmed row.
+- **Pending update**: keep the local optimistic fields visible for the fields being mutated. Non-overlapping fields may update from Electric immediately.
+- **Pending delete**: keep the todo hidden in the merged view even if Electric still shows the pre-delete row until the delete is confirmed or rejected.
+- **Confirmed newer Postgres state**: if Electric shows a state that clearly includes the local change, mark the mutation confirmed even if additional Postgres-side fields also changed.
+- **Rejected or conflicting result from Postgres**: drop the optimistic overlay for that mutation and show the confirmed Postgres row.
+
+This app should not attempt per-field collaborative merges beyond those rules. The local pending mutation wins visually for its targeted fields until Postgres either confirms or rejects it.
 
 ## 6. Out-of-sync recovery process
 
@@ -109,12 +122,16 @@ Recovery policy:
 1. If Electric reports reset / must-refetch / shape invalidation, clear only transport-specific sync position data.
 2. Re-fetch a fresh Electric snapshot for the authenticated user.
 3. Rebuild the confirmed baseline from that snapshot.
-4. Re-apply unresolved pending ledger entries as optimistic overlay.
-5. Reconcile each pending mutation against server-confirmed data.
+4. Re-apply unresolved pending ledger entries from the active auth partition as optimistic overlay.
+5. Reconcile each pending mutation against Postgres-confirmed data.
 
 For Electric `409` or equivalent shape-expired cases, the client should treat the stream position as invalid, fetch a fresh baseline, and then reconcile. Do not attempt ad hoc patching from stale offsets.
 
-If a pending mutation cannot be matched after refetch, keep it in a retryable or rejected state based on the server result and reconciliation evidence.
+After refetch, unmatched pending mutations must resolve by operation type:
+
+- **Create**: if Postgres baseline now contains the `todoId`, mark confirmed; if Postgres never accepted it, keep `queued` or `retryable-error`; if Postgres explicitly rejected it, mark `rejected` and remove the optimistic row.
+- **Update**: if the baseline reflects the intended field values, mark confirmed; if the baseline still shows the old values and there is no acceptance record, keep `queued` or `retryable-error`; if Postgres rejected the update, mark `rejected` and restore the confirmed row.
+- **Delete**: if the baseline no longer contains the `todoId`, mark confirmed; if the row is still present and there is no acceptance record, keep `queued` or `retryable-error`; if Postgres rejected the delete, mark `rejected` and show the confirmed row again.
 
 ## 7. Auth expiry handling
 
@@ -122,15 +139,30 @@ Auth expiry is a transport and write-path problem, not a reason to fork local da
 
 Policy:
 
+- partition the pending mutation ledger by auth principal / user id
 - pause outgoing mutations when auth is expired
 - surface transport state that tells the UI re-auth is required
+- keep the same auth partition active during token refresh
 - resume Electric and mutation delivery only after session refresh succeeds
 - keep pending ledger entries intact during auth interruptions
 - never convert pending optimistic todos into permanent local-only records
 
-If the user session changes, discard auth-scoped confirmed baseline data and rehydrate from the new user’s Electric stream before replaying relevant pending work.
+If the session refreshes for the same user, continue using that user’s confirmed baseline and pending ledger partition.
 
-## 8. Recommended module boundaries
+If the authenticated user actually changes, quarantine the old user’s pending ledger entries and old confirmed-baseline cache immediately. Do not replay old-user pending mutations under the new user automatically. Rehydrate the new user’s confirmed baseline from that user’s Electric stream and start with the new user’s own ledger partition only.
+
+## 8. Rollout and migration from the current app model
+
+The current app may still contain guest or local data from the older local-first model. Migration should be explicit:
+
+- existing guest/local todos become migration input, not a permanent parallel source of truth
+- on first run of the new model, import those rows into a user-scoped pending migration partition
+- if no authenticated user exists, keep them as pre-auth migration data only; do not treat them as normal synced todos yet
+- once the user authenticates and chooses to keep that data, create normal pending `create` mutations with stable client `todoId` values and send them through the single mutation API
+- after Postgres acceptance and Electric confirmation, remove the legacy guest/local copy
+- if the user declines migration, keep the legacy dataset quarantined and out of the merged synced view
+
+## 9. Recommended module boundaries
 
 Keep the implementation split by responsibility rather than storage technology.
 
@@ -140,11 +172,11 @@ Owns Electric subscription, baseline cache hydration, snapshot replacement, and 
 
 ### Pending mutation ledger
 
-Owns queued mutation records, status transitions, retry metadata, optimistic patch application, and reconciliation bookkeeping.
+Owns user-partitioned queued mutation records, status transitions, retry metadata, optimistic patch application, quarantine behavior on user switch, and reconciliation bookkeeping.
 
 ### Mutation API
 
-The only public write surface for todos. Accepts intent like create/update/delete and performs ledger entry creation, request dispatch, idempotency handling, and txid/sync-back tracking.
+The only public write surface for todos. Accepts intent like create/update/delete and performs ledger entry creation, request dispatch to the Postgres write endpoint, idempotency handling, and required txid/sync-back tracking.
 
 ### Merged read model
 
@@ -154,32 +186,36 @@ Builds the single UI-facing todo list by overlaying pending mutations on the con
 
 Owns Electric connection lifecycle, reset/refetch handling, auth-aware pause/resume behavior, and sync health state.
 
-UI components and feature composables should depend on the merged read model plus the single mutation API, not on separate local/remote modules.
+UI components and feature composables should depend on the merged read model plus the single mutation API, not on separate local/Postgres modules.
 
-## 9. Verification scenarios / success criteria
+## 10. Verification scenarios / success criteria
 
 The design is successful if these scenarios behave predictably:
 
 1. **Create online**: a new todo appears immediately, becomes server-accepted, then becomes confirmed after Electric sync-back without duplication.
 2. **Create offline**: a new todo appears as pending, survives refresh from local cache, and confirms after reconnect.
 3. **Update/delete retry**: repeated sends with the same `mutationId` do not create duplicate effects.
-4. **Electric reset / 409**: the client refetches baseline, reapplies pending overlay, and returns to a correct merged view.
-5. **Auth expiry mid-session**: pending work is preserved, writes pause, re-auth resumes sync, and ownership remains correct.
-6. **Multi-device confirmation**: a change made elsewhere updates the confirmed baseline and merges cleanly with any local pending work.
-7. **No dual-write paths**: no caller needs separate local mutation calls plus remote mutation calls.
-8. **One read path**: UI selectors read only the merged view.
+4. **Pending conflict**: an incoming Electric change on the same todo follows the conflict rules and does not silently erase the local optimistic mutation.
+5. **Electric reset / 409**: the client refetches baseline, reapplies pending overlay, and returns to a correct merged view.
+6. **Auth expiry mid-session**: pending work is preserved in the same user partition, writes pause, and re-auth resumes sync.
+7. **User switch**: old-user pending work is quarantined and is not replayed under the new user.
+8. **Guest/local rollout**: legacy guest/local rows can be migrated through the single mutation API and disappear only after Postgres acceptance plus Electric confirmation.
+9. **Multi-device confirmation**: a change made elsewhere updates the confirmed baseline and merges cleanly with any local pending work.
+10. **No dual-write paths**: no caller needs separate local mutation calls plus Postgres mutation calls.
+11. **One read path**: UI selectors read only the merged view.
 
-## 10. Explicit non-goals / things to avoid
+## 11. Explicit non-goals / things to avoid
 
 Avoid the following:
 
 - permanent local-only todos
-- separate UI read paths for local and remote todos
-- manual dual writes to local cache and server from callers
+- separate UI read paths for local and Postgres todos
+- manual dual writes to local cache and Postgres from callers
 - treating Electric as the authoritative write path
 - considering request success alone as final confirmation
 - ad hoc recovery from stale Electric offsets after reset or `409`
 - silent mutation duplication when retrying after reconnect
+- replaying old-user pending mutations after a user switch
 - mixing auth/session state into todo ownership rules outside the single mutation and sync layers
 
 This design intentionally favors one durable authority, one merged read model, and one mutation entry point.
