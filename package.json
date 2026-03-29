@@ -41,7 +41,7 @@
     "tailwindcss": "^4.2.2",
     "typescript": "~6.0.2",
     "unplugin-fonts": "^1.4.0",
-    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.14",
     "vite-plugin-pwa": "^1.2.0",
     "vite-plugin-qrcode": "^0.4.1",
     "vite-plus": "latest",
