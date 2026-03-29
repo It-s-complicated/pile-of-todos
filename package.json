@@ -7,7 +7,8 @@
     "dev": "vp dev",
     "build": "vue-tsc -b && vp build",
     "preview": "vp preview",
-    "test": "node --test --experimental-strip-types src/lib/*.test.ts",
+    "testr": "node --test --experimental-strip-types src/lib/*.test.ts",
+    "test": "vp test run",
     "migrate": "drizzle-kit migrate",
     "migrate:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
@@ -33,7 +34,8 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
-    "@types/node": "^25.5.0",
+    "@tsconfig/node24": "^24.0.4",
+    "@types/node": "^24.12.0",
     "@types/pg": "^8.20.0",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/tsconfig": "^0.9.1",
@@ -41,15 +43,15 @@
     "tailwindcss": "^4.2.2",
     "typescript": "~6.0.2",
     "unplugin-fonts": "^1.4.0",
-    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.14",
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
     "vite-plugin-pwa": "^1.2.0",
     "vite-plugin-qrcode": "^0.4.1",
+    "vite-plugin-vue-devtools": "^8.1.1",
     "vite-plus": "latest",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@latest",
     "vue-tsc": "^3.2.6",
     "workbox-window": "^7.4.0"
-  },
-  "overrides": {
-    "serialize-javascript": "^7.0.3"
   },
   "packageManager": "pnpm@10.33.0",
   "pnpm": {

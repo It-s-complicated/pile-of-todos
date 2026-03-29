@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
+import { assert, test } from 'vite-plus/test'
 import type { SyncTodo } from './todo-sync.ts'
 
 import { buildRemoteTodoRow, shouldPushTodoForUser } from './todo-sync.ts'

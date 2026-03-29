@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
+import { assert, test } from 'vite-plus/test'
 
 import type { Todo } from '@/db/collections'
 

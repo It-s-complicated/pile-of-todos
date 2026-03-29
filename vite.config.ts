@@ -5,6 +5,7 @@ import { defineConfig } from 'vite-plus'
 import { VitePWA } from 'vite-plugin-pwa'
 import { qrcode } from 'vite-plugin-qrcode'
 import VueRouter from 'vue-router/vite'
+import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
   staged: {
@@ -72,10 +73,9 @@ export default defineConfig({
       },
     }),
     qrcode(),
+    tsconfigPaths(),
   ],
-  resolve: {
-    alias: {
-      '@': '/src',
-    },
+  test: {
+    include: ['src/**/*.test.ts'],
   },
 })
