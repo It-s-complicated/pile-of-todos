@@ -79,12 +79,14 @@ Recommended write sequence:
 4. Send the mutation to the Postgres write endpoint.
 5. Require the write response to return the accepted `mutationId`, `todoId`, and authoritative Postgres transaction identifier (`txid`).
 6. Move the ledger entry to `accepted-awaiting-sync` only after Postgres accepts the write and returns that confirmation contract.
-7. Keep the mutation pending until Electric sync-back proves the accepted effect.
-8. Mark the ledger entry resolved only after that proof is present.
+7. Store the accepted `txid` on the pending ledger entry and hand it to the Electric-backed collection or sync controller.
+8. Wait on an explicit txid confirmation primitive such as `awaitTxId(txid)` or an equivalent stream-confirmation API.
+9. Only after that txid confirmation resolves, evaluate the rebuilt confirmed baseline against the operation-specific confirmation proof.
+10. Mark the ledger entry resolved only after both txid confirmation and the proof check succeed.
 
 Use stable client-generated todo IDs so create retries are idempotent. Combine `todoId` and `mutationId` to prevent duplicate effects across retries and reconnects.
 
-Txid-backed sync-back confirmation is mandatory for this architecture. The client must distinguish **Postgres accepted the write** from **Electric has delivered the confirmed Postgres result**. A mutation is not complete until the ledger has both acceptance metadata and sync-back confirmation.
+Txid-backed sync-back confirmation is mandatory for this architecture. The client must distinguish **Postgres accepted the write** from **Electric has delivered the confirmed Postgres result**. The concrete protocol is: the Postgres write endpoint returns `txid`, the client stores that accepted `txid` on the pending mutation entry, and the Electric-backed collection or sync controller must use an explicit confirmation primitive such as `awaitTxId(txid)` or equivalent before the mutation can be marked confirmed.
 
 Confirmation proof is operation-specific:
 
@@ -92,7 +94,7 @@ Confirmation proof is operation-specific:
 - **Update**: Electric must show the same `todoId` with every field targeted by that mutation set to the accepted values in the rebuilt baseline after the accepted `txid`.
 - **Delete**: Electric must no longer show that `todoId` in the rebuilt baseline after the accepted `txid`.
 
-Snapshot content by itself is not sufficient unless it satisfies the operation-specific proof above after the accepted `txid`. There is no weaker snapshot-only confirmation path.
+Snapshot content by itself is not sufficient. Baseline content checks are evaluated only after the txid confirmation primitive resolves. There is no weaker snapshot-only confirmation path.
 
 Pending mutation statuses should be explicit, for example:
 
@@ -141,7 +143,7 @@ After refetch, unmatched pending mutations must resolve by operation type:
 - **Update**: if the baseline reflects the intended field values, mark confirmed; if the baseline still shows the old values and there is no acceptance record, keep `queued` or `retryable-error`; if Postgres rejected the update, mark `rejected` and restore the confirmed row.
 - **Delete**: if the baseline no longer contains the `todoId`, mark confirmed; if the row is still present and there is no acceptance record, keep `queued` or `retryable-error`; if Postgres rejected the delete, mark `rejected` and show the confirmed row again.
 
-Fail fast on accepted-but-unconfirmed mutations. If a mutation already has accepted metadata including `txid`, Electric has reset, refetched, or resumed, and the rebuilt confirmed baseline still does not satisfy the confirmation proof for that mutation, do not downgrade it to ordinary retryable work. Move it to an invariant-violation or quarantined degraded state, stop treating it as a normal pending retry, and surface the problem loudly for operator debugging.
+Fail fast on accepted-but-unconfirmed mutations. If a mutation already has accepted metadata including `txid`, Electric has reset, refetched, or resumed, and txid confirmation cannot be re-established or the rebuilt confirmed baseline still does not satisfy the confirmation proof after txid confirmation, do not downgrade it to ordinary retryable work. Move it to an invariant-violation or quarantined degraded state, stop treating it as a normal pending retry, and surface the problem loudly for operator debugging.
 
 ## 7. Auth expiry handling
 
