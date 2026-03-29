@@ -11,8 +11,8 @@ import {
 } from '@/db/collections'
 import type { Todo } from '@/db/collections'
 import { shouldShowGuestClaimPrompt } from '@/lib/auth-allowlist'
+import { enqueueTodoUpsert, getOutboxRevision, getPendingEntityIds } from '@/lib/todo-outbox'
 import { claimGuestTodos } from '@/lib/todo-storage'
-import { shouldPushTodoForUser } from '@/lib/todo-sync'
 import { useAuth } from './useAuth'
 import { useNetworkStatus } from './useNetworkStatus'
 
@@ -24,32 +24,8 @@ function normalizeTodo(todo: Todo): Todo {
   }
 }
 
-function needsRemoteWrite(localTodo: Todo, remoteTodo: Todo | undefined) {
-  if (!remoteTodo) {
-    return true
-  }
-
-  return localTodo.updatedAt > remoteTodo.updatedAt
-}
-
 function getTodoFingerprint(todos: Todo[]) {
   return todos.map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`).join('|')
-}
-
-function getPendingLocalTodos(
-  localTodosToCheck: Todo[],
-  remoteTodosToCompare: Todo[],
-  activeUserId: string | null,
-) {
-  const remoteById = new Map(remoteTodosToCompare.map((todo) => [todo.id, todo]))
-
-  return localTodosToCheck.filter((todo) => {
-    if (!shouldPushTodoForUser(todo, activeUserId)) {
-      return false
-    }
-
-    return needsRemoteWrite(todo, remoteById.get(todo.id))
-  })
 }
 
 const handledClaimPromptUserIds = ref<string[]>([])
@@ -113,6 +89,7 @@ export function useTodoData(): TodoDataState {
   const { isOnline } = useNetworkStatus()
   const { accessState, isAuthReady, isAuthenticated, userId: authenticatedUserId } = useAuth()
   const isElectricEnabled = isElectricConfigured()
+  const outboxRevision = getOutboxRevision()
 
   const activeUserId = computed(() =>
     accessState.value === 'approved' ? authenticatedUserId.value : null,
@@ -139,6 +116,57 @@ export function useTodoData(): TodoDataState {
   const remoteForActiveUser = computed(() =>
     remoteSnapshot.value.filter((todo) => todo.userId === activeUserId.value),
   )
+  const pendingEntityIds = computed(() => {
+    if (!activeUserId.value) {
+      return new Set<string>()
+    }
+
+    const revision = outboxRevision.value
+
+    if (revision < 0) {
+      return new Set<string>()
+    }
+
+    return new Set(getPendingEntityIds(activeUserId.value))
+  })
+  const prefersRemoteReads = computed(
+    () =>
+      isElectricEnabled &&
+      isOnline.value &&
+      !!activeUserId.value &&
+      isRemoteQueryReady.value &&
+      !claimPromptVisible.value,
+  )
+  const mergedTodos = computed(() => {
+    if (!prefersRemoteReads.value) {
+      return localSnapshot.value
+    }
+
+    const localById = new Map(localSnapshot.value.map((todo) => [todo.id, todo]))
+    const merged = remoteForActiveUser.value.map((remoteTodo) => {
+      const localTodo = localById.get(remoteTodo.id)
+
+      if (localTodo && pendingEntityIds.value.has(remoteTodo.id)) {
+        return localTodo
+      }
+
+      return remoteTodo
+    })
+
+    for (const pendingTodoId of pendingEntityIds.value) {
+      if (merged.some((todo) => todo.id === pendingTodoId)) {
+        continue
+      }
+
+      const pendingTodo = localById.get(pendingTodoId)
+
+      if (pendingTodo) {
+        merged.push(pendingTodo)
+      }
+    }
+
+    return merged
+  })
   const guestTodoCount = computed(
     () => guestSnapshot.value.filter((todo) => todo.deletedAt === null).length,
   )
@@ -162,9 +190,20 @@ export function useTodoData(): TodoDataState {
       activeUserId.value !== null &&
       !claimPromptVisible.value,
   )
-  const pendingLocalTodos = computed(() =>
-    getPendingLocalTodos(localSnapshot.value, remoteForActiveUser.value, activeUserId.value),
-  )
+  const pendingLocalTodos = computed(() => {
+    if (!activeUserId.value) {
+      return []
+    }
+
+    const revision = outboxRevision.value
+
+    if (revision < 0) {
+      return []
+    }
+
+    const pendingIds = new Set(getPendingEntityIds(activeUserId.value))
+    return localSnapshot.value.filter((todo) => pendingIds.has(todo.id))
+  })
   const syncPlan = computed(() => {
     if (!canSync.value || !activeUserId.value) {
       return null
@@ -184,20 +223,22 @@ export function useTodoData(): TodoDataState {
   }
 
   function claimGuestTodosToAccount() {
-    if (!activeUserId.value) {
+    const userId = activeUserId.value
+
+    if (!userId) {
       return false
     }
 
     const guestTodosToClaim = guestSnapshot.value.filter((todo) => todo.deletedAt === null)
 
     if (guestTodosToClaim.length > 0) {
-      activeLocalCollection.value.insert(
-        claimGuestTodos(guestTodosToClaim, activeUserId.value, Date.now()),
-      )
+      const claimedTodos = claimGuestTodos(guestTodosToClaim, userId, Date.now())
+      activeLocalCollection.value.insert(claimedTodos)
+      claimedTodos.forEach((todo) => enqueueTodoUpsert(todo, userId))
       guestCollection.delete(guestTodosToClaim.map((todo) => todo.id))
     }
 
-    markClaimPromptHandled(activeUserId.value)
+    markClaimPromptHandled(userId)
     return true
   }
 
@@ -214,7 +255,7 @@ export function useTodoData(): TodoDataState {
     const id = crypto.randomUUID()
     const now = Date.now()
 
-    activeLocalCollection.value.insert({
+    const nextTodo: Todo = {
       id,
       label,
       weekNumber,
@@ -225,7 +266,13 @@ export function useTodoData(): TodoDataState {
       deviceId: getCurrentDeviceId(),
       userId: activeUserId.value,
       deletedAt: null,
-    })
+    }
+
+    activeLocalCollection.value.insert(nextTodo)
+
+    if (activeUserId.value) {
+      enqueueTodoUpsert(nextTodo, activeUserId.value)
+    }
 
     return id
   }
@@ -237,6 +284,16 @@ export function useTodoData(): TodoDataState {
         deviceId: getCurrentDeviceId(),
       })
     })
+
+    if (!activeUserId.value) {
+      return
+    }
+
+    const updatedTodo = activeLocalCollection.value.get(id)
+
+    if (updatedTodo) {
+      enqueueTodoUpsert(normalizeTodo(updatedTodo), activeUserId.value)
+    }
   }
 
   function deleteTodo(id: string) {
@@ -292,8 +349,8 @@ export function useTodoData(): TodoDataState {
     todos: {
       add: addTodo,
       archive: archiveTodo,
-      count: computed(() => localSnapshot.value.length),
-      list: localSnapshot,
+      count: computed(() => mergedTodos.value.length),
+      list: mergedTodos,
       remove: deleteTodo,
       toggleDone: toggleTodoDone,
       update: updateTodo,

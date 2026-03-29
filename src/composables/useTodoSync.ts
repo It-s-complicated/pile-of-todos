@@ -3,6 +3,12 @@ import type { ComputedRef, Ref } from 'vue'
 
 import { getCurrentDeviceId } from '@/db/collections'
 import type { Todo } from '@/db/collections'
+import {
+  ackOutboxOperation,
+  failOutboxOperation,
+  getPendingOutboxOperations,
+  getPendingEntityIds,
+} from '@/lib/todo-outbox'
 import { getSupabaseClient, setSupabaseAuthError } from '@/lib/supabase'
 import { buildRemoteTodoRow, shouldPushTodoForUser } from '@/lib/todo-sync'
 import { useAuth } from './useAuth'
@@ -31,12 +37,6 @@ function shouldRemoteWin(localTodo: Todo, remoteTodo: Todo) {
   )
 }
 
-function getPushFingerprint(localTodosToPush: Todo[]) {
-  return localTodosToPush
-    .map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
-    .join('|')
-}
-
 type TodoSyncState = {
   canRetrySync: ComputedRef<boolean>
   hasSyncedOnce: ComputedRef<boolean>
@@ -50,7 +50,6 @@ type TodoSyncState = {
 }
 
 let sharedTodoSync: TodoSyncState | null = null
-let lastPushedFingerprintByUser: Record<string, string> = {}
 let syncQueued = false
 
 export function useTodoSync(): TodoSyncState {
@@ -165,12 +164,10 @@ export function useTodoSync(): TodoSyncState {
     }
   }
 
-  async function pushLocalTodos(localTodosToPush: Todo[], activeUserId: string) {
-    const pushableTodos = localTodosToPush.filter((todo) =>
-      shouldPushTodoForUser(todo, activeUserId),
-    )
+  async function pushOutbox(activeUserId: string) {
+    const pendingOperations = getPendingOutboxOperations(activeUserId)
 
-    if (pushableTodos.length === 0) {
+    if (pendingOperations.length === 0) {
       return false
     }
 
@@ -180,26 +177,25 @@ export function useTodoSync(): TodoSyncState {
       throw new Error('Cloud sync is not configured: missing Supabase credentials')
     }
 
-    const pushFingerprint = getPushFingerprint(pushableTodos)
+    for (const operation of pendingOperations) {
+      if (!shouldPushTodoForUser(operation.payload, activeUserId)) {
+        ackOutboxOperation(operation.opId)
+        continue
+      }
 
-    if (pushFingerprint === lastPushedFingerprintByUser[activeUserId]) {
-      return false
-    }
+      const { error } = await supabase
+        .from('todos')
+        .upsert(buildRemoteTodoRow(operation.payload, getCurrentDeviceId()), {
+          onConflict: 'id',
+        })
 
-    const { error } = await supabase.from('todos').upsert(
-      pushableTodos.map((todo) => buildRemoteTodoRow(todo, getCurrentDeviceId())),
-      {
-        onConflict: 'id',
-      },
-    )
+      if (error) {
+        const retryDelay = Math.min(60_000, 1_000 * 2 ** operation.attempts)
+        failOutboxOperation(operation.opId, operation.attempts + 1, retryDelay)
+        throw new Error(error.message)
+      }
 
-    if (error) {
-      throw new Error(error.message)
-    }
-
-    lastPushedFingerprintByUser = {
-      ...lastPushedFingerprintByUser,
-      [activeUserId]: pushFingerprint,
+      ackOutboxOperation(operation.opId)
     }
 
     return true
@@ -222,7 +218,7 @@ export function useTodoSync(): TodoSyncState {
 
     try {
       await reconcileRemoteTodos(todoData.snapshots.remoteForActiveUser.value)
-      await pushLocalTodos(todoData.syncInputs.pendingLocalTodos.value, activeUserId)
+      await pushOutbox(activeUserId)
 
       lastSyncedAtByUser.value = {
         ...lastSyncedAtByUser.value,
@@ -230,7 +226,7 @@ export function useTodoSync(): TodoSyncState {
       }
       syncErrorUserId.value = null
 
-      return todoData.syncInputs.pendingLocalTodos.value.length === 0
+      return getPendingEntityIds(activeUserId).length === 0
     } catch (error) {
       console.error('Sync failed:', error)
       syncErrorUserId.value = activeUserId
@@ -259,20 +255,9 @@ export function useTodoSync(): TodoSyncState {
 
   watch(
     () => todoData.syncInputs.syncPlan.value,
-    (plan, previousPlan) => {
+    (plan) => {
       if (!plan) {
         return
-      }
-
-      if (
-        previousPlan &&
-        previousPlan.activeUserId === plan.activeUserId &&
-        previousPlan.remoteFingerprint !== plan.remoteFingerprint
-      ) {
-        lastPushedFingerprintByUser = {
-          ...lastPushedFingerprintByUser,
-          [plan.activeUserId]: '',
-        }
       }
 
       void syncTodos()

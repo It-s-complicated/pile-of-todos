@@ -198,3 +198,7 @@ Type-check only (without building):
 - The browser client accepts only `VITE_SUPABASE_ANON_KEY`; `VITE_SUPABASE_KEY` is no longer recognized.
 - Remote sync writes run only for the authenticated owner, and Electric reads are filtered to that same `user_id`.
 - Existing hosted rows with `NULL user_id` must be backfilled to a real Supabase auth user before a follow-up migration can safely mark `user_id` as `NOT NULL`.
+
+## Sync redesign proposal
+
+- See `docs/TODO-SYNC-PROCESS.md` for a clean-slate process that separates local state, remote canonical state, and ElectricSQL sync orchestration, including out-of-sync recovery rules.
