@@ -69,24 +69,36 @@ This preserves one consistent selector path for the UI. Components should not br
 
 ## 5. Write flow
 
-There is no app-managed server in this architecture. All writes go through one client-side mutation API backed directly by Supabase. Callers must not update local state and Postgres separately.
+There is no app-managed server in this architecture. Supabase is the browser-facing write/auth backend, while Electric remains the external read/sync transport for Postgres-confirmed state. All writes go through one client-side mutation API backed directly by Supabase. Callers must not update local state and Postgres separately.
 
 Recommended write sequence:
 
 1. Generate a stable `todoId` on the client for creates.
 2. Generate a unique `mutationId` for every create, update, or delete attempt.
 3. Insert a pending ledger entry and optimistically project it into the merged read model.
-4. Send the mutation through a direct Supabase-backed mutation contract, typically an RPC / database function or equivalent Supabase path that can return accepted metadata.
-5. Require the write response to return the accepted `mutationId`, `todoId`, and authoritative Postgres transaction identifier (`txid`).
-6. Move the ledger entry to `accepted-awaiting-sync` only after Postgres accepts the write and returns that confirmation contract.
-7. Store the accepted `txid` on the pending ledger entry and hand it to the Electric-backed collection or sync controller.
-8. Wait on an explicit txid confirmation primitive such as `awaitTxId(txid)` or an equivalent stream-confirmation API.
-9. Only after that txid confirmation resolves, evaluate the rebuilt confirmed baseline against the operation-specific confirmation proof.
-10. Mark the ledger entry resolved only after both txid confirmation and the proof check succeed.
+4. Send the mutation through a Supabase RPC / database function. This is the expected implementation path. Any alternative database primitive is acceptable only if it preserves the exact same auth, durable idempotency, and txid guarantees described here.
+5. The database contract must accept create/update/delete intent, derive the acting user from authenticated Supabase/Postgres auth context such as `auth.uid()` inside the function, and must not trust caller-provided ownership scope or `user_id` for authorization decisions.
+6. The database contract must implement durable idempotency at the database level, not as a best-effort preflight check. The expected mechanism is a mutation journal / ledger table keyed by `mutationId` with a uniqueness constraint and stored accepted result metadata so retries, network loss, and offline replay return the same accepted outcome without duplicating effects.
+7. Require the write response to return the accepted `mutationId`, `todoId`, and authoritative Postgres transaction identifier (`txid`), where `txid` is obtained from `pg_current_xact_id()` in the accepting transaction and serialized to the client as a stable string value.
+8. Move the ledger entry to `accepted-awaiting-sync` only after Postgres accepts the write and returns that confirmation contract.
+9. Store the accepted `txid` on the pending ledger entry and hand it to the Electric-backed collection or sync controller.
+10. Wait on an explicit txid confirmation primitive such as `awaitTxId(txid)` or an equivalent stream-confirmation API.
+11. Only after that txid confirmation resolves, evaluate the rebuilt confirmed baseline against the operation-specific confirmation proof.
+12. Mark the ledger entry resolved only after both txid confirmation and the proof check succeed.
 
 Use stable client-generated todo IDs so create retries are idempotent. Combine `todoId` and `mutationId` to prevent duplicate effects across retries and reconnects.
 
 Txid-backed sync-back confirmation is mandatory for this architecture. The client must distinguish **Postgres accepted the write** from **Electric has delivered the confirmed Postgres result**. The concrete protocol is: the Supabase-backed mutation contract returns `{ mutationId, todoId, txid }`, the client stores that accepted `txid` on the pending mutation entry, and the Electric-backed collection or sync controller must use an explicit confirmation primitive such as `awaitTxId(txid)` or equivalent before the mutation can be marked confirmed.
+
+The write contract is normative, not optional. Writes must use a Supabase RPC / database function by default. Any alternative database primitive is acceptable only if it preserves the same guarantees. The required contract is:
+
+- accepts authenticated create/update/delete intents
+- derives the acting user inside the database contract from authenticated Supabase/Postgres auth context and does not authorize from caller-supplied ownership scope or `user_id`
+- implements durable database-level idempotency for `mutationId`, with a journal / ledger table or equivalent durable artifact that records the accepted result
+- returns `{ mutationId, todoId, txid }`, where `txid` comes from `pg_current_xact_id()` and is serialized as a string for the client contract
+- gives the client a reliable accepted-write contract that Electric confirmation can prove against
+
+Raw direct table `insert`, `upsert`, `update`, or `delete` calls are not sufficient unless they provide those same guarantees in one contract.
 
 Confirmation proof is operation-specific:
 
@@ -230,6 +242,6 @@ Avoid the following:
 - replaying old-user pending mutations after a user switch
 - mixing auth/session state into todo ownership rules outside the single mutation and sync layers
 
-This architecture deliberately does not introduce an app-owned server, `server/` runtime, `/api/*` routes, or an Electric proxy. Supabase is the only backend, Electric remains the read/sync transport, and the browser owns the optimistic ledger plus reconciliation flow.
+This architecture deliberately does not introduce an app-owned server, `server/` runtime, `/api/*` routes, or an Electric proxy. Supabase is the only browser-facing backend for auth and writes, Electric remains the external read/sync transport for Postgres, and the browser owns the optimistic ledger plus reconciliation flow.
 
 This design intentionally favors one durable authority, one merged read model, and one mutation entry point.

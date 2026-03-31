@@ -29,6 +29,13 @@
       "when": 1773520000000,
       "tag": "0003_github_auth_allowlist",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773520800000,
+      "tag": "0004_todo_mutation_rpc",
+      "breakpoints": true
     }
   ]
 }
