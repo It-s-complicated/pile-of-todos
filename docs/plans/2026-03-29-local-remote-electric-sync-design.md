@@ -22,7 +22,7 @@ Use a hybrid model with three distinct layers:
 
 1. **Confirmed baseline**: the latest accepted todo state materialized from Electric for the authenticated user.
 2. **Pending mutation ledger**: local records describing optimistic creates, updates, and deletes that have been sent, are queued, or need recovery.
-3. **Sync transport state**: connection/auth/stream status for Electric and mutation delivery status for the write path.
+3. **Sync transport state**: connection/auth/stream status for Electric and mutation delivery status for the direct Supabase write path.
 
 The app derives a single merged read model by overlaying pending mutations on top of the confirmed baseline. Callers never read from separate local and Postgres collections.
 
@@ -34,14 +34,14 @@ Postgres is the durable source of truth for accepted todos. It is authoritative 
 
 - whether a todo exists
 - user ownership and auth-scoped visibility
-- server timestamps
+- database-managed timestamps
 - canonical stored fields
 - whether a mutation was accepted or rejected
 - the confirmed final state visible after sync-back
 
 ### Electric
 
-Electric is read-only from the client perspective. It is the transport that streams the server-confirmed baseline into the app. Electric does not own mutation intent and is not used as a separate writable local store.
+Electric is read-only from the client perspective. It is the transport that streams the Postgres-confirmed baseline into the app. Electric does not own mutation intent and is not used as a separate writable local store.
 
 ### Local client state
 
@@ -51,7 +51,7 @@ Local client state is limited to:
 - pending mutation ledger for optimistic overlay
 - sync transport state
 
-There are no permanent local-only todos. A todo may appear locally before server confirmation, but only as an optimistic pending item tied to a mutation.
+There are no permanent local-only todos. A todo may appear locally before Postgres confirmation, but only as an optimistic pending item tied to a mutation.
 
 ## 4. Read flow and online/offline behavior
 
@@ -69,14 +69,14 @@ This preserves one consistent selector path for the UI. Components should not br
 
 ## 5. Write flow
 
-All writes go through one mutation API backed by the Postgres write endpoint. Callers must not update local state and Postgres separately.
+There is no app-managed server in this architecture. All writes go through one client-side mutation API backed directly by Supabase. Callers must not update local state and Postgres separately.
 
 Recommended write sequence:
 
 1. Generate a stable `todoId` on the client for creates.
 2. Generate a unique `mutationId` for every create, update, or delete attempt.
 3. Insert a pending ledger entry and optimistically project it into the merged read model.
-4. Send the mutation to the Postgres write endpoint.
+4. Send the mutation through a direct Supabase-backed mutation contract, typically an RPC / database function or equivalent Supabase path that can return accepted metadata.
 5. Require the write response to return the accepted `mutationId`, `todoId`, and authoritative Postgres transaction identifier (`txid`).
 6. Move the ledger entry to `accepted-awaiting-sync` only after Postgres accepts the write and returns that confirmation contract.
 7. Store the accepted `txid` on the pending ledger entry and hand it to the Electric-backed collection or sync controller.
@@ -86,7 +86,7 @@ Recommended write sequence:
 
 Use stable client-generated todo IDs so create retries are idempotent. Combine `todoId` and `mutationId` to prevent duplicate effects across retries and reconnects.
 
-Txid-backed sync-back confirmation is mandatory for this architecture. The client must distinguish **Postgres accepted the write** from **Electric has delivered the confirmed Postgres result**. The concrete protocol is: the Postgres write endpoint returns `txid`, the client stores that accepted `txid` on the pending mutation entry, and the Electric-backed collection or sync controller must use an explicit confirmation primitive such as `awaitTxId(txid)` or equivalent before the mutation can be marked confirmed.
+Txid-backed sync-back confirmation is mandatory for this architecture. The client must distinguish **Postgres accepted the write** from **Electric has delivered the confirmed Postgres result**. The concrete protocol is: the Supabase-backed mutation contract returns `{ mutationId, todoId, txid }`, the client stores that accepted `txid` on the pending mutation entry, and the Electric-backed collection or sync controller must use an explicit confirmation primitive such as `awaitTxId(txid)` or equivalent before the mutation can be marked confirmed.
 
 Confirmation proof is operation-specific:
 
@@ -105,7 +105,7 @@ Pending mutation statuses should be explicit, for example:
 - `retryable-error`
 - `rejected`
 
-The important distinction is between server acceptance and confirmed sync-back. A write is not fully done when the request returns success; it is done when Electric reflects the accepted result in the confirmed baseline.
+The important distinction is between backend acceptance and confirmed sync-back. A write is not fully done when the request returns success; it is done when Electric reflects the accepted result in the confirmed baseline.
 
 ### Conflict resolution while a local mutation is pending
 
@@ -147,7 +147,7 @@ Fail fast on accepted-but-unconfirmed mutations. If a mutation already has accep
 
 ## 7. Auth expiry handling
 
-Auth expiry is a transport and write-path problem, not a reason to fork local data ownership.
+Auth expiry is a transport and direct-Supabase-write problem, not a reason to fork local data ownership.
 
 Policy:
 
@@ -180,7 +180,7 @@ Keep the implementation split by responsibility rather than storage technology.
 
 ### Confirmed baseline store
 
-Owns Electric subscription, baseline cache hydration, snapshot replacement, and confirmed server state.
+Owns Electric subscription, baseline cache hydration, snapshot replacement, and confirmed backend state.
 
 ### Pending mutation ledger
 
@@ -188,7 +188,7 @@ Owns user-partitioned queued mutation records, status transitions, retry metadat
 
 ### Mutation API
 
-The only public write surface for todos. Accepts intent like create/update/delete and performs ledger entry creation, request dispatch to the Postgres write endpoint, idempotency handling, and required txid/sync-back tracking.
+The only public write surface for todos. Accepts intent like create/update/delete and performs ledger entry creation, request dispatch through the client-side Supabase mutation contract, idempotency handling, and required txid/sync-back tracking.
 
 ### Merged read model
 
@@ -196,7 +196,7 @@ Builds the single UI-facing todo list by overlaying pending mutations on the con
 
 ### Sync transport controller
 
-Owns Electric connection lifecycle, reset/refetch handling, auth-aware pause/resume behavior, and sync health state.
+Owns Electric connection lifecycle, reset/refetch handling, auth-aware pause/resume behavior, direct-Supabase mutation delivery coordination, and sync health state.
 
 UI components and feature composables should depend on the merged read model plus the single mutation API, not on separate local/Postgres modules.
 
@@ -204,7 +204,7 @@ UI components and feature composables should depend on the merged read model plu
 
 The design is successful if these scenarios behave predictably:
 
-1. **Create online**: a new todo appears immediately, becomes server-accepted, then becomes confirmed after Electric sync-back without duplication.
+1. **Create online**: a new todo appears immediately, becomes backend-accepted, then becomes confirmed after Electric sync-back without duplication.
 2. **Create offline**: a new todo appears as pending, survives refresh from local cache, and confirms after reconnect.
 3. **Update/delete retry**: repeated sends with the same `mutationId` do not create duplicate effects.
 4. **Pending conflict**: an incoming Electric change on the same todo follows the conflict rules and does not silently erase the local optimistic mutation.
@@ -229,5 +229,7 @@ Avoid the following:
 - silent mutation duplication when retrying after reconnect
 - replaying old-user pending mutations after a user switch
 - mixing auth/session state into todo ownership rules outside the single mutation and sync layers
+
+This architecture deliberately does not introduce an app-owned server, `server/` runtime, `/api/*` routes, or an Electric proxy. Supabase is the only backend, Electric remains the read/sync transport, and the browser owns the optimistic ledger plus reconciliation flow.
 
 This design intentionally favors one durable authority, one merged read model, and one mutation entry point.
