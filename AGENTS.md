@@ -56,6 +56,15 @@ This project is using Vite+, a unified toolchain built on top of Vite, Rolldown,
 
 `vp` is a global binary that handles the full development lifecycle. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
 
+### Start
+
+- create - Create a new project from a template
+- migrate - Migrate an existing project to Vite+
+- config - Configure hooks and agent integration
+- staged - Run linters on staged files
+- install (`i`) - Install dependencies
+- env - Manage Node.js versions
+
 ### Develop
 
 - dev - Run the development server
@@ -92,6 +101,12 @@ Vite+ automatically detects and wraps the underlying package manager such as pnp
 - link (`ln`) / unlink - Manage local package links
 - pm - Forward a command to the package manager
 
+### Maintain
+
+- upgrade - Update `vp` itself to the latest version
+
+These commands map to their corresponding tools. For example, `vp dev --port 3000` runs Vite's dev server and works the same as Vite. `vp test` runs JavaScript tests through the bundled Vitest. The version of all tools can be checked using `vp --version`. This is useful when researching documentation, features, and bugs.
+
 ## Common Pitfalls
 
 - **Using the package manager directly:** Do not use pnpm, npm, or Yarn directly. Vite+ can handle all package manager operations.
@@ -101,6 +116,18 @@ Vite+ automatically detects and wraps the underlying package manager such as pnp
 - **Use Vite+ wrappers for one-off binaries:** Use `vp dlx` instead of package-manager-specific `dlx`/`npx` commands.
 - **Import JavaScript modules from `vite-plus`:** Instead of importing from `vite` or `vitest`, all modules should be imported from the project's `vite-plus` dependency. For example, `import { defineConfig } from 'vite-plus';` or `import { expect, test, vi } from 'vite-plus/test';`. You must not install `vitest` to import test utilities.
 - **Type-Aware Linting:** There is no need to install `oxlint-tsgolint`, `vp lint --type-aware` works out of the box.
+
+## CI Integration
+
+For GitHub Actions, consider using [`voidzero-dev/setup-vp`](https://github.com/voidzero-dev/setup-vp) to replace separate `actions/setup-node`, package-manager setup, cache, and install steps with a single action.
+
+```yaml
+- uses: voidzero-dev/setup-vp@v1
+  with:
+    cache: true
+- run: vp check
+- run: vp test
+```
 
 ## Review Checklist for Agents
 

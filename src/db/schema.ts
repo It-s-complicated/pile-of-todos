@@ -1,6 +1,23 @@
-import { bigint, boolean, index, integer, pgTable, uuid, varchar } from 'drizzle-orm/pg-core'
+import {
+  bigint,
+  boolean,
+  customType,
+  index,
+  integer,
+  pgTable,
+  timestamp,
+  text,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-valibot'
 import * as v from 'valibot'
+
+const xid8 = customType<{ data: string; driverData: string }>({
+  dataType() {
+    return 'xid8'
+  },
+})
 
 // Define the todos table matching the existing TodoSchema
 export const todosTable = pgTable(
@@ -18,6 +35,20 @@ export const todosTable = pgTable(
     deletedAt: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => [index('idx_todos_user_id').on(table.userId)],
+)
+
+export const todoMutationLedgerTable = pgTable(
+  'todo_mutation_ledger',
+  {
+    mutationId: text('mutation_id').primaryKey(),
+    userId: uuid('user_id').notNull(),
+    todoId: uuid('todo_id').notNull(),
+    txid: xid8('txid').notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index('idx_todo_mutation_ledger_user_id').on(table.userId)],
 )
 
 // Generate valibot schemas from Drizzle schema for type safety
