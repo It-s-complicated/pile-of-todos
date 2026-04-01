@@ -1,6 +1,6 @@
 ---
 status: in-progress
-phase: 1
+phase: 2
 updated: 2026-04-01
 ---
 
@@ -29,12 +29,12 @@ Replace the current dual local/remote sync coupling with one Supabase-backed cli
 - [x] **1.7 Update `src/db/collections.ts` Electric configuration to reflect the approved role explicitly: client-side read transport only, auth-scoped by `user_id`, with no app-owned proxy assumptions in code comments or env fallback behavior**
 - [x] 1.8 Update `src/env.d.ts`, `README.md`, and related plan/docs language so the environment contract clearly documents a frontend-only architecture: Supabase for writes/auth, Electric for reads via direct `VITE_ELECTRIC_SHAPE_URL`, and no `server/` runtime or `/api/*` routes
 
-## Phase 2: Client Data Layer Split [PENDING]
-- [ ] 2.1 Repurpose `src/lib/todo-sync.ts` and adjacent client helpers to hold Supabase mutation request/response mapping, txid confirmation wiring, and todo row translation instead of direct ad hoc push/reconcile logic
-- [ ] 2.2 Create `src/db/confirmed-todos.ts` for the Electric-backed confirmed baseline collection and reduce `src/db/collections.ts` to shared schema/types plus local UI-only collections
-- [ ] 2.3 Create `src/lib/pending-mutation-storage.ts` plus `src/lib/pending-mutation-storage.test.ts` for the durable user-partitioned ledger and distinct pre-auth guest migration partition
-- [ ] 2.4 Create `src/lib/todo-overlay.ts`, `src/lib/todo-reconciliation.ts`, and focused tests to implement the approved conflict rules, txid confirmation proof checks, quarantine path, and reset/refetch reconciliation
-- [ ] 2.5 Create `src/composables/useTodoReadModel.ts` and `src/composables/useTodoSyncController.ts` so baseline reads, overlay derivation, and transport state are composed without UI-specific branching
+## Phase 2: Client Data Layer Split [DONE]
+- [x] 2.1 Repurpose `src/lib/todo-sync.ts` and adjacent client helpers to hold Supabase mutation request/response mapping, txid confirmation wiring, and todo row translation instead of direct ad hoc push/reconcile logic
+- [x] 2.2 Create `src/db/confirmed-todos.ts` for the Electric-backed confirmed baseline collection and reduce `src/db/collections.ts` to shared schema/types plus local UI-only collections
+- [x] 2.3 Create `src/lib/pending-mutation-storage.ts` plus `src/lib/pending-mutation-storage.test.ts` for the durable user-partitioned ledger and distinct pre-auth guest migration partition
+- [x] 2.4 Create `src/lib/todo-overlay.ts`, `src/lib/todo-reconciliation.ts`, and focused tests to implement the approved conflict rules, txid confirmation proof checks, quarantine path, and reset/refetch reconciliation
+- [x] 2.5 Create `src/composables/useTodoReadModel.ts` and `src/composables/useTodoSyncController.ts` so baseline reads, overlay derivation, and transport state are composed without UI-specific branching
 
 ## Phase 3: Replace Legacy Sync Orchestration [PENDING]
 - [ ] 3.1 Add `src/composables/useTodoMutations.ts` as the only public write surface for create/update/delete/restore; route all UI writes through ledger creation + direct Supabase mutation calls + txid confirmation
@@ -62,3 +62,5 @@ Replace the current dual local/remote sync coupling with one Supabase-backed cli
 - 2026-03-31: Phase 1.4 is satisfied by `src/db/out/0005_todo_mutation_ledger.sql`, where `apply_todo_mutation(intent jsonb)` binds `accepted_txid xid8 := pg_current_xact_id()`, uses that txid for the accepted ledger row, and returns the same txid from the same function transaction after each successful todo create/update/delete path
 - 2026-04-01: Phase 1.6 is satisfied by the `buildTodoMutationIntent(...)` helper in `src/lib/todo-sync.ts`, which now derives stable `mutationId` values, forwards stable `todoId` and client `deviceId`, and omits caller-supplied ownership fields so auth scope remains database-derived
 - 2026-04-01: Phase 1.8 is satisfied by aligning `src/env.d.ts`, `README.md`, `.env.local.example`, and follow-up plan/design wording to the frontend-only contract: Supabase handles browser auth/writes, Electric handles browser reads via direct `VITE_ELECTRIC_SHAPE_URL`, and the app does not require an app-owned proxy, `server/` runtime, or `/api/*` routes
+- 2026-04-01: Phase 2 is satisfied by splitting the Electric confirmed baseline into `src/db/confirmed-todos.ts`, adding durable pending-ledger storage plus overlay/reconciliation helpers, and introducing `useTodoReadModel` / `useTodoSyncController` as the new non-UI sync composition seam for Phase 3 wiring
+- 2026-04-01: Phase 2 intentionally leaves the legacy fingerprint/push orchestration in `src/composables/useTodoSync.ts` as a temporary Phase 3 compatibility seam; the completed Phase 2 work is the new data-layer split and controller/read-model foundation, not the final public switchover

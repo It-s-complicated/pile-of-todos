@@ -3,12 +3,14 @@ import type { TodoMutationIntent } from './todo-mutation-contract.ts'
 import type { SyncTodo } from './todo-sync.ts'
 
 import {
+  awaitAcceptedTodoMutation,
   buildRemoteTodoRow,
   buildTodoMutationIntent,
   deriveTodoMutationId,
   shouldPushTodoForUser,
   shouldWriteTodoToRemote,
   submitTodoMutation,
+  translateRemoteTodoRow,
 } from './todo-sync.ts'
 
 const baseTodo: SyncTodo = {
@@ -240,4 +242,53 @@ test('submitTodoMutation calls the database RPC and normalizes the accepted txid
     todoId: '11111111-1111-4111-8111-111111111111',
     txid: '42',
   })
+})
+
+test('translateRemoteTodoRow normalizes Electric row fields into app todo fields', () => {
+  assert.deepEqual(
+    translateRemoteTodoRow({
+      id: '11111111-1111-4111-8111-111111111111',
+      label: 'Confirmed row',
+      week_number: 9,
+      done: true,
+      archived: false,
+      created_at: 100,
+      updated_at: 150,
+      device_id: 'device-9',
+      deleted_at: null,
+      user_id: '33333333-3333-4333-8333-333333333333',
+    }),
+    {
+      id: '11111111-1111-4111-8111-111111111111',
+      label: 'Confirmed row',
+      weekNumber: 9,
+      done: true,
+      archived: false,
+      createdAt: 100,
+      updatedAt: 150,
+      deviceId: 'device-9',
+      deletedAt: null,
+      userId: '33333333-3333-4333-8333-333333333333',
+    } satisfies SyncTodo,
+  )
+})
+
+test('awaitAcceptedTodoMutation waits for Electric txid confirmation before resolving', async () => {
+  const calls: string[] = []
+
+  await awaitAcceptedTodoMutation(
+    {
+      mutationId:
+        'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:create:10',
+      todoId: '11111111-1111-4111-8111-111111111111',
+      txid: '42',
+    },
+    {
+      awaitTxId: async (txid) => {
+        calls.push(txid)
+      },
+    },
+  )
+
+  assert.deepEqual(calls, ['42'])
 })

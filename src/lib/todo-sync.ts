@@ -29,6 +29,10 @@ export type RemoteTodoRow = {
   user_id: string
 }
 
+export type TodoTxidAwaiter = {
+  awaitTxId: (txid: string) => Promise<void>
+}
+
 type SyncTodoWithOwner = Pick<
   SyncTodo,
   | 'id'
@@ -89,6 +93,21 @@ export function buildRemoteTodoRow(todo: SyncTodo, fallbackDeviceId: string): Re
     device_id: todo.deviceId || fallbackDeviceId,
     deleted_at: todo.deletedAt,
     user_id: todo.userId,
+  }
+}
+
+export function translateRemoteTodoRow(todo: RemoteTodoRow): SyncTodo {
+  return {
+    id: todo.id,
+    label: todo.label,
+    weekNumber: todo.week_number,
+    done: todo.done,
+    archived: todo.archived,
+    createdAt: todo.created_at,
+    updatedAt: todo.updated_at,
+    deviceId: todo.device_id,
+    deletedAt: todo.deleted_at,
+    userId: todo.user_id,
   }
 }
 
@@ -219,4 +238,11 @@ export async function submitTodoMutation(
   }
 
   return parseTodoMutationResponse(data)
+}
+
+export async function awaitAcceptedTodoMutation(
+  acceptedMutation: TodoMutationResponse,
+  txidAwaiter: TodoTxidAwaiter,
+) {
+  await txidAwaiter.awaitTxId(acceptedMutation.txid)
 }

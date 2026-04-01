@@ -2,12 +2,8 @@ import { computed, ref } from 'vue'
 import type { ComputedRef } from 'vue'
 import { useLiveQuery } from '@tanstack/vue-db'
 
-import {
-  getActiveCollection,
-  getCurrentDeviceId,
-  getElectricTodosCollection,
-  getGuestCollection,
-} from '@/db/collections'
+import { getActiveCollection, getCurrentDeviceId, getGuestCollection } from '@/db/collections'
+import { getConfirmedTodosCollection } from '@/db/confirmed-todos'
 import type { Todo } from '@/db/collections'
 import { shouldShowGuestClaimPrompt } from '@/lib/auth-allowlist'
 import { claimGuestTodos } from '@/lib/todo-storage'
@@ -112,7 +108,7 @@ export function useTodoData(): TodoDataState {
   )
   const activeLocalCollection = computed(() => getActiveCollection(activeUserId.value))
   const guestCollection = getGuestCollection()
-  const electricCollection = getElectricTodosCollection()
+  const electricCollection = getConfirmedTodosCollection()
 
   const { data: localTodos, isReady } = useLiveQuery(
     (q) => q.from({ todo: activeLocalCollection.value }).select(({ todo }) => todo),

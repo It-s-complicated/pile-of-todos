@@ -1,14 +1,7 @@
 import type { InferOutput } from 'valibot'
 import { createCollection, localStorageCollectionOptions } from '@tanstack/vue-db'
-import { electricCollectionOptions } from '@tanstack/electric-db-collection'
-import { snakeCamelMapper } from '@electric-sql/client'
-import type { ExternalParamsRecord } from '@electric-sql/client'
-import { getSupabaseAccessToken, getSupabaseUserId } from '@/lib/supabase'
 import { env } from '@/lib/env'
-import { getElectricUserScope } from '@/lib/supabase-config'
 import { getActiveStorageKey } from '@/lib/todo-storage'
-import { createElectricScopeParams } from './electric-user-scope'
-import { getElectricReadShapeUrl } from './electric-read-config'
 import {
   boolean,
   maxLength,
@@ -89,56 +82,6 @@ export const localTodosCollection = getLocalTodosCollection(null)
 
 // Keep original export for backward compatibility during migration
 export const todosCollection = localTodosCollection
-
-/**
- * Electric is a client-side read transport only.
- *
- * Todos remain locally writable/offline-first in TanStack DB local storage.
- * Electric reads always use the required `VITE_ELECTRIC_SHAPE_URL` and scope
- * the shared shape to the authenticated user's confirmed `todos.user_id`.
- */
-function createElectricTodosCollection(shapeUrl: string) {
-  const currentUserScope = createElectricScopeParams(async () =>
-    getElectricUserScope(await getSupabaseUserId()),
-  )
-
-  return createCollection(
-    electricCollectionOptions({
-      id: 'electric-todos',
-      schema: todoSchema,
-      getKey: (item) => item.id,
-      shapeOptions: {
-        url: shapeUrl,
-        headers: {
-          Authorization: async () => {
-            const accessToken = await getSupabaseAccessToken()
-            return accessToken ? `Bearer ${accessToken}` : ''
-          },
-        },
-        columnMapper: snakeCamelMapper(),
-        parser: {
-          int8: (value) => Number(value),
-        },
-        params: {
-          table: 'todos',
-          where: currentUserScope.where,
-          params: currentUserScope.params,
-        } as unknown as ExternalParamsRecord,
-      },
-    }),
-  )
-}
-
-let cachedElectricTodosCollection: ReturnType<typeof createElectricTodosCollection> | null = null
-
-export function getElectricTodosCollection() {
-  if (cachedElectricTodosCollection) {
-    return cachedElectricTodosCollection
-  }
-
-  cachedElectricTodosCollection = createElectricTodosCollection(getElectricReadShapeUrl())
-  return cachedElectricTodosCollection
-}
 
 /**
  * Gets the device ID for tracking which device created/modified todos
