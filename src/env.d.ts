@@ -1,10 +1,26 @@
 /// <reference types="vite-plus/client" />
 
+/**
+ * Frontend-only runtime contract.
+ *
+ * This app does not define app-owned server env vars, `/api/*` route bases,
+ * or Electric proxy configuration. Browser auth/writes go to Supabase and
+ * browser read sync goes directly to Electric via the shape URL below.
+ */
 interface ImportMetaEnv {
+  /** Electric read/sync endpoint used directly by the browser client. */
   readonly VITE_ELECTRIC_SHAPE_URL: string
+
+  /** Stable browser/device identifier attached to client mutation intents. */
   readonly VITE_DEVICE_ID: string
+
+  /** Supabase project URL used for browser auth and write calls. */
   readonly VITE_SUPABASE_URL: string
+
+  /** Supabase publishable/anon key used by the browser client. */
   readonly VITE_SUPABASE_ANON_KEY: string
+
+  /** Approved GitHub provider_id used for allowlist diagnostics in the UI. */
   readonly VITE_APPROVED_GITHUB_PROVIDER_ID: string
 }
 

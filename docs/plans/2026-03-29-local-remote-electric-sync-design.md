@@ -4,6 +4,14 @@
 
 Adopt a hybrid sync model for todos. Postgres is the durable source of truth. Electric is read and sync transport only. The client keeps a confirmed baseline from Electric plus a pending mutation ledger used for optimistic UI, retries, and recovery. Every accepted write must be confirmed by txid-backed sync-back before it is considered complete. The UI reads one merged todo view and never chooses between separate local and Postgres selectors.
 
+## Runtime / environment contract
+
+- The app runtime is frontend-only browser code.
+- Supabase is the browser-facing backend for auth and writes.
+- Electric is the browser read transport for the confirmed baseline.
+- Browser reads use `VITE_ELECTRIC_SHAPE_URL` directly.
+- This architecture does not include an app-owned proxy, `server/` runtime, or `/api/*` routes.
+
 ## 1. Problem statement
 
 The current sync shape mixes concerns between local persistence, remote durability, and Electric replication. That makes it too easy for the app to drift into manual dual writes, split-brain reads, and unclear recovery behavior.

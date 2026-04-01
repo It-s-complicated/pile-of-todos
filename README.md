@@ -1,6 +1,12 @@
 # AI Todo App
 
-A weekly planning todo app built with Vue 3, TanStack DB, and Tailwind CSS. The app is local-first by default (LocalStorage-backed) and can optionally sync to cloud storage through Supabase + Electric connectivity when those environment variables are configured.
+A weekly planning todo app built with Vue 3, TanStack DB, and Tailwind CSS.
+
+The runtime architecture is explicitly frontend-only:
+
+- Supabase handles browser auth and browser write calls.
+- Electric handles browser read sync / confirmed baseline reads.
+- This app does **not** require an app-owned server runtime, proxy, or `/api/*` routes.
 
 ## What it does
 
@@ -12,21 +18,19 @@ A weekly planning todo app built with Vue 3, TanStack DB, and Tailwind CSS. The 
 
 ## Environment variables
 
-Create `.env.local` for frontend variables and (if using Drizzle migration/push tooling) provide `DATABASE_URL` in your shell environment or `.env.local`.
+Create `.env.local` for frontend runtime variables. The app does not use server-only runtime env vars or an `API_BASE_URL` for app-owned `/api/*` routes. If you use Drizzle migration/push tooling, also provide `DATABASE_URL` in your shell environment or `.env.local`.
 
 ### Frontend (Vite) variables
 
-| Variable                           | Required                           | Purpose                                                                        | Behavior when missing                                                               |
-| ---------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`                | Optional (required for cloud sync) | Supabase project URL used by the client.                                       | App still works locally; cloud sync is disabled and status becomes **Local only**.  |
-| `VITE_SUPABASE_ANON_KEY`           | Optional (required for cloud sync) | Supabase anon/publishable key used for authenticated read/write sync calls.    | Same as above: offline/local mode continues, remote sync/migration is unavailable.  |
-| `VITE_ELECTRIC_SHAPE_URL`          | Optional                           | Direct Electric shape endpoint URL.                                            | Falls back to `VITE_API_BASE_URL + /v1/shape`; no user-facing break for local mode. |
-| `VITE_API_BASE_URL`                | Optional                           | Base URL used to derive Electric shape URL when explicit shape URL is not set. | Defaults to `http://localhost:30000`; local-only todo behavior still works.         |
-| `VITE_ELECTRIC_SOURCE_ID`          | Optional                           | Electric Cloud source identifier, appended as shape query param.               | Shape URL omits source auth params.                                                 |
-| `VITE_ELECTRIC_SECRET`             | Optional                           | Electric Cloud secret, appended as shape query param.                          | Shape URL omits source auth params.                                                 |
-| `VITE_DEVICE_ID`                   | Optional                           | Stable device identifier attached to todo writes.                              | Runtime-generated `device-xxxxxxxx` value is used.                                  |
-| `VITE_ELECTRIC_PROXY_URL`          | Optional                           | Reserved env key in typings for Electric proxy-based setups.                   | Not used by current app code; no behavior change.                                   |
-| `VITE_APPROVED_GITHUB_PROVIDER_ID` | Optional                           | Approved GitHub `provider_id` used by the UI to explain allowlist denials.     | Supabase-side hook remains the source of truth; UI diagnostics are less specific.   |
+| Variable                           | Required | Purpose                                                                 |
+| ---------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`                | Yes      | Supabase project URL used by the browser for auth and write operations. |
+| `VITE_SUPABASE_ANON_KEY`           | Yes      | Supabase publishable/anon key used by the browser client.               |
+| `VITE_ELECTRIC_SHAPE_URL`          | Yes      | Electric shape endpoint used directly by the browser for read sync.     |
+| `VITE_DEVICE_ID`                   | Yes      | Stable device identifier attached to client mutation intents.           |
+| `VITE_APPROVED_GITHUB_PROVIDER_ID` | Yes      | Approved GitHub `provider_id` used for allowlist diagnostics in the UI. |
+
+The frontend runtime contract intentionally does **not** include `VITE_API_BASE_URL`, `VITE_ELECTRIC_PROXY_URL`, `VITE_ELECTRIC_SOURCE_ID`, `VITE_ELECTRIC_SECRET`, or other env vars that imply an app-owned server, proxy, or `/api/*` route layer.
 
 ### Backend/tooling variable
 
@@ -36,7 +40,9 @@ Create `.env.local` for frontend variables and (if using Drizzle migration/push 
 
 ## Auth and backend architecture note
 
-- Current app is frontend-only; auth is handled by Supabase Auth.
+- Current app is frontend-only; Supabase Auth handles authentication and Supabase database functions/tables handle browser writes.
+- Electric is read transport only; it supplies confirmed, auth-scoped todo reads to the browser.
+- No app-owned server runtime, proxy, or `/api/*` routes are required by this app.
 - If migrating to better-auth later, add a backend service first.
 - If/when a backend is introduced, re-evaluate replacing Supabase auth flows with better-auth in that backend layer.
 
@@ -57,6 +63,14 @@ To integrate Supabase authentication correctly in this frontend-only app:
    - Todos created while signed out remain local-only until you explicitly claim or migrate them.
 6. Keep using Supabase Auth in the frontend until a backend exists; do not add better-auth client/server packages at this stage.
 
+## Sync architecture summary
+
+- Browser auth: Supabase Auth
+- Browser write path: direct Supabase calls from the client
+- Browser read path: direct Electric shape reads from the client
+- App-owned server runtime: none
+- App-owned `/api/*` routes: none
+
 ## GitHub auth single-user sync
 
 The app now keeps two local todo buckets:
@@ -73,7 +87,7 @@ Authenticated sync runs only for the approved GitHub account bucket. Guest todos
 3. Replace the placeholder `REPLACE_WITH_APPROVED_GITHUB_PROVIDER_ID` row in `public.github_auth_allowlist` with the single approved GitHub `provider_id`.
 4. Register the `before-user-created` hook with the Postgres function URI:
    `pg-functions://postgres/public/hook_allow_single_github_identity`
-5. Optionally set `VITE_APPROVED_GITHUB_PROVIDER_ID` in `.env.local` so the UI can explain denials using the same provider id.
+5. Set `VITE_APPROVED_GITHUB_PROVIDER_ID` in `.env.local` so the UI can explain denials using the same provider id.
 
 ### How to obtain the approved GitHub provider_id
 
@@ -110,8 +124,8 @@ Type-check only (without building):
 
 - `collections.ts`
   - Defines the todo schema and collection models.
-  - Uses LocalStorage as the source of truth for reads/writes (`localTodosCollection`).
-  - Includes Electric collection wiring and Supabase mutation handlers for cloud-backed operations.
+  - Uses LocalStorage-backed client state for cached baseline data, optimistic state, and offline behavior; confirmed reads come from Electric and writes go through Supabase.
+  - Includes Electric read wiring and Supabase-backed client mutation handlers.
   - Exposes helpers like `isElectricConfigured()`, `getActiveCollection()`, and device-id helpers.
 - `schema.ts`
   - Drizzle Postgres table definition and validation schemas for `todos`.
@@ -123,7 +137,7 @@ Type-check only (without building):
 - `useElectricTodos.ts`
   - Main todo state + mutation API for UI.
   - Manages online/offline status and sync lifecycle (`synced`, `syncing`, `error`, `local-only`).
-  - Reconciles local and remote data when sync is enabled.
+  - Reconciles local optimistic state with the Electric-confirmed read baseline.
 - `useTodos.ts`
   - Filtered todo querying by route category and current week semantics.
 - `useDataExport.ts`
@@ -181,12 +195,12 @@ Type-check only (without building):
 - **Synced**: local and remote reconciliation completed successfully.
 - **Syncing...**: migration/reconciliation is in progress.
 - **Sync error**: a cloud operation failed; use **Retry sync** after checking credentials/connectivity.
-- **Local only**: cloud sync is unavailable (either offline or missing Supabase config).
+- **Local only**: cloud sync is unavailable after boot (for example while offline, while signed out, or while sync prerequisites recover).
 - **Local only** also covers signed-out sessions: authenticated sync is intentionally disabled until a Supabase user session exists.
 
 ### Common fixes
 
-- Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` if sync never leaves **Local only**.
+- If `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` is missing in `.env.local`, the app fails at startup with a configuration error instead of entering **Local only**.
 - Confirm you are signed in before expecting remote sync; the app no longer falls back to unauthenticated writes.
 - If GitHub sign-in redirects back with an auth error, verify the approved `provider_id` seed row and the registered auth hook function.
 - Confirm your Supabase table/schema matches expected `todos` columns.
