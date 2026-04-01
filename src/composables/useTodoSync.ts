@@ -4,7 +4,11 @@ import type { ComputedRef, Ref } from 'vue'
 import { getCurrentDeviceId } from '@/db/collections'
 import type { Todo } from '@/db/collections'
 import { getSupabaseClient, setSupabaseAuthError } from '@/lib/supabase'
-import { buildRemoteTodoRow, shouldPushTodoForUser } from '@/lib/todo-sync'
+import {
+  buildTodoMutationIntent,
+  shouldWriteTodoToRemote,
+  submitTodoMutation,
+} from '@/lib/todo-sync'
 import { useAuth } from './useAuth'
 import { useTodoData } from './useTodoData'
 
@@ -165,13 +169,18 @@ export function useTodoSync(): TodoSyncState {
     }
   }
 
-  async function pushLocalTodos(localTodosToPush: Todo[], activeUserId: string) {
+  async function pushLocalTodos(
+    localTodosToPush: Todo[],
+    remoteTodosToCompare: Todo[],
+    activeUserId: string,
+  ) {
+    const remoteById = new Map(remoteTodosToCompare.map((todo) => [todo.id, todo]))
     const pushableTodos = localTodosToPush.filter((todo) =>
-      shouldPushTodoForUser(todo, activeUserId),
+      shouldWriteTodoToRemote(todo, remoteById.get(todo.id), activeUserId),
     )
 
     if (pushableTodos.length === 0) {
-      return false
+      return []
     }
 
     const supabase = getSupabaseClient()
@@ -183,26 +192,36 @@ export function useTodoSync(): TodoSyncState {
     const pushFingerprint = getPushFingerprint(pushableTodos)
 
     if (pushFingerprint === lastPushedFingerprintByUser[activeUserId]) {
-      return false
+      return []
     }
 
-    const { error } = await supabase.from('todos').upsert(
-      pushableTodos.map((todo) => buildRemoteTodoRow(todo, getCurrentDeviceId())),
-      {
-        onConflict: 'id',
-      },
-    )
+    const acceptedMutations = []
+    const acceptedIds = new Set<string>()
 
-    if (error) {
-      throw new Error(error.message)
+    for (const todo of pushableTodos) {
+      const intent = buildTodoMutationIntent({
+        todo,
+        remoteTodo: remoteById.get(todo.id),
+        activeUserId,
+        fallbackDeviceId: getCurrentDeviceId(),
+      })
+      const acceptedMutation = await submitTodoMutation(supabase, intent)
+
+      acceptedIds.add(todo.id)
+      acceptedMutations.push(acceptedMutation)
     }
 
-    lastPushedFingerprintByUser = {
-      ...lastPushedFingerprintByUser,
-      [activeUserId]: pushFingerprint,
+    // Only commit fingerprint when ALL mutations were accepted.
+    // If any RPC call throws mid-batch, fingerprint stays unchanged so the
+    // next sync will retry the full batch (idempotent for already-accepted todos).
+    if (acceptedIds.size === pushableTodos.length) {
+      lastPushedFingerprintByUser = {
+        ...lastPushedFingerprintByUser,
+        [activeUserId]: pushFingerprint,
+      }
     }
 
-    return true
+    return acceptedMutations
   }
 
   async function syncTodos() {
@@ -222,7 +241,11 @@ export function useTodoSync(): TodoSyncState {
 
     try {
       await reconcileRemoteTodos(todoData.snapshots.remoteForActiveUser.value)
-      await pushLocalTodos(todoData.syncInputs.pendingLocalTodos.value, activeUserId)
+      await pushLocalTodos(
+        todoData.syncInputs.pendingLocalTodos.value,
+        todoData.snapshots.remoteForActiveUser.value,
+        activeUserId,
+      )
 
       lastSyncedAtByUser.value = {
         ...lastSyncedAtByUser.value,

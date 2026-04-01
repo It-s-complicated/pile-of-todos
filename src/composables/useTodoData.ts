@@ -12,7 +12,7 @@ import {
 import type { Todo } from '@/db/collections'
 import { shouldShowGuestClaimPrompt } from '@/lib/auth-allowlist'
 import { claimGuestTodos } from '@/lib/todo-storage'
-import { shouldPushTodoForUser } from '@/lib/todo-sync'
+import { shouldPushTodoForUser, shouldWriteTodoToRemote } from '@/lib/todo-sync'
 import { useAuth } from './useAuth'
 import { useNetworkStatus } from './useNetworkStatus'
 
@@ -25,11 +25,7 @@ function normalizeTodo(todo: Todo): Todo {
 }
 
 function needsRemoteWrite(localTodo: Todo, remoteTodo: Todo | undefined) {
-  if (!remoteTodo) {
-    return true
-  }
-
-  return localTodo.updatedAt > remoteTodo.updatedAt
+  return shouldWriteTodoToRemote(localTodo, remoteTodo, localTodo.userId)
 }
 
 function getTodoFingerprint(todos: Todo[]) {
