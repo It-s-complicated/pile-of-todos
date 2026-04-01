@@ -2,7 +2,6 @@ import * as v from 'valibot'
 
 const mutationIdSchema = v.pipe(v.string(), v.minLength(1))
 const todoIdSchema = v.pipe(v.string(), v.uuid())
-const userIdSchema = v.pipe(v.string(), v.uuid())
 const txidInputSchema = v.union([
   v.pipe(v.string(), v.regex(/^[1-9]\d*$/u, 'txid must be a positive integer string')),
   v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(Number.MAX_SAFE_INTEGER)),
@@ -40,7 +39,6 @@ export const todoCreateIntentSchema = v.strictObject({
   kind: v.literal('create'),
   mutationId: mutationIdSchema,
   todoId: todoIdSchema,
-  user_id: userIdSchema,
   client: v.optional(todoClientMetadataSchema),
   values: todoCreateValuesSchema,
 })
@@ -49,7 +47,6 @@ export const todoUpdateIntentSchema = v.strictObject({
   kind: v.literal('update'),
   mutationId: mutationIdSchema,
   todoId: todoIdSchema,
-  user_id: userIdSchema,
   client: v.optional(todoClientMetadataSchema),
   values: todoUpdateValuesSchema,
 })
@@ -58,7 +55,6 @@ export const todoDeleteIntentSchema = v.strictObject({
   kind: v.literal('delete'),
   mutationId: mutationIdSchema,
   todoId: todoIdSchema,
-  user_id: userIdSchema,
   client: v.optional(todoClientMetadataSchema),
   values: todoDeleteValuesSchema,
 })

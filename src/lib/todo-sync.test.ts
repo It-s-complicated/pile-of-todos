@@ -121,7 +121,6 @@ test('buildTodoMutationIntent maps local todo state to the Supabase RPC contract
       mutationId:
         'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:create:10',
       todoId: '11111111-1111-4111-8111-111111111111',
-      user_id: '33333333-3333-4333-8333-333333333333',
       client: { deviceId: 'device-1' },
       values: {
         label: 'Write migration',
@@ -147,7 +146,6 @@ test('buildTodoMutationIntent maps local todo state to the Supabase RPC contract
       mutationId:
         'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:update:30',
       todoId: '11111111-1111-4111-8111-111111111111',
-      user_id: '33333333-3333-4333-8333-333333333333',
       client: { deviceId: 'device-1' },
       values: {
         label: 'Ship RPC',
@@ -172,7 +170,6 @@ test('buildTodoMutationIntent maps local todo state to the Supabase RPC contract
       mutationId:
         'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:delete:40:40',
       todoId: '11111111-1111-4111-8111-111111111111',
-      user_id: '33333333-3333-4333-8333-333333333333',
       client: { deviceId: 'device-1' },
       values: {
         deletedAt: 40,
@@ -180,6 +177,33 @@ test('buildTodoMutationIntent maps local todo state to the Supabase RPC contract
       },
     } satisfies TodoMutationIntent,
   )
+})
+
+test('buildTodoMutationIntent leaves ownership derivation to the database contract', () => {
+  const createIntent = buildTodoMutationIntent({
+    todo: baseTodo,
+    remoteTodo: undefined,
+    activeUserId: '33333333-3333-4333-8333-333333333333',
+    fallbackDeviceId: 'device-1',
+  })
+
+  const updateIntent = buildTodoMutationIntent({
+    todo: { ...baseTodo, label: 'Ship RPC', updatedAt: 30 },
+    remoteTodo: { ...baseTodo, updatedAt: 15 },
+    activeUserId: '33333333-3333-4333-8333-333333333333',
+    fallbackDeviceId: 'device-1',
+  })
+
+  const deleteIntent = buildTodoMutationIntent({
+    todo: { ...baseTodo, deletedAt: 40, updatedAt: 40 },
+    remoteTodo: { ...baseTodo, updatedAt: 15 },
+    activeUserId: '33333333-3333-4333-8333-333333333333',
+    fallbackDeviceId: 'device-1',
+  })
+
+  assert.equal('user_id' in createIntent, false)
+  assert.equal('user_id' in updateIntent, false)
+  assert.equal('user_id' in deleteIntent, false)
 })
 
 test('submitTodoMutation calls the database RPC and normalizes the accepted txid', async () => {

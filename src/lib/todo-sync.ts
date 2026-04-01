@@ -166,7 +166,6 @@ export function buildTodoMutationIntent({
       kind: 'create',
       mutationId,
       todoId: todo.id,
-      user_id: activeUserId,
       client,
       values: {
         label: todo.label,
@@ -185,7 +184,6 @@ export function buildTodoMutationIntent({
       kind: 'delete',
       mutationId,
       todoId: todo.id,
-      user_id: activeUserId,
       client,
       values: {
         deletedAt: todo.deletedAt,
@@ -198,7 +196,6 @@ export function buildTodoMutationIntent({
     kind: 'update',
     mutationId,
     todoId: todo.id,
-    user_id: activeUserId,
     client,
     values: {
       label: todo.label,

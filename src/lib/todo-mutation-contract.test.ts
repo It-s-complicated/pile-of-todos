@@ -10,14 +10,11 @@ import {
 
 const todoId = '11111111-1111-4111-8111-111111111111'
 const secondTodoId = '22222222-2222-4222-8222-222222222222'
-const userId = '33333333-3333-4333-8333-333333333333'
-
 test('parseTodoMutationIntent accepts create update and delete intents', () => {
   const createIntent = parseTodoMutationIntent({
     kind: 'create',
     mutationId: 'mutation-create-1',
     todoId,
-    user_id: userId,
     client: {
       deviceId: 'device-1',
     },
@@ -36,7 +33,6 @@ test('parseTodoMutationIntent accepts create update and delete intents', () => {
     kind: 'update',
     mutationId: 'mutation-update-1',
     todoId,
-    user_id: userId,
     values: {
       label: 'Ship contract module',
       deletedAt: null,
@@ -48,7 +44,6 @@ test('parseTodoMutationIntent accepts create update and delete intents', () => {
     kind: 'delete',
     mutationId: 'mutation-delete-1',
     todoId,
-    user_id: userId,
     values: {
       deletedAt: 300,
       updatedAt: 300,
@@ -59,7 +54,6 @@ test('parseTodoMutationIntent accepts create update and delete intents', () => {
     kind: 'create',
     mutationId: 'mutation-create-1',
     todoId,
-    user_id: userId,
     client: {
       deviceId: 'device-1',
     },
@@ -92,7 +86,6 @@ test('parseTodoMutationIntent rejects update intents without mutated fields', ()
         kind: 'update',
         mutationId: 'mutation-update-2',
         todoId,
-        user_id: userId,
         values: {
           updatedAt: 200,
         },
@@ -108,7 +101,6 @@ test('parseTodoMutationIntent only allows tombstones through delete intents', ()
         kind: 'create',
         mutationId: 'mutation-create-2',
         todoId: secondTodoId,
-        user_id: userId,
         values: {
           label: 'Should not create tombstones',
           weekNumber: null,
@@ -128,13 +120,34 @@ test('parseTodoMutationIntent only allows tombstones through delete intents', ()
         kind: 'update',
         mutationId: 'mutation-update-3',
         todoId,
-        user_id: userId,
         values: {
           deletedAt: 300,
           updatedAt: 300,
         },
       }),
     /delete intents must carry tombstones/i,
+  )
+})
+
+test('parseTodoMutationIntent rejects caller-supplied ownership fields on the browser wire contract', () => {
+  assert.throws(
+    () =>
+      parseTodoMutationIntent({
+        kind: 'create',
+        mutationId: 'mutation-create-ownership-1',
+        todoId,
+        user_id: '33333333-3333-4333-8333-333333333333',
+        values: {
+          label: 'Ownership must be database-derived',
+          weekNumber: 14,
+          done: false,
+          archived: false,
+          createdAt: 100,
+          updatedAt: 100,
+          deletedAt: null,
+        },
+      }),
+    /user_id|unknown|invalid key/i,
   )
 })
 
@@ -237,7 +250,6 @@ test('strict contract parsers reject invalid statuses and unknown intent keys', 
         kind: 'create',
         mutationId: 'mutation-create-3',
         todoId: 'not-a-uuid',
-        user_id: userId,
         values: {
           label: 'Bad todo id',
           weekNumber: null,
@@ -257,7 +269,6 @@ test('strict contract parsers reject invalid statuses and unknown intent keys', 
         kind: 'delete',
         mutationId: 'mutation-delete-2',
         todoId,
-        user_id: userId,
         extra: true,
         values: {
           deletedAt: 400,
