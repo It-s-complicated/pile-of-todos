@@ -2,9 +2,7 @@ import { computed, readonly, shallowRef } from 'vue'
 import { createClient } from '@supabase/supabase-js'
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js'
 
-import { readSupabaseEnv } from './supabase-config'
-
-const supabaseEnv = readSupabaseEnv(import.meta.env)
+import { env } from './env'
 
 let cachedClient: SupabaseClient | null = null
 let authBootstrapPromise: Promise<void> | null = null
@@ -14,11 +12,6 @@ let authUrlChecked = false
 const currentSession = shallowRef<Session | null>(null)
 const authStateReady = shallowRef(false)
 const authErrorMessage = shallowRef<string | null>(null)
-
-function normalizeEnvValue(value: string | undefined): string | null {
-  const trimmed = value?.trim()
-  return trimmed && trimmed.length > 0 ? trimmed : null
-}
 
 function readAuthErrorFromUrl(): string | null {
   if (typeof window === 'undefined') {
@@ -90,11 +83,6 @@ async function ensureSupabaseAuthState() {
 
   const supabase = getSupabaseClient()
 
-  if (!supabase) {
-    setSession(null)
-    return
-  }
-
   authBootstrapPromise = (async () => {
     const { data } = await supabase.auth.getSession()
     setSession(data.session ?? null)
@@ -110,24 +98,16 @@ async function ensureSupabaseAuthState() {
   await authBootstrapPromise
 }
 
-export function isSupabaseConfigured(): boolean {
-  return supabaseEnv.isConfigured
-}
-
 export function getSupabaseClient() {
-  if (!isSupabaseConfigured()) {
-    return null
-  }
-
   if (!cachedClient) {
-    cachedClient = createClient(supabaseEnv.url!, supabaseEnv.anonKey!)
+    cachedClient = createClient(env.supabaseUrl, env.supabaseAnonKey)
   }
 
   return cachedClient
 }
 
-export function getApprovedGithubProviderId(): string | null {
-  return normalizeEnvValue(import.meta.env.VITE_APPROVED_GITHUB_PROVIDER_ID)
+export function getApprovedGithubProviderId(): string {
+  return env.approvedGithubProviderId
 }
 
 export async function getSupabaseSession(): Promise<Session | null> {
@@ -157,10 +137,6 @@ export async function signInWithGithub(): Promise<void> {
 
   const supabase = getSupabaseClient()
 
-  if (!supabase) {
-    throw new Error('GitHub auth requires Supabase to be configured.')
-  }
-
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'github',
     options: {
@@ -176,11 +152,6 @@ export async function signInWithGithub(): Promise<void> {
 
 export async function signOut(): Promise<void> {
   const supabase = getSupabaseClient()
-
-  if (!supabase) {
-    setSession(null)
-    return
-  }
 
   const { error } = await supabase.auth.signOut()
 

@@ -101,7 +101,6 @@ export function useTodoSync(): TodoSyncState {
   const status = computed<SyncStatus>(() => {
     if (
       !todoData.connectivity.isOnline.value ||
-      !todoData.connectivity.isElectricEnabled ||
       !todoData.auth.activeUserId.value ||
       !todoData.auth.isAuthReady.value
     ) {
@@ -184,10 +183,6 @@ export function useTodoSync(): TodoSyncState {
     }
 
     const supabase = getSupabaseClient()
-
-    if (!supabase) {
-      throw new Error('Cloud sync is not configured: missing Supabase credentials')
-    }
 
     const pushFingerprint = getPushFingerprint(pushableTodos)
 

@@ -18,7 +18,7 @@ export type GuestClaimPromptState = {
 export type AuthAccessStateParams = {
   isAuthenticated: boolean
   githubProviderId: string | null
-  approvedGithubProviderId: string | null
+  approvedGithubProviderId: string
 }
 
 export function getGithubProviderId(
@@ -37,16 +37,14 @@ export function getGithubProviderId(
 
 export function isApprovedGithubIdentity(
   identity: AuthIdentityLike | null | undefined,
-  approvedGithubProviderId: string | null | undefined,
+  approvedGithubProviderId: string,
 ): boolean {
   const providerId = getGithubProviderId(identity ? [identity] : [])
-  const approvedProviderId = approvedGithubProviderId?.trim()
+  const approvedProviderId = approvedGithubProviderId.trim()
 
   return (
     identity?.provider === 'github' &&
     providerId !== null &&
-    approvedProviderId !== undefined &&
-    approvedProviderId !== null &&
     approvedProviderId.length > 0 &&
     providerId === approvedProviderId
   )
@@ -61,11 +59,7 @@ export function getAuthAccessState({
     return 'signed-out'
   }
 
-  const approvedProviderId = approvedGithubProviderId?.trim()
-
-  if (!approvedProviderId) {
-    return 'approved'
-  }
+  const approvedProviderId = approvedGithubProviderId.trim()
 
   return githubProviderId === approvedProviderId ? 'approved' : 'denied'
 }

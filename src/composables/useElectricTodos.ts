@@ -13,7 +13,6 @@ export function useElectricTodos() {
     claimPromptVisible: todoData.guestClaim.visible,
     deleteTodo: todoData.todos.remove,
     guestTodoCount: todoData.guestClaim.guestTodoCount,
-    isElectricEnabled: todoData.connectivity.isElectricEnabled,
     isMigrating: todoSync.isSyncing,
     isOnline: todoData.connectivity.isOnline,
     isReady: todoData.connectivity.isReady,

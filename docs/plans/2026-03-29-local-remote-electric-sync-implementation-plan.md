@@ -26,8 +26,8 @@ Replace the current dual local/remote sync coupling with one Supabase-backed cli
 - [x] 1.4 Ensure the RPC/function performs the todo mutation and captures `txid` from `pg_current_xact_id()` in the same accepting transaction before returning the accepted `{ mutationId, todoId, txid }` contract
 - [x] 1.5 Replace the raw `supabase.from('todos').upsert(...)` write path in `src/composables/useTodoSync.ts` with the direct Supabase mutation contract from 1.2-1.4; do not keep any optional fallback to raw table writes that cannot return the accepted `{ mutationId, todoId, txid }` contract
 - [x] 1.6 Add or refactor client helpers in `src/lib/todo-sync.ts` (and nearby Supabase utilities if needed) so browser writes consistently attach `mutationId`, stable `todoId`, and any required device metadata before dispatch to the database contract, while leaving ownership/auth derivation to the database function
-- [ ] **1.7 Update `src/db/collections.ts` Electric configuration to reflect the approved role explicitly: client-side read transport only, auth-scoped by `user_id`, with no app-owned proxy assumptions in code comments or env fallback behavior** ← CURRENT
-- [ ] 1.8 Update `src/env.d.ts`, `README.md`, and related plan/docs language so the environment contract clearly documents a frontend-only architecture: Supabase for writes/auth, Electric for reads, and no `server/` runtime or `/api/*` routes
+- [x] **1.7 Update `src/db/collections.ts` Electric configuration to reflect the approved role explicitly: client-side read transport only, auth-scoped by `user_id`, with no app-owned proxy assumptions in code comments or env fallback behavior**
+- [ ] 1.8 Update `src/env.d.ts`, `README.md`, and related plan/docs language so the environment contract clearly documents a frontend-only architecture: Supabase for writes/auth, Electric for reads, and no `server/` runtime or `/api/*` routes ← CURRENT
 
 ## Phase 2: Client Data Layer Split [PENDING]
 - [ ] 2.1 Repurpose `src/lib/todo-sync.ts` and adjacent client helpers to hold Supabase mutation request/response mapping, txid confirmation wiring, and todo row translation instead of direct ad hoc push/reconcile logic

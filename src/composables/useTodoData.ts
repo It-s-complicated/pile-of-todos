@@ -3,11 +3,10 @@ import type { ComputedRef } from 'vue'
 import { useLiveQuery } from '@tanstack/vue-db'
 
 import {
-  electricTodosCollection,
   getActiveCollection,
   getCurrentDeviceId,
+  getElectricTodosCollection,
   getGuestCollection,
-  isElectricConfigured,
 } from '@/db/collections'
 import type { Todo } from '@/db/collections'
 import { shouldShowGuestClaimPrompt } from '@/lib/auth-allowlist'
@@ -62,7 +61,6 @@ type TodoDataState = {
     guest: ReturnType<typeof getGuestCollection>
   }
   connectivity: {
-    isElectricEnabled: boolean
     isOnline: ReturnType<typeof useNetworkStatus>['isOnline']
     isReady: ComputedRef<boolean>
   }
@@ -108,13 +106,13 @@ export function useTodoData(): TodoDataState {
 
   const { isOnline } = useNetworkStatus()
   const { accessState, isAuthReady, isAuthenticated, userId: authenticatedUserId } = useAuth()
-  const isElectricEnabled = isElectricConfigured()
 
   const activeUserId = computed(() =>
     accessState.value === 'approved' ? authenticatedUserId.value : null,
   )
   const activeLocalCollection = computed(() => getActiveCollection(activeUserId.value))
   const guestCollection = getGuestCollection()
+  const electricCollection = getElectricTodosCollection()
 
   const { data: localTodos, isReady } = useLiveQuery(
     (q) => q.from({ todo: activeLocalCollection.value }).select(({ todo }) => todo),
@@ -124,7 +122,7 @@ export function useTodoData(): TodoDataState {
     q.from({ todo: guestCollection }).select(({ todo }) => todo),
   )
   const { data: remoteTodos, isReady: isRemoteQueryReady } = useLiveQuery((q) =>
-    q.from({ todo: electricTodosCollection }).select(({ todo }) => todo),
+    q.from({ todo: electricCollection }).select(({ todo }) => todo),
   )
 
   const localSnapshot = computed(() => (localTodos.value ?? []).map((todo) => normalizeTodo(todo)))
@@ -152,11 +150,7 @@ export function useTodoData(): TodoDataState {
   )
 
   const canSync = computed(
-    () =>
-      isElectricEnabled &&
-      isOnline.value &&
-      activeUserId.value !== null &&
-      !claimPromptVisible.value,
+    () => isOnline.value && activeUserId.value !== null && !claimPromptVisible.value,
   )
   const pendingLocalTodos = computed(() =>
     getPendingLocalTodos(localSnapshot.value, remoteForActiveUser.value, activeUserId.value),
@@ -251,7 +245,7 @@ export function useTodoData(): TodoDataState {
     updateTodo(id, { archived: true })
   }
 
-  sharedTodoData = {
+  const todoData: TodoDataState = {
     auth: {
       accessState,
       activeUserId,
@@ -263,7 +257,6 @@ export function useTodoData(): TodoDataState {
       guest: guestCollection,
     },
     connectivity: {
-      isElectricEnabled,
       isOnline,
       isReady,
     },
@@ -296,5 +289,6 @@ export function useTodoData(): TodoDataState {
     },
   }
 
-  return sharedTodoData
+  sharedTodoData = todoData
+  return todoData
 }

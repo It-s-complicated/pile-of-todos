@@ -3,9 +3,12 @@ import { createCollection, localStorageCollectionOptions } from '@tanstack/vue-d
 import { electricCollectionOptions } from '@tanstack/electric-db-collection'
 import { snakeCamelMapper } from '@electric-sql/client'
 import type { ExternalParamsRecord } from '@electric-sql/client'
-import { getSupabaseAccessToken, getSupabaseUserId, isSupabaseConfigured } from '@/lib/supabase'
+import { getSupabaseAccessToken, getSupabaseUserId } from '@/lib/supabase'
+import { env } from '@/lib/env'
 import { getElectricUserScope } from '@/lib/supabase-config'
 import { getActiveStorageKey } from '@/lib/todo-storage'
+import { createElectricScopeParams } from './electric-user-scope'
+import { getElectricReadShapeUrl } from './electric-read-config'
 import {
   boolean,
   maxLength,
@@ -88,74 +91,60 @@ export const localTodosCollection = getLocalTodosCollection(null)
 export const todosCollection = localTodosCollection
 
 /**
- * Gets the Electric SQL endpoint URL based on environment configuration
+ * Electric is a client-side read transport only.
+ *
+ * Todos remain locally writable/offline-first in TanStack DB local storage.
+ * Electric reads always use the required `VITE_ELECTRIC_SHAPE_URL` and scope
+ * the shared shape to the authenticated user's confirmed `todos.user_id`.
  */
-function getElectricShapeUrl(): string {
-  if (import.meta.env.VITE_ELECTRIC_SHAPE_URL) {
-    return import.meta.env.VITE_ELECTRIC_SHAPE_URL
+function createElectricTodosCollection(shapeUrl: string) {
+  const currentUserScope = createElectricScopeParams(async () =>
+    getElectricUserScope(await getSupabaseUserId()),
+  )
+
+  return createCollection(
+    electricCollectionOptions({
+      id: 'electric-todos',
+      schema: todoSchema,
+      getKey: (item) => item.id,
+      shapeOptions: {
+        url: shapeUrl,
+        headers: {
+          Authorization: async () => {
+            const accessToken = await getSupabaseAccessToken()
+            return accessToken ? `Bearer ${accessToken}` : ''
+          },
+        },
+        columnMapper: snakeCamelMapper(),
+        parser: {
+          int8: (value) => Number(value),
+        },
+        params: {
+          table: 'todos',
+          where: currentUserScope.where,
+          params: currentUserScope.params,
+        } as unknown as ExternalParamsRecord,
+      },
+    }),
+  )
+}
+
+let cachedElectricTodosCollection: ReturnType<typeof createElectricTodosCollection> | null = null
+
+export function getElectricTodosCollection() {
+  if (cachedElectricTodosCollection) {
+    return cachedElectricTodosCollection
   }
 
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:30000'
-  return `${apiBaseUrl.replace(/\/+$/, '')}/v1/shape`
+  cachedElectricTodosCollection = createElectricTodosCollection(getElectricReadShapeUrl())
+  return cachedElectricTodosCollection
 }
 
 /**
  * Gets the device ID for tracking which device created/modified todos
  */
 function getDeviceId(): string {
-  return import.meta.env.VITE_DEVICE_ID || `device-${crypto.randomUUID().slice(0, 8)}`
-}
-
-/**
- * Prepares the Electric SQL shape URL with authentication
- * Adds source_id and secret for Electric Cloud authentication
- */
-function prepareElectricShapeUrl(): URL {
-  const shapeUrl = new URL(getElectricShapeUrl())
-
-  // Add Electric Cloud authentication if configured
-  const sourceId = import.meta.env.VITE_ELECTRIC_SOURCE_ID
-  const secret = import.meta.env.VITE_ELECTRIC_SECRET
-
-  if (sourceId && secret) {
-    shapeUrl.searchParams.set('source_id', sourceId)
-    shapeUrl.searchParams.set('secret', secret)
-  }
-
-  return shapeUrl
-}
-
-export const electricTodosCollection = createCollection(
-  electricCollectionOptions({
-    id: 'electric-todos',
-    schema: todoSchema,
-    getKey: (item) => item.id,
-    shapeOptions: {
-      url: prepareElectricShapeUrl().toString(),
-      headers: {
-        Authorization: async () => {
-          const accessToken = await getSupabaseAccessToken()
-          return accessToken ? `Bearer ${accessToken}` : ''
-        },
-      },
-      columnMapper: snakeCamelMapper(),
-      parser: {
-        int8: (value) => Number(value),
-      },
-      params: {
-        table: 'todos',
-        where: async () => getElectricUserScope(await getSupabaseUserId()).where,
-        params: async () => getElectricUserScope(await getSupabaseUserId()).params,
-      } as unknown as ExternalParamsRecord,
-    },
-  }),
-)
-
-// Helper to check if Electric sync is configured
-export function isElectricConfigured(): boolean {
-  const hasElectricReadConfig =
-    !!import.meta.env.VITE_ELECTRIC_SHAPE_URL || !!import.meta.env.VITE_API_BASE_URL
-  return hasElectricReadConfig && isSupabaseConfigured()
+  return env.deviceId
 }
 
 // Always read/write from local storage so todos remain available offline.
