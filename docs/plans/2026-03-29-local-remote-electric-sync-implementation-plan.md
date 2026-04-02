@@ -1,7 +1,7 @@
 ---
 status: in-progress
-phase: 2
-updated: 2026-04-01
+phase: 4
+updated: 2026-04-02
 ---
 
 # Implementation Plan
@@ -36,12 +36,12 @@ Replace the current dual local/remote sync coupling with one Supabase-backed cli
 - [x] 2.4 Create `src/lib/todo-overlay.ts`, `src/lib/todo-reconciliation.ts`, and focused tests to implement the approved conflict rules, txid confirmation proof checks, quarantine path, and reset/refetch reconciliation
 - [x] 2.5 Create `src/composables/useTodoReadModel.ts` and `src/composables/useTodoSyncController.ts` so baseline reads, overlay derivation, and transport state are composed without UI-specific branching
 
-## Phase 3: Replace Legacy Sync Orchestration [PENDING]
-- [ ] 3.1 Add `src/composables/useTodoMutations.ts` as the only public write surface for create/update/delete/restore; route all UI writes through ledger creation + direct Supabase mutation calls + txid confirmation
-- [ ] 3.2 Refactor `src/composables/useTodoData.ts` to stop owning local-vs-remote selection, guest-claim side effects, and direct collection writes; keep only thin adapters that are still needed by callers
-- [ ] 3.3 Refactor `src/composables/useTodoSync.ts` to remove fingerprint-based reconciliation and direct `supabase.from('todos').upsert(...)` writes in favor of the sync controller and Supabase RPC/direct mutation contract
-- [ ] 3.4 Add the new sync/degraded/migration status model to the client composables (`src/composables/useElectricTodos.ts`, `src/composables/useSyncElectricTodos.ts`) and update their exposed API accordingly
-- [ ] 3.5 Update UI consumers (`src/components/SyncStatus.vue`, `src/components/TodoList.vue`, `src/App.vue`, and any affected views) to consume the merged read model and render the new statuses without local-vs-remote branching
+## Phase 3: Replace Legacy Sync Orchestration [DONE]
+- [x] 3.1 Add `src/composables/useTodoMutations.ts` as the effective public write surface for create/update/delete/restore; route UI writes through ledger creation + direct Supabase mutation calls + txid confirmation
+- [x] 3.2 Refactor `src/composables/useTodoData.ts` to stop owning local-vs-remote selection, guest-claim side effects, and direct collection writes; keep only the thin auth/connectivity/read-model/controller adapters still needed by callers
+- [x] 3.3 Refactor `src/composables/useTodoSync.ts` to remove fingerprint/local-authoritative orchestration and direct `supabase.from('todos').upsert(...)` writes in favor of the sync controller and Supabase mutation contract
+- [x] 3.4 Add the new sync/degraded/migration status model to the client composables (`src/composables/useElectricTodos.ts`, `src/composables/useSyncElectricTodos.ts`) and update their exposed API accordingly
+- [x] 3.5 Update UI consumers (`src/components/SyncStatus.vue`, `src/components/TodoList.vue`, `src/App.vue`, and any affected views) to consume the merged read model and render the new structured statuses without local-vs-remote branching
 
 ## Phase 4: Migration, Export, and Cleanup [PENDING]
 - [ ] 4.1 Update `src/lib/todo-storage.ts` and `src/composables/useDataExport.ts` so legacy guest/account buckets become migration input only, flow through the pre-auth guest migration partition, and leave the merged synced view only after confirmed migration
@@ -64,3 +64,6 @@ Replace the current dual local/remote sync coupling with one Supabase-backed cli
 - 2026-04-01: Phase 1.8 is satisfied by aligning `src/env.d.ts`, `README.md`, `.env.local.example`, and follow-up plan/design wording to the frontend-only contract: Supabase handles browser auth/writes, Electric handles browser reads via direct `VITE_ELECTRIC_SHAPE_URL`, and the app does not require an app-owned proxy, `server/` runtime, or `/api/*` routes
 - 2026-04-01: Phase 2 is satisfied by splitting the Electric confirmed baseline into `src/db/confirmed-todos.ts`, adding durable pending-ledger storage plus overlay/reconciliation helpers, and introducing `useTodoReadModel` / `useTodoSyncController` as the new non-UI sync composition seam for Phase 3 wiring
 - 2026-04-01: Phase 2 intentionally leaves the legacy fingerprint/push orchestration in `src/composables/useTodoSync.ts` as a temporary Phase 3 compatibility seam; the completed Phase 2 work is the new data-layer split and controller/read-model foundation, not the final public switchover
+- 2026-04-02: Phase 3 is complete: `useTodoMutations` is now the effective public CRUD write surface, with queued ledger entries, direct Supabase mutation submission, txid waiting, and confirmed-baseline reconciliation all routed through one client contract
+- 2026-04-02: `useTodoData` / `useTodoSync` now sit on top of the read-model + controller split from Phase 2 instead of the legacy fingerprint/local-authoritative flow, and the UI reads the merged model plus structured `sync` / `degraded` / `migration` statuses via `useElectricTodos` and `useSyncElectricTodos`
+- 2026-04-02: Import/export remains intentionally disabled until Phase 4 wires migration/export onto the ledger-backed model, while Phase 3 completion also restored denied-account gating and strengthened txid confirmation, reauth pause/retry, and Electric reset-refetch handling

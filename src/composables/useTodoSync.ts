@@ -1,296 +1,181 @@
 import { computed, readonly, ref, watch } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 
-import { getCurrentDeviceId } from '@/db/collections'
-import type { Todo } from '@/db/collections'
-import { getSupabaseClient, setSupabaseAuthError } from '@/lib/supabase'
 import {
-  buildTodoMutationIntent,
-  shouldWriteTodoToRemote,
-  submitTodoMutation,
-} from '@/lib/todo-sync'
-import { useAuth } from './useAuth'
+  readConfirmedTodosResumeState,
+  subscribeToConfirmedTodosTruncate,
+} from '@/db/confirmed-todos'
+
 import { useTodoData } from './useTodoData'
+import { useTodoMutations } from './useTodoMutations'
 
-export type SyncStatus = 'synced' | 'syncing' | 'error' | 'local-only' | 'stale'
-
-function isSameTodo(left: Todo, right: Todo) {
-  return (
-    left.label === right.label &&
-    left.weekNumber === right.weekNumber &&
-    left.done === right.done &&
-    left.archived === right.archived &&
-    left.createdAt === right.createdAt &&
-    left.updatedAt === right.updatedAt &&
-    left.deviceId === right.deviceId &&
-    left.userId === right.userId &&
-    left.deletedAt === right.deletedAt
-  )
-}
-
-function shouldRemoteWin(localTodo: Todo, remoteTodo: Todo) {
-  return (
-    remoteTodo.updatedAt > localTodo.updatedAt ||
-    (remoteTodo.updatedAt === localTodo.updatedAt && !isSameTodo(remoteTodo, localTodo))
-  )
-}
-
-function getPushFingerprint(localTodosToPush: Todo[]) {
-  return localTodosToPush
-    .map((todo) => `${todo.id}:${todo.updatedAt}:${todo.deletedAt ?? 'active'}`)
-    .join('|')
-}
+export type TodoSyncStatus = 'paused' | 'syncing' | 'synced'
+export type TodoDegradedStatus =
+  | 'none'
+  | 'retryable-error'
+  | 'requires-reauth'
+  | 'invariant-violation'
 
 type TodoSyncState = {
   canRetrySync: ComputedRef<boolean>
-  hasSyncedOnce: ComputedRef<boolean>
-  isRemoteReady: ComputedRef<boolean>
+  degradedStatus: ComputedRef<TodoDegradedStatus>
+  hasPendingMutations: ComputedRef<boolean>
   isSyncing: Readonly<Ref<boolean>>
-  lastSyncedAt: ComputedRef<number | null>
-  needsSync: ComputedRef<boolean>
-  status: ComputedRef<SyncStatus>
-  syncError: ComputedRef<boolean>
+  syncStatus: ComputedRef<TodoSyncStatus>
   syncTodos: () => Promise<boolean>
 }
 
+function hasRetryablePendingWork(statuses: string[]) {
+  return statuses.some((status) => status === 'queued' || status === 'retryable-error')
+}
+
+function sleep(durationMs: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, durationMs)
+  })
+}
+
 let sharedTodoSync: TodoSyncState | null = null
-let lastPushedFingerprintByUser: Record<string, string> = {}
-let syncQueued = false
 
 export function useTodoSync(): TodoSyncState {
   if (sharedTodoSync) {
     return sharedTodoSync
   }
 
-  const { accessState, signOut } = useAuth()
   const todoData = useTodoData()
-
+  const { flushPendingMutations } = useTodoMutations()
   const isSyncing = ref(false)
-  const syncErrorUserId = ref<string | null>(null)
-  const lastSyncedAtByUser = ref<Record<string, number>>({})
+  const isAwaitingResetRefetchBaseline = ref(readConfirmedTodosResumeState()?.kind === 'reset')
+  let awaitResetRefetchBaselinePromise: Promise<void> | null = null
 
-  const isRemoteReady = computed(
-    () => todoData.syncInputs.canSync.value && todoData.syncInputs.isRemoteQueryReady.value,
+  const pendingStatuses = computed(() =>
+    todoData.sync.controller.pendingMutations.value.map((entry) => entry.status),
   )
-  const syncError = computed(
-    () =>
-      todoData.auth.activeUserId.value !== null &&
-      syncErrorUserId.value === todoData.auth.activeUserId.value,
+  const hasPendingMutations = computed(() =>
+    pendingStatuses.value.some((status) =>
+      ['queued', 'sending', 'accepted-awaiting-sync', 'retryable-error'].includes(status),
+    ),
   )
-  const lastSyncedAt = computed(() =>
-    todoData.auth.activeUserId.value === null
-      ? null
-      : (lastSyncedAtByUser.value[todoData.auth.activeUserId.value] ?? null),
-  )
-  const hasSyncedOnce = computed(() => lastSyncedAt.value !== null)
-  const needsSync = computed(() => {
-    if (!todoData.syncInputs.canSync.value) {
-      return false
+  const degradedStatus = computed<TodoDegradedStatus>(() => {
+    if (todoData.sync.controller.transportState.value.requiresReauth) {
+      return 'requires-reauth'
     }
 
-    if (syncError.value) {
-      return true
+    if (
+      todoData.sync.controller.transportState.value.hasInvariantViolations ||
+      pendingStatuses.value.some(
+        (status) => status === 'invariant-violation' || status === 'quarantined',
+      )
+    ) {
+      return 'invariant-violation'
     }
 
-    if (!isRemoteReady.value) {
-      return true
+    if (pendingStatuses.value.includes('retryable-error')) {
+      return 'retryable-error'
     }
 
-    return todoData.syncInputs.pendingLocalTodos.value.length > 0
+    return 'none'
   })
-  const status = computed<SyncStatus>(() => {
+  const hasActiveDelivery = computed(() =>
+    pendingStatuses.value.some(
+      (status) => status === 'sending' || status === 'accepted-awaiting-sync',
+    ),
+  )
+  const syncStatus = computed<TodoSyncStatus>(() => {
     if (
       !todoData.connectivity.isOnline.value ||
-      !todoData.auth.activeUserId.value ||
-      !todoData.auth.isAuthReady.value
+      !todoData.connectivity.isReady.value ||
+      degradedStatus.value !== 'none' ||
+      hasRetryablePendingWork(pendingStatuses.value)
     ) {
-      return 'local-only'
+      return 'paused'
     }
 
-    if (todoData.guestClaim.visible.value) {
-      return 'local-only'
-    }
-
-    if (isSyncing.value || !isRemoteReady.value) {
+    if (hasActiveDelivery.value || isSyncing.value) {
       return 'syncing'
     }
 
-    if (syncError.value) {
-      return hasSyncedOnce.value ? 'stale' : 'error'
-    }
-
-    if (needsSync.value) {
-      return 'syncing'
-    }
-
-    return hasSyncedOnce.value ? 'synced' : 'syncing'
+    return 'synced'
   })
   const canRetrySync = computed(
-    () => needsSync.value && !isSyncing.value && !todoData.guestClaim.visible.value,
+    () =>
+      todoData.sync.controller.transportState.value.canSend &&
+      degradedStatus.value !== 'requires-reauth' &&
+      degradedStatus.value !== 'invariant-violation' &&
+      hasRetryablePendingWork(pendingStatuses.value) &&
+      !isSyncing.value,
   )
 
-  function applyRemoteTodoToLocal(todo: Todo) {
-    const collection = todoData.collections.activeLocal.value
-    const existing = collection.get(todo.id)
-
-    if (!existing) {
-      collection.insert(todo)
-      return
-    }
-
-    collection.update(todo.id, (draft) => {
-      draft.label = todo.label
-      draft.weekNumber = todo.weekNumber
-      draft.done = todo.done
-      draft.archived = todo.archived
-      draft.createdAt = todo.createdAt
-      draft.updatedAt = todo.updatedAt
-      draft.deviceId = todo.deviceId
-      draft.userId = todo.userId
-      draft.deletedAt = todo.deletedAt
-    })
-  }
-
-  async function reconcileRemoteTodos(remoteTodosToApply: Todo[]) {
-    const localById = new Map(todoData.snapshots.local.value.map((todo) => [todo.id, todo]))
-
-    for (const remoteTodo of remoteTodosToApply) {
-      const localTodo = localById.get(remoteTodo.id)
-
-      if (!localTodo) {
-        applyRemoteTodoToLocal(remoteTodo)
-        continue
-      }
-
-      if (shouldRemoteWin(localTodo, remoteTodo)) {
-        applyRemoteTodoToLocal(remoteTodo)
-      }
-    }
-  }
-
-  async function pushLocalTodos(
-    localTodosToPush: Todo[],
-    remoteTodosToCompare: Todo[],
-    activeUserId: string,
-  ) {
-    const remoteById = new Map(remoteTodosToCompare.map((todo) => [todo.id, todo]))
-    const pushableTodos = localTodosToPush.filter((todo) =>
-      shouldWriteTodoToRemote(todo, remoteById.get(todo.id), activeUserId),
-    )
-
-    if (pushableTodos.length === 0) {
-      return []
-    }
-
-    const supabase = getSupabaseClient()
-
-    const pushFingerprint = getPushFingerprint(pushableTodos)
-
-    if (pushFingerprint === lastPushedFingerprintByUser[activeUserId]) {
-      return []
-    }
-
-    const acceptedMutations = []
-    const acceptedIds = new Set<string>()
-
-    for (const todo of pushableTodos) {
-      const intent = buildTodoMutationIntent({
-        todo,
-        remoteTodo: remoteById.get(todo.id),
-        activeUserId,
-        fallbackDeviceId: getCurrentDeviceId(),
-      })
-      const acceptedMutation = await submitTodoMutation(supabase, intent)
-
-      acceptedIds.add(todo.id)
-      acceptedMutations.push(acceptedMutation)
-    }
-
-    // Only commit fingerprint when ALL mutations were accepted.
-    // If any RPC call throws mid-batch, fingerprint stays unchanged so the
-    // next sync will retry the full batch (idempotent for already-accepted todos).
-    if (acceptedIds.size === pushableTodos.length) {
-      lastPushedFingerprintByUser = {
-        ...lastPushedFingerprintByUser,
-        [activeUserId]: pushFingerprint,
-      }
-    }
-
-    return acceptedMutations
-  }
-
   async function syncTodos() {
-    const activeUserId = todoData.auth.activeUserId.value
-
-    if (!todoData.syncInputs.canSync.value || !activeUserId) {
-      return false
-    }
-
-    if (isSyncing.value) {
-      syncQueued = true
+    if (!todoData.sync.controller.transportState.value.canSend || isSyncing.value) {
       return false
     }
 
     isSyncing.value = true
-    syncErrorUserId.value = null
 
     try {
-      await reconcileRemoteTodos(todoData.snapshots.remoteForActiveUser.value)
-      await pushLocalTodos(
-        todoData.syncInputs.pendingLocalTodos.value,
-        todoData.snapshots.remoteForActiveUser.value,
-        activeUserId,
-      )
-
-      lastSyncedAtByUser.value = {
-        ...lastSyncedAtByUser.value,
-        [activeUserId]: Date.now(),
-      }
-      syncErrorUserId.value = null
-
-      return todoData.syncInputs.pendingLocalTodos.value.length === 0
-    } catch (error) {
-      console.error('Sync failed:', error)
-      syncErrorUserId.value = activeUserId
-      return false
+      return await flushPendingMutations()
     } finally {
       isSyncing.value = false
-
-      if (syncQueued) {
-        syncQueued = false
-        void syncTodos()
-      }
     }
   }
 
-  watch(
-    () => accessState.value,
-    (nextAccessState) => {
-      if (nextAccessState !== 'denied') {
-        return
-      }
+  async function reconcileAfterResetRefetchWhenReady() {
+    if (awaitResetRefetchBaselinePromise) {
+      return awaitResetRefetchBaselinePromise
+    }
 
-      setSupabaseAuthError('This GitHub account is not approved for sync access.')
-      void signOut()
+    awaitResetRefetchBaselinePromise = (async () => {
+      while (isAwaitingResetRefetchBaseline.value) {
+        if (readConfirmedTodosResumeState()?.kind === 'resume') {
+          todoData.sync.controller.reconcileWithConfirmedTodos(
+            todoData.readModel.confirmedTodos.value,
+            {
+              afterResetRefetch: true,
+            },
+          )
+          isAwaitingResetRefetchBaseline.value = false
+          return
+        }
+
+        await sleep(25)
+      }
+    })().finally(() => {
+      awaitResetRefetchBaselinePromise = null
+    })
+
+    return awaitResetRefetchBaselinePromise
+  }
+
+  subscribeToConfirmedTodosTruncate(() => {
+    isAwaitingResetRefetchBaseline.value = true
+    void reconcileAfterResetRefetchWhenReady()
+  })
+
+  if (isAwaitingResetRefetchBaseline.value) {
+    void reconcileAfterResetRefetchWhenReady()
+  }
+
+  watch(
+    () => todoData.readModel.confirmedTodos.value,
+    (confirmedTodos) => {
+      todoData.sync.controller.reconcileWithConfirmedTodos(confirmedTodos)
     },
+    { immediate: true },
   )
 
   watch(
-    () => todoData.syncInputs.syncPlan.value,
-    (plan, previousPlan) => {
-      if (!plan) {
-        return
-      }
-
+    () => ({
+      canSend: todoData.sync.controller.transportState.value.canSend,
+      pendingStatuses: pendingStatuses.value.join('|'),
+    }),
+    ({ canSend, pendingStatuses: nextStatuses }) => {
       if (
-        previousPlan &&
-        previousPlan.activeUserId === plan.activeUserId &&
-        previousPlan.remoteFingerprint !== plan.remoteFingerprint
+        !canSend ||
+        nextStatuses.length === 0 ||
+        !hasRetryablePendingWork(nextStatuses.split('|'))
       ) {
-        lastPushedFingerprintByUser = {
-          ...lastPushedFingerprintByUser,
-          [plan.activeUserId]: '',
-        }
+        return
       }
 
       void syncTodos()
@@ -299,14 +184,12 @@ export function useTodoSync(): TodoSyncState {
 
   sharedTodoSync = {
     canRetrySync,
-    hasSyncedOnce,
-    isRemoteReady,
+    degradedStatus,
+    hasPendingMutations,
     isSyncing: readonly(isSyncing),
-    lastSyncedAt,
-    needsSync,
-    status,
-    syncError,
+    syncStatus,
     syncTodos,
   }
+
   return sharedTodoSync
 }

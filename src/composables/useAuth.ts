@@ -1,7 +1,7 @@
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import type { User } from '@supabase/supabase-js'
 
-import { getAuthAccessState, getGithubProviderId } from '@/lib/auth-allowlist'
+import { getAuthSyncAccess, getGithubProviderId } from '@/lib/auth-allowlist'
 import {
   getApprovedGithubProviderId,
   signInWithGithub,
@@ -22,19 +22,37 @@ function getUserDisplayName(user: User | null): string | null {
 }
 
 const approvedGithubProviderId = getApprovedGithubProviderId()
+let deniedAccountSignOutPromise: Promise<void> | null = null
+
+function signOutDeniedAccount() {
+  if (deniedAccountSignOutPromise) {
+    return deniedAccountSignOutPromise
+  }
+
+  deniedAccountSignOutPromise = signOut()
+    .catch(() => undefined)
+    .finally(() => {
+      deniedAccountSignOutPromise = null
+    })
+
+  return deniedAccountSignOutPromise
+}
 
 export function useAuth() {
   const { isReady, session, user, userId, authError: supabaseAuthError } = useSupabaseAuthState()
 
   const isAuthenticated = computed(() => session.value !== null)
   const githubProviderId = computed(() => getGithubProviderId(user.value?.identities))
-  const accessState = computed(() =>
-    getAuthAccessState({
+  const syncAccess = computed(() =>
+    getAuthSyncAccess({
       isAuthenticated: isAuthenticated.value,
       githubProviderId: githubProviderId.value,
       approvedGithubProviderId,
+      userId: userId.value,
+      accessToken: session.value?.access_token ?? null,
     }),
   )
+  const accessState = computed(() => syncAccess.value.accessState)
 
   const authError = computed(() => {
     if (accessState.value === 'denied') {
@@ -43,6 +61,22 @@ export function useAuth() {
 
     return supabaseAuthError.value
   })
+
+  watch(
+    () => ({
+      accessState: accessState.value,
+      isAuthReady: isReady.value,
+      isAuthenticated: isAuthenticated.value,
+    }),
+    ({ accessState: nextAccessState, isAuthReady, isAuthenticated: nextIsAuthenticated }) => {
+      if (!isAuthReady || !nextIsAuthenticated || nextAccessState !== 'denied') {
+        return
+      }
+
+      void signOutDeniedAccount()
+    },
+    { immediate: true },
+  )
 
   return {
     session,

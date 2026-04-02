@@ -21,6 +21,7 @@ type UseTodoSyncControllerOptions = {
   storage?: ReturnType<typeof createPendingMutationStorage>
   auth?: {
     accessState: Ref<ReturnType<typeof useAuth>['accessState']['value']>
+    authVersion?: Ref<string | null>
     isAuthReady: Ref<boolean>
     userId: Ref<string | null>
   }
@@ -41,19 +42,30 @@ function isProtectedPendingMutationStatus(status: PendingMutationLocalStatus) {
 }
 
 export function useTodoSyncController(options: UseTodoSyncControllerOptions = {}) {
-  const auth = options.auth ?? useAuth()
+  const defaultAuth = useAuth()
+  const auth = options.auth ?? defaultAuth
   const network = options.network ?? useNetworkStatus()
+  const authVersion =
+    options.auth?.authVersion ??
+    computed(() => {
+      const session = defaultAuth.session?.value
+
+      if (!session) {
+        return null
+      }
+
+      return `${session.access_token}:${String(session.expires_at ?? 'no-expiry')}`
+    })
   const { accessState, isAuthReady, userId } = auth
   const { isOnline } = network
   const storage = options.storage ?? createPendingMutationStorage()
   const confirmedTxids = ref<Set<string>>(new Set())
+  const mutationRequiresReauth = ref(false)
   const pendingMutations = ref<PendingMutationEntry[]>([])
 
   const activeUserId = computed(() => (accessState.value === 'approved' ? userId.value : null))
   const activePartitionKey = computed(() => getPendingMutationPartitionKey(activeUserId.value))
-  const requiresReauth = computed(
-    () => isAuthReady.value && activeUserId.value === null && accessState.value === 'approved',
-  )
+  const requiresReauth = computed(() => mutationRequiresReauth.value)
   const hasInvariantViolations = computed(() =>
     pendingMutations.value.some((entry) => entry.status === 'invariant-violation'),
   )
@@ -115,6 +127,25 @@ export function useTodoSyncController(options: UseTodoSyncControllerOptions = {}
     return getPendingMutationReference(entry)
   }
 
+  function getPendingMutation(reference: PendingMutationReference) {
+    return storage.get(reference)
+  }
+
+  function removePendingMutation(reference: PendingMutationReference) {
+    storage.remove(reference.partitionKey, reference.mutationId)
+    reloadPendingMutations()
+  }
+
+  function replacePendingMutation(
+    reference: PendingMutationReference,
+    nextEntry: PendingMutationEntry,
+  ) {
+    storage.remove(reference.partitionKey, reference.mutationId)
+    storage.save(nextEntry)
+    reloadPendingMutations()
+    return getPendingMutationReference(nextEntry)
+  }
+
   function acceptMutation(
     reference: PendingMutationReference,
     accepted: TodoMutationResponse,
@@ -132,6 +163,15 @@ export function useTodoSyncController(options: UseTodoSyncControllerOptions = {}
     errorMessage: string,
     now = Date.now(),
   ) {
+    updateMutationStatus(reference, 'retryable-error', { errorMessage, updatedAt: now })
+  }
+
+  function markMutationRequiresReauth(
+    reference: PendingMutationReference,
+    errorMessage: string,
+    now = Date.now(),
+  ) {
+    mutationRequiresReauth.value = true
     updateMutationStatus(reference, 'retryable-error', { errorMessage, updatedAt: now })
   }
 
@@ -176,6 +216,38 @@ export function useTodoSyncController(options: UseTodoSyncControllerOptions = {}
   }
 
   watch(
+    () => ({
+      accessState: accessState.value,
+      authVersion: authVersion.value,
+      userId: userId.value,
+    }),
+    (nextAuthState, previousAuthState) => {
+      if (!previousAuthState) {
+        return
+      }
+
+      const authIdentityChanged =
+        nextAuthState.accessState !== previousAuthState.accessState ||
+        nextAuthState.userId !== previousAuthState.userId
+      const refreshedApprovedSessionForSameUser =
+        nextAuthState.accessState === 'approved' &&
+        nextAuthState.userId !== null &&
+        nextAuthState.userId === previousAuthState.userId &&
+        nextAuthState.authVersion !== null &&
+        nextAuthState.authVersion !== previousAuthState.authVersion
+
+      if (
+        (authIdentityChanged || refreshedApprovedSessionForSameUser) &&
+        nextAuthState.accessState === 'approved' &&
+        nextAuthState.userId !== null
+      ) {
+        mutationRequiresReauth.value = false
+      }
+    },
+    { immediate: true },
+  )
+
+  watch(
     activePartitionKey,
     (nextPartitionKey, previousPartitionKey) => {
       if (
@@ -199,14 +271,18 @@ export function useTodoSyncController(options: UseTodoSyncControllerOptions = {}
     acceptMutation,
     activePartitionKey,
     confirmTxid,
+    getPendingMutation,
     markMutationRejected,
+    markMutationRequiresReauth,
     markMutationRetryableError,
     markMutationSending,
     pendingMutations: readonly(pendingMutations),
     quarantineActivePartition,
     reconcileWithConfirmedTodos,
     recordPendingMutation,
+    removePendingMutation,
     reloadPendingMutations,
+    replacePendingMutation,
     transportState,
   }
 }

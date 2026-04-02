@@ -33,6 +33,16 @@ export type TodoTxidAwaiter = {
   awaitTxId: (txid: string) => Promise<void>
 }
 
+export class TodoMutationSubmitError extends Error {
+  readonly kind: 'auth' | 'retryable'
+
+  constructor(message: string, kind: 'auth' | 'retryable') {
+    super(message)
+    this.name = 'TodoMutationSubmitError'
+    this.kind = kind
+  }
+}
+
 type SyncTodoWithOwner = Pick<
   SyncTodo,
   | 'id'
@@ -52,6 +62,29 @@ type TodoMutationRpcClient = {
     fn: 'apply_todo_mutation',
     args: { intent: TodoMutationIntent },
   ) => PromiseLike<{ data: unknown; error: PostgrestError | null }>
+}
+
+function isAuthRelatedPostgrestError(error: PostgrestError): boolean {
+  const authFailureCodes = new Set(['401', '403', '42501', 'PGRST301', 'PGRST302'])
+  const authFailureDetails = [error.code, error.message, error.details, error.hint]
+    .filter((value): value is string => Boolean(value))
+    .join(' ')
+    .toLowerCase()
+
+  if (error.code && authFailureCodes.has(error.code)) {
+    return true
+  }
+
+  return [
+    'jwt',
+    'session',
+    'token',
+    'auth',
+    'row-level security',
+    'rls',
+    'permission denied',
+    'not found for the authenticated user',
+  ].some((signal) => authFailureDetails.includes(signal))
 }
 
 export function shouldPushTodoForUser(
@@ -234,7 +267,10 @@ export async function submitTodoMutation(
   const { data, error } = await supabase.rpc('apply_todo_mutation', { intent })
 
   if (error) {
-    throw new Error(error.message)
+    throw new TodoMutationSubmitError(
+      error.message,
+      isAuthRelatedPostgrestError(error) ? 'auth' : 'retryable',
+    )
   }
 
   return parseTodoMutationResponse(data)

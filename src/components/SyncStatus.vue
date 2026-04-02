@@ -1,77 +1,58 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useAuth } from '@/composables/useAuth'
-import { useElectricTodos } from '@/composables/useElectricTodos'
 import { useSyncElectricTodos } from '@/composables/useSyncElectricTodos'
 
-const { accessState, authError, isAuthenticated } = useAuth()
-const { canRetrySync, claimPromptVisible, isOnline, isMigrating, syncStatus } = useElectricTodos()
-const { syncTodos } = useSyncElectricTodos()
+const { canRetrySync, statuses, syncTodos } = useSyncElectricTodos()
 
 const statusConfig = computed(() => {
-  if (!isOnline.value) {
+  if (statuses.migration.value === 'legacy-guest-pending') {
+    return {
+      dotClass: 'bg-amber-500',
+      text: 'Migration pending',
+      textClass: 'text-amber-700',
+    }
+  }
+
+  if (statuses.degraded.value === 'requires-reauth') {
     return {
       dotClass: 'bg-red-500',
-      text: 'Offline',
+      text: 'Re-auth required',
       textClass: 'text-red-600',
     }
   }
-  if (isMigrating.value) {
+
+  if (statuses.degraded.value === 'invariant-violation') {
+    return {
+      dotClass: 'bg-red-500',
+      text: 'Sync degraded',
+      textClass: 'text-red-600',
+    }
+  }
+
+  if (statuses.degraded.value === 'retryable-error') {
+    return {
+      dotClass: 'bg-amber-500',
+      text: 'Retry pending',
+      textClass: 'text-amber-700',
+    }
+  }
+
+  if (statuses.sync.value === 'syncing') {
     return {
       dotClass: 'bg-yellow-500 animate-pulse',
       text: 'Syncing...',
       textClass: 'text-yellow-600',
     }
   }
-  if (authError.value || accessState.value === 'denied') {
-    return {
-      dotClass: 'bg-red-500',
-      text: 'Auth blocked',
-      textClass: 'text-red-600',
-    }
-  }
-  if (claimPromptVisible.value) {
-    return {
-      dotClass: 'bg-amber-500',
-      text: 'Claim local todos',
-      textClass: 'text-amber-700',
-    }
-  }
-  if (!isAuthenticated.value) {
+
+  if (statuses.sync.value === 'paused') {
     return {
       dotClass: 'bg-gray-400',
-      text: 'Local only',
+      text: 'Paused',
       textClass: 'text-gray-500',
     }
   }
-  if (syncStatus.value === 'syncing') {
-    return {
-      dotClass: 'bg-yellow-500 animate-pulse',
-      text: 'Syncing...',
-      textClass: 'text-yellow-600',
-    }
-  }
-  if (syncStatus.value === 'error') {
-    return {
-      dotClass: 'bg-red-500',
-      text: 'Sync error',
-      textClass: 'text-red-600',
-    }
-  }
-  if (syncStatus.value === 'stale') {
-    return {
-      dotClass: 'bg-amber-500',
-      text: 'Out of date',
-      textClass: 'text-amber-700',
-    }
-  }
-  if (syncStatus.value === 'local-only') {
-    return {
-      dotClass: 'bg-gray-400',
-      text: 'Local only',
-      textClass: 'text-gray-500',
-    }
-  }
+
   return {
     dotClass: 'bg-green-500',
     text: 'Synced',
@@ -91,8 +72,8 @@ const statusConfig = computed(() => {
     </span>
     <button
       v-if="canRetrySync"
-      @click="syncTodos"
       class="ml-2 rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600 transition-colors hover:bg-blue-100"
+      @click="syncTodos"
     >
       Retry sync
     </button>

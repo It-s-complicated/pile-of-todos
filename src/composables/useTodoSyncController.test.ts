@@ -5,6 +5,7 @@ import {
   createPendingMutationStorage,
   getPendingMutationPartitionKey,
 } from '@/lib/pending-mutation-storage'
+import type { AuthAccessState } from '@/lib/auth-allowlist'
 import type { PendingMutationEntry } from '@/lib/pending-mutation-storage'
 
 vi.mock('./useAuth', () => ({
@@ -128,4 +129,79 @@ test('useTodoSyncController updates an in-flight mutation by its original partit
   const [updatedEntry] = storage.list(userAPartition)
   assert.equal(updatedEntry?.status, 'quarantined')
   assert.equal(updatedEntry?.errorMessage, 'network lost')
+})
+
+test('useTodoSyncController raises requires-reauth from an auth failure signal until auth state changes', async () => {
+  const { useTodoSyncController } = await import('./useTodoSyncController')
+  const accessState = ref<AuthAccessState>('approved')
+  const userId = ref<string | null>('user-a')
+  const sessionVersion = ref('token-a')
+  const storage = createPendingMutationStorage({ storage: createMemoryStorage() })
+  const controller = useTodoSyncController({
+    storage,
+    auth: {
+      accessState,
+      authVersion: sessionVersion,
+      isAuthReady: ref(true),
+      userId,
+    },
+    network: {
+      isOnline: ref(true),
+    },
+  })
+
+  const locator = controller.recordPendingMutation(
+    createPendingEntry(getPendingMutationPartitionKey('user-a')),
+  )
+
+  controller.markMutationRequiresReauth(locator, 'JWT expired', 50)
+
+  assert.equal(controller.transportState.value.requiresReauth, true)
+  assert.equal(controller.transportState.value.canSend, false)
+  assert.equal(controller.pendingMutations.value[0]?.status, 'retryable-error')
+  assert.equal(controller.pendingMutations.value[0]?.errorMessage, 'JWT expired')
+
+  accessState.value = 'signed-out'
+  await nextTick()
+  assert.equal(controller.transportState.value.requiresReauth, true)
+
+  accessState.value = 'approved'
+  userId.value = 'user-a'
+  await nextTick()
+  assert.equal(controller.transportState.value.requiresReauth, false)
+})
+
+test('useTodoSyncController clears requires-reauth when the same approved user refreshes session credentials', async () => {
+  const { useTodoSyncController } = await import('./useTodoSyncController')
+  const accessState = ref<AuthAccessState>('approved')
+  const userId = ref<string | null>('user-a')
+  const sessionVersion = ref('token-a')
+  const storage = createPendingMutationStorage({ storage: createMemoryStorage() })
+  const controller = useTodoSyncController({
+    storage,
+    auth: {
+      accessState,
+      authVersion: sessionVersion,
+      isAuthReady: ref(true),
+      userId,
+    },
+    network: {
+      isOnline: ref(true),
+    },
+  })
+
+  const locator = controller.recordPendingMutation(
+    createPendingEntry(getPendingMutationPartitionKey('user-a')),
+  )
+
+  controller.markMutationRequiresReauth(locator, 'JWT expired', 50)
+
+  assert.equal(controller.transportState.value.requiresReauth, true)
+  assert.equal(controller.transportState.value.canSend, false)
+
+  sessionVersion.value = 'token-b'
+  await nextTick()
+
+  assert.equal(controller.transportState.value.requiresReauth, false)
+  assert.equal(controller.transportState.value.canSend, true)
 })

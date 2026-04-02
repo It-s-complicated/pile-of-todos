@@ -1,25 +1,16 @@
 <script setup lang="ts">
 import type { Todo, TodoFilter } from '../db/collections'
-import { useLiveQuery } from '@tanstack/vue-db'
 import { FileText } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuth } from '../composables/useAuth'
+import { useElectricTodos } from '../composables/useElectricTodos'
 import { useWeekNumber } from '../composables/useWeekNumber'
-import { getActiveCollection, VALID_FILTERS } from '../db/collections'
+import { VALID_FILTERS } from '../db/collections'
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
-function normalizeTodo(todo: Todo): Todo {
-  return {
-    ...todo,
-    userId: todo.userId ?? null,
-    deletedAt: todo.deletedAt ?? null,
-  }
-}
-
 const { getCurrentWeekNumber } = useWeekNumber()
-const { accessState, userId } = useAuth()
+const { isReady, todos, updateTodo } = useElectricTodos()
 const route = useRoute()
 
 const currentWeek = getCurrentWeekNumber()
@@ -27,41 +18,31 @@ const rawFilter = computed(() => (route.params.filter as TodoFilter) || (route.n
 const filter = computed(() =>
   VALID_FILTERS.includes(rawFilter.value) ? rawFilter.value : 'backlog',
 )
-
-const activeCollection = computed(() =>
-  getActiveCollection(accessState.value === 'approved' ? userId.value : null),
-)
-
-const { data: allTodos, isReady } = useLiveQuery(
-  (q) => q.from({ todo: activeCollection.value }).select(({ todo }) => todo),
-  [activeCollection],
-)
-
-// Loading state
 const loading = computed(() => !isReady.value)
-const normalizedTodos = computed(() => (allTodos.value ?? []).map((todo) => normalizeTodo(todo)))
 
-// Filtered todos computed from the live query
 const filteredTodos = computed(() => {
-  const todos = normalizedTodos.value.filter((todo) => todo.deletedAt === null)
+  const visibleTodos = todos.value.filter((todo) => todo.deletedAt === null)
 
   switch (filter.value) {
     case 'backlog':
-      return todos.filter((t) => t.weekNumber === null && !t.archived)
+      return visibleTodos.filter((todo) => todo.weekNumber === null && !todo.archived)
     case 'current-week':
-      return todos.filter((t) => t.weekNumber === currentWeek && !t.archived)
+      return visibleTodos.filter((todo) => todo.weekNumber === currentWeek && !todo.archived)
     case 'future':
-      return todos.filter((t) => t.weekNumber !== null && t.weekNumber > currentWeek && !t.archived)
+      return visibleTodos.filter(
+        (todo) => todo.weekNumber !== null && todo.weekNumber > currentWeek && !todo.archived,
+      )
     case 'unfinished':
-      return todos.filter(
-        (t) => t.weekNumber !== null && t.weekNumber < currentWeek && !t.done && !t.archived,
+      return visibleTodos.filter(
+        (todo) =>
+          todo.weekNumber !== null && todo.weekNumber < currentWeek && !todo.done && !todo.archived,
       )
     case 'archived':
-      return todos.filter((t) => t.archived === true)
+      return visibleTodos.filter((todo) => todo.archived)
     case 'finished':
-      return todos.filter((t) => t.done === true && t.archived === false)
+      return visibleTodos.filter((todo) => todo.done && !todo.archived)
     default:
-      return todos
+      return visibleTodos
   }
 })
 
@@ -69,20 +50,11 @@ const showWeekSelector = ref(false)
 const selectedTodo = ref<Todo | null>(null)
 
 function handleUpdate(id: string, updates: Partial<Todo>) {
-  activeCollection.value.update(id, (draft) => {
-    Object.assign(draft, updates, {
-      updatedAt: Date.now(),
-      deviceId: draft.deviceId ?? null,
-    })
-  })
+  updateTodo(id, updates)
 }
 
 function handleArchive(id: string) {
-  activeCollection.value.update(id, (draft) => {
-    draft.archived = true
-    draft.updatedAt = Date.now()
-    draft.deviceId = draft.deviceId ?? null
-  })
+  updateTodo(id, { archived: true })
 }
 
 function handleMove(todo: Todo) {
@@ -96,17 +68,15 @@ function closeWeekSelector() {
 }
 
 function confirmMove(weekNumber: number | null) {
-  if (selectedTodo.value) {
-    activeCollection.value.update(selectedTodo.value.id, (draft) => {
-      draft.weekNumber = weekNumber
-      draft.updatedAt = Date.now()
-      draft.deviceId = draft.deviceId ?? null
-    })
+  if (!selectedTodo.value) {
+    closeWeekSelector()
+    return
   }
+
+  updateTodo(selectedTodo.value.id, { weekNumber })
   closeWeekSelector()
 }
 
-// Determine empty state message based on current view
 const emptyStateMessage = computed(() => {
   switch (filter.value) {
     case 'backlog':
@@ -132,7 +102,6 @@ const emptyStateMessage = computed(() => {
 
 <template>
   <div class="flex flex-col gap-3">
-    <!-- Loading State -->
     <div v-if="loading" class="py-12 text-center">
       <div class="inline-flex items-center gap-2 text-text-muted">
         <div class="size-5 animate-spin rounded-full border-2 border-border border-t-navy" />
@@ -140,7 +109,6 @@ const emptyStateMessage = computed(() => {
       </div>
     </div>
 
-    <!-- Empty State -->
     <div v-else-if="filteredTodos.length === 0" class="px-4 py-16 text-center">
       <div class="inline-flex flex-col items-center gap-4">
         <div class="flex size-16 items-center justify-center rounded-full bg-cream">
@@ -157,7 +125,6 @@ const emptyStateMessage = computed(() => {
       </div>
     </div>
 
-    <!-- Todo List -->
     <div v-else class="flex flex-col gap-3">
       <TodoItem
         v-for="(todo, index) in filteredTodos"
@@ -171,7 +138,6 @@ const emptyStateMessage = computed(() => {
       />
     </div>
 
-    <!-- Week Selector Modal -->
     <Transition
       enter-active-class="transition-all duration-200 ease-out"
       enter-from-class="opacity-0"

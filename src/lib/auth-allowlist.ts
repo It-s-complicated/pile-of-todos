@@ -21,6 +21,17 @@ export type AuthAccessStateParams = {
   approvedGithubProviderId: string
 }
 
+export type AuthSyncAccessParams = AuthAccessStateParams & {
+  userId: string | null
+  accessToken: string | null
+}
+
+export type AuthSyncAccess = {
+  accessState: AuthAccessState
+  userId: string | null
+  accessToken: string | null
+}
+
 export function getGithubProviderId(
   identities: AuthIdentityLike[] | null | undefined,
 ): string | null {
@@ -62,6 +73,24 @@ export function getAuthAccessState({
   const approvedProviderId = approvedGithubProviderId.trim()
 
   return githubProviderId === approvedProviderId ? 'approved' : 'denied'
+}
+
+export function getAuthSyncAccess(params: AuthSyncAccessParams): AuthSyncAccess {
+  const accessState = getAuthAccessState(params)
+
+  if (accessState !== 'approved') {
+    return {
+      accessState,
+      userId: null,
+      accessToken: null,
+    }
+  }
+
+  return {
+    accessState,
+    userId: params.userId,
+    accessToken: params.accessToken,
+  }
 }
 
 export function shouldShowGuestClaimPrompt({

@@ -1,19 +1,9 @@
 <script setup lang="ts">
-import {
-  Archive,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Download,
-  Inbox,
-  Layers,
-  Upload,
-} from 'lucide-vue-next'
+import { Archive, Calendar, CheckCircle, Clock, Inbox, Layers } from 'lucide-vue-next'
 import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
 import { ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 import AuthStatus from './components/AuthStatus.vue'
-import { useDataExport } from './composables/useDataExport'
 import { useElectricTodos } from './composables/useElectricTodos'
 import { useSyncElectricTodos } from './composables/useSyncElectricTodos'
 import { useWeekNumber } from './composables/useWeekNumber'
@@ -21,17 +11,12 @@ import SyncStatus from './components/SyncStatus.vue'
 
 const route = useRoute()
 const { getCurrentWeekNumber } = useWeekNumber()
-const { exportTodos, importTodos } = useDataExport()
 useSyncElectricTodos()
-const { addTodo, claimGuestTodos, claimPromptVisible, guestTodoCount, keepGuestTodosSeparate } =
-  useElectricTodos()
+const { addTodo } = useElectricTodos()
 
 const newTodoLabel = ref('')
 const newTodoWeek = ref<number | null>(null)
 const currentWeek = getCurrentWeekNumber()
-const fileInput = ref<HTMLInputElement | null>(null)
-const importMessage = ref('')
-const importSuccess = ref(false)
 const validationError = ref('')
 
 const TodoLabelSchema = pipe(
@@ -41,9 +26,8 @@ const TodoLabelSchema = pipe(
   regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
 )
 
-async function createTodo() {
+function createTodo() {
   const trimmedLabel = newTodoLabel.value.trim()
-
   const result = safeParse(TodoLabelSchema, trimmedLabel)
 
   if (!result.success) {
@@ -59,55 +43,6 @@ async function createTodo() {
   newTodoWeek.value = null
 }
 
-async function handleExport() {
-  try {
-    await exportTodos()
-    showNotification('Data exported successfully!', true)
-  } catch (error) {
-    showNotification(
-      `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      false,
-    )
-  }
-}
-
-function triggerImport() {
-  fileInput.value?.click()
-}
-
-async function handleImport(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-
-  if (!file) return
-
-  try {
-    const result = await importTodos(file)
-    if (result.success) {
-      showNotification(result.message, true)
-    } else {
-      showNotification(result.message, false)
-    }
-  } catch (error) {
-    showNotification(
-      `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      false,
-    )
-  }
-
-  if (target) {
-    target.value = ''
-  }
-}
-
-function showNotification(message: string, success: boolean) {
-  importMessage.value = message
-  importSuccess.value = success
-  setTimeout(() => {
-    importMessage.value = ''
-  }, 5000)
-}
-
 const navItems = [
   { path: '/backlog', label: 'Backlog', icon: Inbox },
   { path: '/current-week', label: 'Current', icon: Calendar },
@@ -118,8 +53,7 @@ const navItems = [
 ]
 
 function getNavLinkClass(path: string): string {
-  const isActive = route.path === path
-  return isActive
+  return route.path === path
     ? 'bg-navy text-white shadow-md'
     : 'bg-transparent text-text-secondary hover:bg-cream'
 }
@@ -129,7 +63,6 @@ const id = useId()
 
 <template>
   <div class="mx-auto min-h-screen max-w-3xl px-6 py-8">
-    <!-- Header -->
     <header class="mb-6 flex items-start justify-between sm:mb-8 lg:mb-10">
       <div>
         <h1
@@ -147,38 +80,6 @@ const id = useId()
       </div>
     </header>
 
-    <section
-      v-if="claimPromptVisible"
-      class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm sm:mb-8"
-    >
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p class="text-sm font-semibold text-amber-900">Claim guest todos before sync starts</p>
-          <p class="mt-1 text-sm text-amber-800">
-            {{ guestTodoCount }} guest todo{{ guestTodoCount === 1 ? '' : 's' }} found in this
-            browser. Move them into your signed-in account, or keep them in the guest bucket.
-          </p>
-        </div>
-        <div class="flex gap-3">
-          <button
-            type="button"
-            class="cursor-pointer rounded-full bg-amber-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-950"
-            @click="claimGuestTodos"
-          >
-            Claim todos
-          </button>
-          <button
-            type="button"
-            class="cursor-pointer rounded-full border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100"
-            @click="keepGuestTodosSeparate"
-          >
-            Keep separate
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Navigation -->
     <nav class="mb-6 flex flex-wrap gap-2 sm:mb-8">
       <RouterLink
         v-for="item in navItems"
@@ -193,7 +94,6 @@ const id = useId()
       </RouterLink>
     </nav>
 
-    <!-- Input Form -->
     <form class="mb-6" @submit.prevent="createTodo">
       <div class="rounded-lg border border-border bg-white p-4 shadow-sm">
         <label
@@ -251,7 +151,6 @@ const id = useId()
       </div>
     </form>
 
-    <!-- Validation Error -->
     <div
       v-if="validationError"
       class="animate-shake mb-6 flex items-center gap-2 rounded-lg border border-danger/20 bg-danger-light px-4 py-3 text-sm text-danger"
@@ -259,49 +158,15 @@ const id = useId()
       <span class="font-medium">Error:</span> {{ validationError }}
     </div>
 
-    <!-- Main Content -->
     <RouterView />
 
-    <!-- Settings Area -->
     <section class="mt-10 border-t border-border pt-8">
       <h2 class="mb-4 text-xs font-medium tracking-wide text-text-muted uppercase">
         Data Management
       </h2>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div class="flex gap-3">
-          <button
-            class="flex cursor-pointer items-center gap-2 rounded-lg bg-success-light px-4 py-2 text-sm font-medium text-success-dark transition-all duration-150 hover:bg-[#d8e5dc]"
-            @click="handleExport"
-          >
-            <Download class="size-4" stroke-width="1.5" />
-            Export
-          </button>
-          <button
-            class="flex cursor-pointer items-center gap-2 rounded-lg bg-warning-light px-4 py-2 text-sm font-medium text-warning-dark transition-all duration-150 hover:bg-[#f5eadd]"
-            @click="triggerImport"
-          >
-            <Upload class="size-4" stroke-width="1.5" />
-            Import
-          </button>
-        </div>
-        <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImport" />
-      </div>
-
-      <!-- Import Message -->
-      <div
-        v-if="importMessage"
-        :class="{
-          'bg-success-light text-success': importSuccess,
-          'bg-danger-light text-danger': !importSuccess,
-        }"
-        class="mt-4 rounded-lg border px-4 py-3 text-sm"
-        :style="
-          importSuccess
-            ? 'border-color: rgba(90, 138, 110, 0.2)'
-            : 'border-color: rgba(196, 90, 90, 0.2)'
-        "
-      >
-        {{ importMessage }}
+      <div class="rounded-lg border border-border bg-cream px-4 py-3 text-sm text-text-muted">
+        Import and export are temporarily unavailable during the Phase 3 sync refactor. They will
+        return once the Phase 4 migration flow is wired to the ledger-backed sync model.
       </div>
     </section>
   </div>

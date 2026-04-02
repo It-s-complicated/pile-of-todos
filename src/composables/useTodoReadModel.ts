@@ -8,7 +8,7 @@ import { buildTodoOverlay } from '@/lib/todo-overlay'
 import type { PendingMutationEntry } from '@/lib/pending-mutation-storage'
 
 type UseTodoReadModelOptions = {
-  pendingMutations: Ref<PendingMutationEntry[]>
+  pendingMutations: Readonly<Ref<readonly PendingMutationEntry[]>>
 }
 
 type TodoReadModel = {

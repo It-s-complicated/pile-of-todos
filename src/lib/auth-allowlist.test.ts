@@ -2,6 +2,7 @@ import { assert, test } from 'vite-plus/test'
 
 import {
   getAuthAccessState,
+  getAuthSyncAccess,
   getGithubProviderId,
   isApprovedGithubIdentity,
   shouldShowGuestClaimPrompt,
@@ -91,6 +92,38 @@ test('getAuthAccessState maps authenticated users with the wrong GitHub identity
       approvedGithubProviderId: 'github-user-42',
     }),
     'signed-out',
+  )
+})
+
+test('getAuthSyncAccess strips synced credentials from denied authenticated users', () => {
+  assert.deepEqual(
+    getAuthSyncAccess({
+      isAuthenticated: true,
+      githubProviderId: 'github-user-99',
+      approvedGithubProviderId: 'github-user-42',
+      userId: 'user-denied',
+      accessToken: 'token-denied',
+    }),
+    {
+      accessState: 'denied',
+      userId: null,
+      accessToken: null,
+    },
+  )
+
+  assert.deepEqual(
+    getAuthSyncAccess({
+      isAuthenticated: true,
+      githubProviderId: 'github-user-42',
+      approvedGithubProviderId: 'github-user-42',
+      userId: 'user-approved',
+      accessToken: 'token-approved',
+    }),
+    {
+      accessState: 'approved',
+      userId: 'user-approved',
+      accessToken: 'token-approved',
+    },
   )
 })
 

@@ -7,7 +7,7 @@ import {
 
 type BuildTodoOverlayOptions = {
   confirmedTodos: Todo[]
-  pendingMutations: PendingMutationEntry[]
+  pendingMutations: readonly PendingMutationEntry[]
 }
 
 function toTodoMap(todos: Todo[]) {

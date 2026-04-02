@@ -1,28 +1,30 @@
+import { computed } from 'vue'
+
 import { useTodoData } from './useTodoData'
+import { useTodoMutations } from './useTodoMutations'
 import { useTodoSync } from './useTodoSync'
+
+export type TodoMigrationStatus = 'none' | 'legacy-guest-pending'
 
 export function useElectricTodos() {
   const todoData = useTodoData()
   const todoSync = useTodoSync()
+  const todoMutations = useTodoMutations()
 
   return {
-    addTodo: todoData.todos.add,
-    archiveTodo: todoData.todos.archive,
-    canRetrySync: todoSync.canRetrySync,
-    claimGuestTodos: todoData.guestClaim.claim,
-    claimPromptVisible: todoData.guestClaim.visible,
-    deleteTodo: todoData.todos.remove,
-    guestTodoCount: todoData.guestClaim.guestTodoCount,
-    isMigrating: todoSync.isSyncing,
+    addTodo: todoMutations.createTodo,
+    deleteTodo: todoMutations.deleteTodo,
     isOnline: todoData.connectivity.isOnline,
     isReady: todoData.connectivity.isReady,
-    keepGuestTodosSeparate: todoData.guestClaim.keepSeparate,
-    lastSyncedAt: todoSync.lastSyncedAt,
-    localTodosCount: todoData.todos.count,
-    needsSync: todoSync.needsSync,
-    syncStatus: todoSync.status,
-    todos: todoData.todos.list,
-    toggleTodoDone: todoData.todos.toggleDone,
-    updateTodo: todoData.todos.update,
+    restoreTodo: todoMutations.restoreTodo,
+    statuses: {
+      degraded: todoSync.degradedStatus,
+      migration: computed<TodoMigrationStatus>(() =>
+        todoData.legacyGuest.hasGuestTodos.value ? 'legacy-guest-pending' : 'none',
+      ),
+      sync: todoSync.syncStatus,
+    },
+    todos: todoData.readModel.todos,
+    updateTodo: todoMutations.updateTodo,
   }
 }
