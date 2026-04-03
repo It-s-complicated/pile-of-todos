@@ -68,11 +68,5 @@ async function handleSignOut() {
     >
       {{ authError }}
     </p>
-    <p
-      v-else-if="accessState === 'approved'"
-      class="rounded-lg border border-success/20 bg-success-light px-3 py-2 text-xs text-success-dark"
-    >
-      Account sync is enabled for this GitHub identity.
-    </p>
   </div>
 </template>
