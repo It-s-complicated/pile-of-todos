@@ -151,6 +151,15 @@ test('useTodoSync retries queued work through the shared mutation dispatcher', a
   assert.equal(flushPendingMutations.mock.calls.length, 1)
 })
 
+test('useTodoSync keeps ordinary sending writes out of the syncing state', async () => {
+  pendingMutations.value = [createPendingMutation('sending')]
+  const { useTodoSync } = await import('./useTodoSync')
+
+  const sync = useTodoSync()
+
+  assert.equal(sync.syncStatus.value, 'synced')
+})
+
 test('useTodoSync does not keep accepted work in the syncing state while it only awaits confirmation', async () => {
   pendingMutations.value = [createPendingMutation('accepted-awaiting-sync')]
   flushPendingMutations.mockImplementation(() => new Promise<boolean>(() => {}))

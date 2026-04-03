@@ -53,14 +53,6 @@ const statusConfig = computed(() => {
     }
   }
 
-  if (statuses.sync.value === 'syncing') {
-    return {
-      dotClass: 'bg-yellow-500 animate-pulse',
-      text: 'Syncing...',
-      textClass: 'text-yellow-600',
-    }
-  }
-
   if (statuses.sync.value === 'paused') {
     return {
       dotClass: 'bg-gray-400',

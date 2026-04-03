@@ -9,7 +9,7 @@ import {
 import { useTodoData } from './useTodoData.ts'
 import { useTodoMutations } from './useTodoMutations.ts'
 
-export type TodoSyncStatus = 'paused' | 'syncing' | 'synced'
+export type TodoSyncStatus = 'paused' | 'synced'
 export type TodoDegradedStatus =
   | 'none'
   | 'retryable-error'
@@ -76,9 +76,6 @@ export function useTodoSync(): TodoSyncState {
 
     return 'none'
   })
-  const hasInFlightDelivery = computed(() =>
-    pendingStatuses.value.some((status) => status === 'sending'),
-  )
   const syncStatus = computed<TodoSyncStatus>(() => {
     if (
       !todoData.sync.controller.transportState.value.canSend ||
@@ -87,10 +84,6 @@ export function useTodoSync(): TodoSyncState {
       hasRetryablePendingWork(pendingStatuses.value)
     ) {
       return 'paused'
-    }
-
-    if (hasInFlightDelivery.value) {
-      return 'syncing'
     }
 
     return 'synced'
