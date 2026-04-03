@@ -11,6 +11,12 @@ interface ImportMetaEnv {
   /** Electric read/sync endpoint used directly by the browser client. */
   readonly VITE_ELECTRIC_SHAPE_URL: string
 
+  /** Electric Cloud source identifier for the browser read endpoint. */
+  readonly VITE_ELECTRIC_SOURCE_ID: string
+
+  /** Electric Cloud secret paired with the source identifier. */
+  readonly VITE_ELECTRIC_SECRET: string
+
   /** Stable browser/device identifier attached to client mutation intents. */
   readonly VITE_DEVICE_ID: string
 
