@@ -1,5 +1,5 @@
 import { nextTick, ref } from 'vue'
-import { assert, test, vi } from 'vite-plus/test'
+import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
 import {
   createPendingMutationStorage,
@@ -7,6 +7,16 @@ import {
 } from '@/lib/pending-mutation-storage'
 import type { AuthAccessState } from '@/lib/auth-allowlist'
 import type { PendingMutationEntry } from '@/lib/pending-mutation-storage'
+
+const removeConfirmedPromotedStagedTodos = vi.fn()
+
+vi.mock('@/lib/todo-storage', () => ({
+  removeConfirmedPromotedStagedTodos,
+}))
+
+beforeEach(() => {
+  removeConfirmedPromotedStagedTodos.mockReset()
+})
 
 vi.mock('./useAuth', () => ({
   useAuth: () => ({
@@ -204,4 +214,155 @@ test('useTodoSyncController clears requires-reauth when the same approved user r
 
   assert.equal(controller.transportState.value.requiresReauth, false)
   assert.equal(controller.transportState.value.canSend, true)
+})
+
+test('useTodoSyncController removes staged migration rows only after reconciliation confirms promoted creates', async () => {
+  const { useTodoSyncController } = await import('./useTodoSyncController')
+  const storage = createPendingMutationStorage({ storage: createMemoryStorage() })
+  const controller = useTodoSyncController({
+    storage,
+    auth: {
+      accessState: ref('approved'),
+      isAuthReady: ref(true),
+      userId: ref<string | null>('user-a'),
+    },
+    network: {
+      isOnline: ref(true),
+    },
+  })
+
+  controller.recordPendingMutation({
+    ...createPendingEntry(getPendingMutationPartitionKey('user-a')),
+    accepted: {
+      mutationId: 'mutation-a',
+      todoId: '11111111-1111-4111-8111-111111111111',
+      txid: '42',
+    },
+    optimisticTodo: {
+      id: '11111111-1111-4111-8111-111111111111',
+      label: 'Pending todo',
+      weekNumber: 12,
+      done: false,
+      archived: false,
+      createdAt: 10,
+      updatedAt: 10,
+      deviceId: 'device-1',
+      userId: 'user-a',
+      deletedAt: null,
+    },
+    status: 'accepted-awaiting-sync',
+  })
+
+  controller.confirmTxid('42')
+  controller.reconcileWithConfirmedTodos([
+    {
+      id: '11111111-1111-4111-8111-111111111111',
+      label: 'Pending todo',
+      weekNumber: 12,
+      done: false,
+      archived: false,
+      createdAt: 10,
+      updatedAt: 10,
+      deviceId: 'device-1',
+      userId: 'user-a',
+      deletedAt: null,
+    },
+  ])
+
+  assert.deepEqual(removeConfirmedPromotedStagedTodos.mock.calls[0], [
+    { confirmedTodoIds: ['11111111-1111-4111-8111-111111111111'] },
+  ])
+})
+
+test('useTodoSyncController does not clean staged migration rows for accepted work that is still awaiting sync', async () => {
+  const { useTodoSyncController } = await import('./useTodoSyncController')
+  const storage = createPendingMutationStorage({ storage: createMemoryStorage() })
+  const controller = useTodoSyncController({
+    storage,
+    auth: {
+      accessState: ref('approved'),
+      isAuthReady: ref(true),
+      userId: ref<string | null>('user-a'),
+    },
+    network: {
+      isOnline: ref(true),
+    },
+  })
+
+  controller.recordPendingMutation({
+    ...createPendingEntry(getPendingMutationPartitionKey('user-a')),
+    accepted: {
+      mutationId: 'mutation-a',
+      todoId: '11111111-1111-4111-8111-111111111111',
+      txid: '42',
+    },
+    status: 'accepted-awaiting-sync',
+  })
+
+  controller.reconcileWithConfirmedTodos([])
+
+  assert.equal(removeConfirmedPromotedStagedTodos.mock.calls.length, 0)
+})
+
+test('useTodoSyncController still cleans staged migration rows after reload once later confirmation arrives', async () => {
+  const { useTodoSyncController } = await import('./useTodoSyncController')
+  const storage = createPendingMutationStorage({ storage: createMemoryStorage() })
+  const partitionKey = getPendingMutationPartitionKey('user-a')
+
+  storage.save({
+    ...createPendingEntry(partitionKey),
+    accepted: {
+      mutationId: 'mutation-a',
+      todoId: '11111111-1111-4111-8111-111111111111',
+      txid: '42',
+    },
+    optimisticTodo: {
+      id: '11111111-1111-4111-8111-111111111111',
+      label: 'Pending todo',
+      weekNumber: 12,
+      done: false,
+      archived: false,
+      createdAt: 10,
+      updatedAt: 10,
+      deviceId: 'device-1',
+      userId: 'user-a',
+      deletedAt: null,
+    },
+    status: 'accepted-awaiting-sync',
+  })
+
+  const controller = useTodoSyncController({
+    storage,
+    auth: {
+      accessState: ref('approved'),
+      isAuthReady: ref(true),
+      userId: ref<string | null>('user-a'),
+    },
+    network: {
+      isOnline: ref(true),
+    },
+  })
+
+  controller.reconcileWithConfirmedTodos([])
+  assert.equal(removeConfirmedPromotedStagedTodos.mock.calls.length, 0)
+
+  controller.confirmTxid('42')
+  controller.reconcileWithConfirmedTodos([
+    {
+      id: '11111111-1111-4111-8111-111111111111',
+      label: 'Pending todo',
+      weekNumber: 12,
+      done: false,
+      archived: false,
+      createdAt: 10,
+      updatedAt: 10,
+      deviceId: 'device-1',
+      userId: 'user-a',
+      deletedAt: null,
+    },
+  ])
+
+  assert.deepEqual(removeConfirmedPromotedStagedTodos.mock.calls[0], [
+    { confirmedTodoIds: ['11111111-1111-4111-8111-111111111111'] },
+  ])
 })

@@ -208,6 +208,26 @@ test('buildTodoMutationIntent leaves ownership derivation to the database contra
   assert.equal('user_id' in deleteIntent, false)
 })
 
+test('buildTodoMutationIntent keeps the same mutation id across client retry attempts', () => {
+  const firstAttempt = buildTodoMutationIntent({
+    todo: baseTodo,
+    remoteTodo: undefined,
+    activeUserId: '33333333-3333-4333-8333-333333333333',
+    fallbackDeviceId: 'device-1',
+  })
+
+  const retryAttempt = buildTodoMutationIntent({
+    todo: baseTodo,
+    remoteTodo: undefined,
+    activeUserId: '33333333-3333-4333-8333-333333333333',
+    fallbackDeviceId: 'device-9',
+  })
+
+  assert.equal(firstAttempt.todoId, retryAttempt.todoId)
+  assert.equal(firstAttempt.mutationId, retryAttempt.mutationId)
+  assert.notEqual(firstAttempt.client?.deviceId, retryAttempt.client?.deviceId)
+})
+
 test('submitTodoMutation calls the database RPC and normalizes the accepted txid', async () => {
   const rpcCalls: Array<{ fn: string; args: { intent: TodoMutationIntent } }> = []
   const intent = buildTodoMutationIntent({

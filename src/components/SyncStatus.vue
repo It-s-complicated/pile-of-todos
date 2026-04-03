@@ -5,11 +5,27 @@ import { useSyncElectricTodos } from '@/composables/useSyncElectricTodos'
 const { canRetrySync, statuses, syncTodos } = useSyncElectricTodos()
 
 const statusConfig = computed(() => {
-  if (statuses.migration.value === 'legacy-guest-pending') {
+  if (statuses.migration.value === 'available') {
     return {
       dotClass: 'bg-amber-500',
-      text: 'Migration pending',
+      text: 'Migration ready',
       textClass: 'text-amber-700',
+    }
+  }
+
+  if (statuses.migration.value === 'promoting') {
+    return {
+      dotClass: 'bg-yellow-500 animate-pulse',
+      text: 'Migrating staged tasks',
+      textClass: 'text-yellow-600',
+    }
+  }
+
+  if (statuses.migration.value === 'declined') {
+    return {
+      dotClass: 'bg-gray-400',
+      text: 'Migration declined',
+      textClass: 'text-gray-500',
     }
   }
 

@@ -13,6 +13,7 @@ import type {
 } from '@/lib/pending-mutation-storage'
 import type { TodoMutationResponse } from '@/lib/todo-mutation-contract'
 import { reconcilePendingMutations } from '@/lib/todo-reconciliation'
+import { removeConfirmedPromotedStagedTodos } from '@/lib/todo-storage'
 
 import { useAuth } from './useAuth'
 import { useNetworkStatus } from './useNetworkStatus'
@@ -191,9 +192,10 @@ export function useTodoSyncController(options: UseTodoSyncControllerOptions = {}
     confirmedTodos: Parameters<typeof reconcilePendingMutations>[0]['confirmedTodos'],
     options: { afterResetRefetch?: boolean; now?: number } = {},
   ) {
+    const previousPendingMutations = pendingMutations.value
     const reconciledMutations = reconcilePendingMutations({
       confirmedTodos,
-      pendingMutations: pendingMutations.value,
+      pendingMutations: previousPendingMutations,
       confirmedTxids: confirmedTxids.value,
       afterResetRefetch: options.afterResetRefetch,
       now: options.now,
@@ -204,6 +206,22 @@ export function useTodoSyncController(options: UseTodoSyncControllerOptions = {}
     }
 
     reloadPendingMutations()
+
+    const newlyConfirmedTodoIds = reconciledMutations
+      .filter((mutation, index) => {
+        const previousMutation = previousPendingMutations[index]
+
+        return previousMutation?.status !== 'confirmed' && mutation.status === 'confirmed'
+      })
+      .map((mutation) => mutation.todoId)
+
+    if (newlyConfirmedTodoIds.length === 0) {
+      return
+    }
+
+    removeConfirmedPromotedStagedTodos({
+      confirmedTodoIds: newlyConfirmedTodoIds,
+    })
   }
 
   function quarantineActivePartition(reason: 'user-switched', now = Date.now()) {

@@ -1,5 +1,5 @@
-import { useElectricTodos } from './useElectricTodos'
-import { useTodoSync } from './useTodoSync'
+import { useElectricTodos } from './useElectricTodos.ts'
+import { useTodoSync } from './useTodoSync.ts'
 
 export function useSyncElectricTodos() {
   const { statuses } = useElectricTodos()

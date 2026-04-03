@@ -1,7 +1,7 @@
 ---
 status: in-progress
-phase: 4
-updated: 2026-04-02
+phase: 5
+updated: 2026-04-03
 ---
 
 # Implementation Plan
@@ -43,16 +43,16 @@ Replace the current dual local/remote sync coupling with one Supabase-backed cli
 - [x] 3.4 Add the new sync/degraded/migration status model to the client composables (`src/composables/useElectricTodos.ts`, `src/composables/useSyncElectricTodos.ts`) and update their exposed API accordingly
 - [x] 3.5 Update UI consumers (`src/components/SyncStatus.vue`, `src/components/TodoList.vue`, `src/App.vue`, and any affected views) to consume the merged read model and render the new structured statuses without local-vs-remote branching
 
-## Phase 4: Migration, Export, and Cleanup [PENDING]
-- [ ] 4.1 Update `src/lib/todo-storage.ts` and `src/composables/useDataExport.ts` so legacy guest/account buckets become migration input only, flow through the pre-auth guest migration partition, and leave the merged synced view only after confirmed migration
-- [ ] 4.2 Reduce or delete obsolete helpers in `src/composables/useTodos.ts`, `src/composables/useCloudSync.ts`, and any dead branches in `src/db/collections.ts` that preserve the old local-storage-authoritative model
-- [ ] 4.3 Extend tests in `src/lib/todo-sync.test.ts`, `src/lib/todo-storage.test.ts`, and the new ledger/overlay/reconciliation tests to cover: offline create, retry idempotency, Electric `409` reset, auth refresh vs user switch, pending remote conflict, and accepted-but-unconfirmed invariant violation
+## Phase 4: Migration, Export, and Cleanup [DONE]
+- [x] 4.1 Update `src/lib/todo-storage.ts` and `src/composables/useDataExport.ts` so legacy guest/account buckets become migration input only, flow through the pre-auth guest migration partition, support durable available/promoting/declined migration state plus stable promoted UUID mapping, and leave the merged synced view only after reconciliation-confirmed migration cleanup
+- [x] 4.2 Reduce or delete obsolete helpers in `src/composables/useTodos.ts`, `src/composables/useCloudSync.ts`, and any dead branches in `src/db/collections.ts` that preserve the old local-storage-authoritative model
+- [x] 4.3 Extend tests in `src/lib/todo-sync.test.ts`, `src/lib/todo-storage.test.ts`, and the new ledger/overlay/reconciliation tests to cover: offline create, retry idempotency, Electric `409` reset, auth refresh vs user switch, pending remote conflict, and accepted-but-unconfirmed invariant violation
 
-## Phase 5: Verification and Documentation [PENDING]
-- [ ] 5.1 Run `vp check` and fix any lint/type/format regressions introduced by the refactor
-- [ ] 5.2 Run `vp test` and fix failing library tests until the sync-specific suite passes on the new architecture
-- [ ] 5.3 Run `vp build` to verify the app still type-checks and produces a production bundle for the updated frontend-only Supabase/Electric architecture
-- [ ] 5.4 Update `README.md` troubleshooting/status language to match the final runtime behavior and record any operator-facing degraded-state guidance discovered during implementation
+## Phase 5: Verification and Documentation [DONE]
+- [x] 5.1 Run `vp check` and fix any lint/type/format regressions introduced by the refactor
+- [x] 5.2 Run `vp test` and fix failing library tests until the sync-specific suite passes on the new architecture
+- [x] 5.3 Run `vp build` to verify the app still type-checks and produces a production bundle for the updated frontend-only Supabase/Electric architecture
+- [x] 5.4 Update `README.md` troubleshooting/status language to match the final runtime behavior and record any operator-facing degraded-state guidance discovered during implementation
 
 ## Notes
 - 2026-03-31: The existing repo is frontend-only today, and the approved direction keeps it that way; Phase 1 is therefore a client-contract phase, not server bootstrap work
@@ -66,4 +66,7 @@ Replace the current dual local/remote sync coupling with one Supabase-backed cli
 - 2026-04-01: Phase 2 intentionally leaves the legacy fingerprint/push orchestration in `src/composables/useTodoSync.ts` as a temporary Phase 3 compatibility seam; the completed Phase 2 work is the new data-layer split and controller/read-model foundation, not the final public switchover
 - 2026-04-02: Phase 3 is complete: `useTodoMutations` is now the effective public CRUD write surface, with queued ledger entries, direct Supabase mutation submission, txid waiting, and confirmed-baseline reconciliation all routed through one client contract
 - 2026-04-02: `useTodoData` / `useTodoSync` now sit on top of the read-model + controller split from Phase 2 instead of the legacy fingerprint/local-authoritative flow, and the UI reads the merged model plus structured `sync` / `degraded` / `migration` statuses via `useElectricTodos` and `useSyncElectricTodos`
-- 2026-04-02: Import/export remains intentionally disabled until Phase 4 wires migration/export onto the ledger-backed model, while Phase 3 completion also restored denied-account gating and strengthened txid confirmation, reauth pause/retry, and Electric reset-refetch handling
+- 2026-04-02: Phase 3 completion also restored denied-account gating and strengthened txid confirmation, reauth pause/retry, and Electric reset-refetch handling while Phase 4 remained responsible for durable migration promotion/decline/cleanup
+- 2026-04-02: Phase 4.1 is now complete: legacy guest/account buckets hydrate one durable migration-input state, imports stage into that same store, signed-out create remains blocked, keep/decline actions are exposed in the UI, promotion reuses the normal queued create mutation path with stable UUID mapping, and staged rows are removed only after reconciliation confirms the promoted creates
+- 2026-04-02: Phase 4.2 remains complete: dead local-storage-authoritative helpers were removed from `src/db/collections.ts` and `src/composables/useCloudSync.ts`
+- 2026-04-03: Phase 4.3 is now complete: the remaining explicit coverage was added for client retry mutation-id idempotency in `src/lib/todo-sync.test.ts` and same-field pending-vs-Electric conflict preservation in `src/lib/todo-overlay.test.ts`

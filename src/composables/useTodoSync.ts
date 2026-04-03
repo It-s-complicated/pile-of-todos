@@ -6,8 +6,8 @@ import {
   subscribeToConfirmedTodosTruncate,
 } from '@/db/confirmed-todos'
 
-import { useTodoData } from './useTodoData'
-import { useTodoMutations } from './useTodoMutations'
+import { useTodoData } from './useTodoData.ts'
+import { useTodoMutations } from './useTodoMutations.ts'
 
 export type TodoSyncStatus = 'paused' | 'syncing' | 'synced'
 export type TodoDegradedStatus =

@@ -6,6 +6,11 @@ import {
 } from '@/lib/pending-mutation-storage'
 import type { PendingMutationEntry } from '@/lib/pending-mutation-storage'
 import { parseTodoMutationIntent } from '@/lib/todo-mutation-contract'
+import {
+  ensureStagedTodoPromotionId,
+  markStagedMigrationPromoting,
+  readTodoMigrationState,
+} from '@/lib/todo-storage'
 import { getSupabaseClient } from '@/lib/supabase'
 import {
   TodoMutationSubmitError,
@@ -38,10 +43,10 @@ function buildAuthenticatedUpdateIntent(todo: Todo, activeUserId: string) {
   })
 }
 
-function buildDeleteMutationId(todo: Todo, activeUserId: string | null) {
+function buildDeleteMutationId(todo: Todo, activeUserId: string) {
   const idSegments = [
-    activeUserId ? 'todo-mutation' : 'guest-mutation',
-    ...(activeUserId ? [activeUserId] : []),
+    'todo-mutation',
+    activeUserId,
     todo.id,
     'delete',
     String(todo.updatedAt),
@@ -51,7 +56,7 @@ function buildDeleteMutationId(todo: Todo, activeUserId: string | null) {
   return idSegments.join(':')
 }
 
-function buildDeleteMutationIntent(todo: Todo, activeUserId: string | null) {
+function buildDeleteMutationIntent(todo: Todo, activeUserId: string) {
   return parseTodoMutationIntent({
     kind: 'delete',
     mutationId: buildDeleteMutationId(todo, activeUserId),
@@ -60,68 +65,6 @@ function buildDeleteMutationIntent(todo: Todo, activeUserId: string | null) {
       deviceId: todo.deviceId ?? getCurrentDeviceId(),
     },
     values: {
-      deletedAt: todo.deletedAt,
-      updatedAt: todo.updatedAt,
-    },
-  })
-}
-
-function buildGuestMutationIntent(todo: Todo, kind: 'create' | 'update' | 'delete') {
-  const mutationId = [
-    'guest-mutation',
-    todo.id,
-    kind,
-    String(todo.updatedAt),
-    String(todo.deletedAt ?? todo.createdAt),
-  ].join(':')
-
-  if (kind === 'create') {
-    return parseTodoMutationIntent({
-      kind: 'create',
-      mutationId,
-      todoId: todo.id,
-      client: {
-        deviceId: todo.deviceId ?? getCurrentDeviceId(),
-      },
-      values: {
-        label: todo.label,
-        weekNumber: todo.weekNumber,
-        done: todo.done,
-        archived: todo.archived,
-        createdAt: todo.createdAt,
-        updatedAt: todo.updatedAt,
-        deletedAt: null,
-      },
-    })
-  }
-
-  if (kind === 'delete') {
-    return parseTodoMutationIntent({
-      kind: 'delete',
-      mutationId,
-      todoId: todo.id,
-      client: {
-        deviceId: todo.deviceId ?? getCurrentDeviceId(),
-      },
-      values: {
-        deletedAt: todo.deletedAt,
-        updatedAt: todo.updatedAt,
-      },
-    })
-  }
-
-  return parseTodoMutationIntent({
-    kind: 'update',
-    mutationId,
-    todoId: todo.id,
-    client: {
-      deviceId: todo.deviceId ?? getCurrentDeviceId(),
-    },
-    values: {
-      label: todo.label,
-      weekNumber: todo.weekNumber,
-      done: todo.done,
-      archived: todo.archived,
       deletedAt: todo.deletedAt,
       updatedAt: todo.updatedAt,
     },
@@ -151,6 +94,14 @@ function isBlockingPendingCreate(entry: PendingMutationEntry) {
   return entry.kind === 'create' && ['sending', 'accepted-awaiting-sync'].includes(entry.status)
 }
 
+function getRequiredActiveUserId(activeUserId: string | null, action: string) {
+  if (!activeUserId) {
+    throw new Error(`Cannot ${action} without an approved account`)
+  }
+
+  return activeUserId
+}
+
 let sharedTodoMutations: ReturnType<typeof createTodoMutations> | null = null
 
 function createTodoMutations() {
@@ -167,7 +118,7 @@ function createTodoMutations() {
   }
 
   function createDeleteEntry(optimisticTodo: Todo): PendingMutationEntry {
-    const activeUserId = todoData.auth.activeUserId.value
+    const activeUserId = getRequiredActiveUserId(todoData.auth.activeUserId.value, 'delete a todo')
     const intent = buildDeleteMutationIntent(optimisticTodo, activeUserId)
 
     return {
@@ -184,10 +135,8 @@ function createTodoMutations() {
   }
 
   function createUpdateEntry(optimisticTodo: Todo): PendingMutationEntry {
-    const activeUserId = todoData.auth.activeUserId.value
-    const intent = activeUserId
-      ? buildAuthenticatedUpdateIntent(optimisticTodo, activeUserId)
-      : buildGuestMutationIntent(optimisticTodo, 'update')
+    const activeUserId = getRequiredActiveUserId(todoData.auth.activeUserId.value, 'update a todo')
+    const intent = buildAuthenticatedUpdateIntent(optimisticTodo, activeUserId)
 
     return {
       mutationId: intent.mutationId,
@@ -203,20 +152,17 @@ function createTodoMutations() {
   }
 
   function createPendingEntry(optimisticTodo: Todo, kindHint?: 'create' | 'update' | 'delete') {
-    const activeUserId = todoData.auth.activeUserId.value
+    const activeUserId = getRequiredActiveUserId(
+      todoData.auth.activeUserId.value,
+      kindHint === 'create' ? 'create a todo' : 'queue a todo mutation',
+    )
     const confirmedTodo = getConfirmedTodo(optimisticTodo.id)
-    const intent = activeUserId
-      ? buildTodoMutationIntent({
-          todo: optimisticTodo,
-          remoteTodo: confirmedTodo,
-          activeUserId,
-          fallbackDeviceId: getCurrentDeviceId(),
-        })
-      : buildGuestMutationIntent(
-          optimisticTodo,
-          kindHint ??
-            (confirmedTodo ? (optimisticTodo.deletedAt === null ? 'update' : 'delete') : 'create'),
-        )
+    const intent = buildTodoMutationIntent({
+      todo: optimisticTodo,
+      remoteTodo: confirmedTodo,
+      activeUserId,
+      fallbackDeviceId: getCurrentDeviceId(),
+    })
 
     return {
       mutationId: intent.mutationId,
@@ -353,6 +299,7 @@ function createTodoMutations() {
   }
 
   function createTodo(label: string, weekNumber: number | null) {
+    const activeUserId = getRequiredActiveUserId(todoData.auth.activeUserId.value, 'create a todo')
     const now = Date.now()
     const optimisticTodo: Todo = {
       id: crypto.randomUUID(),
@@ -363,12 +310,49 @@ function createTodoMutations() {
       createdAt: now,
       updatedAt: now,
       deviceId: getCurrentDeviceId(),
-      userId: todoData.auth.activeUserId.value,
+      userId: activeUserId,
       deletedAt: null,
     }
 
     queueMutation(createPendingEntry(optimisticTodo, 'create'))
     return optimisticTodo.id
+  }
+
+  function keepStagedMigrationTodos() {
+    const activeUserId = getRequiredActiveUserId(
+      todoData.auth.activeUserId.value,
+      'keep staged migration todos',
+    )
+    const migrationState = readTodoMigrationState()
+
+    if (migrationState.status !== 'available') {
+      return []
+    }
+
+    const visibleStagedTodos = migrationState.stagedTodos.filter(
+      (stagedTodo) => stagedTodo.deletedAt === null,
+    )
+
+    if (visibleStagedTodos.length === 0) {
+      return []
+    }
+
+    const queuedTodoIds = visibleStagedTodos.map((stagedTodo) => {
+      const promotedTodoId = ensureStagedTodoPromotionId({
+        stagedTodoId: stagedTodo.id,
+      })
+      const optimisticTodo: Todo = {
+        ...stagedTodo,
+        id: promotedTodoId,
+        userId: activeUserId,
+      }
+
+      queueMutation(createPendingEntry(optimisticTodo, 'create'))
+      return promotedTodoId
+    })
+
+    markStagedMigrationPromoting()
+    return queuedTodoIds
   }
 
   function updateTodo(id: string, updates: TodoUpdates) {
@@ -421,14 +405,6 @@ function createTodoMutations() {
     const pendingCreate = activePendingMutations.find((entry) => entry.kind === 'create')
     const pendingMutation = [...activePendingMutations].reverse()[0]
 
-    if (!confirmedTodo && todoData.auth.activeUserId.value === null) {
-      for (const mutation of activePendingMutations) {
-        todoData.sync.controller.removePendingMutation(mutation)
-      }
-
-      return
-    }
-
     if (!confirmedTodo && pendingCreate && isCancelablePendingCreate(pendingCreate)) {
       todoData.sync.controller.removePendingMutation(pendingCreate)
       return
@@ -470,6 +446,7 @@ function createTodoMutations() {
     createTodo,
     deleteTodo,
     flushPendingMutations,
+    keepStagedMigrationTodos,
     restoreTodo,
     updateTodo,
   }

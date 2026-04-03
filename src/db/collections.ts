@@ -1,7 +1,5 @@
 import type { InferOutput } from 'valibot'
-import { createCollection, localStorageCollectionOptions } from '@tanstack/vue-db'
 import { env } from '@/lib/env'
-import { getActiveStorageKey } from '@/lib/todo-storage'
 import {
   boolean,
   maxLength,
@@ -52,52 +50,11 @@ export const VALID_FILTERS: TodoFilter[] = [
   'finished',
 ]
 
-function createLocalTodosCollection(storageKey: string) {
-  return createCollection(
-    localStorageCollectionOptions({
-      id: `local-todos-${storageKey.replace(/[^a-z0-9:]+/gi, '-')}`,
-      storageKey,
-      getKey: (item) => item.id,
-      schema: todoSchema,
-    }),
-  )
-}
-
-const localCollectionCache = new Map<string, ReturnType<typeof createLocalTodosCollection>>()
-
-export function getLocalTodosCollection(userId: string | null) {
-  const storageKey = getActiveStorageKey(userId)
-  const existingCollection = localCollectionCache.get(storageKey)
-
-  if (existingCollection) {
-    return existingCollection
-  }
-
-  const collection = createLocalTodosCollection(storageKey)
-  localCollectionCache.set(storageKey, collection)
-  return collection
-}
-
-export const localTodosCollection = getLocalTodosCollection(null)
-
-// Keep original export for backward compatibility during migration
-export const todosCollection = localTodosCollection
-
 /**
  * Gets the device ID for tracking which device created/modified todos
  */
 function getDeviceId(): string {
   return env.deviceId
-}
-
-// Always read/write from local storage so todos remain available offline.
-// Cloud sync runs separately and reconciles with the active local bucket.
-export function getActiveCollection(userId: string | null = null) {
-  return getLocalTodosCollection(userId)
-}
-
-export function getGuestCollection() {
-  return localTodosCollection
 }
 
 // Helper to get device ID for tracking

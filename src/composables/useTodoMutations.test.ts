@@ -29,6 +29,9 @@ const awaitTxId = vi.fn(async () => true)
 const getPendingMutation = vi.fn()
 const removePendingMutation = vi.fn()
 const replacePendingMutation = vi.fn()
+const readTodoMigrationState = vi.fn()
+const ensureStagedTodoPromotionId = vi.fn()
+const markStagedMigrationPromoting = vi.fn()
 
 function updatePendingMutationState(
   reference: { partitionKey: string; mutationId: string },
@@ -100,6 +103,12 @@ vi.mock('@/db/confirmed-todos', () => ({
   }),
 }))
 
+vi.mock('@/lib/todo-storage', () => ({
+  ensureStagedTodoPromotionId,
+  markStagedMigrationPromoting,
+  readTodoMigrationState,
+}))
+
 beforeEach(() => {
   vi.resetModules()
   recordPendingMutation.mockReset()
@@ -115,6 +124,9 @@ beforeEach(() => {
   getPendingMutation.mockReset()
   removePendingMutation.mockReset()
   replacePendingMutation.mockReset()
+  readTodoMigrationState.mockReset()
+  ensureStagedTodoPromotionId.mockReset()
+  markStagedMigrationPromoting.mockReset()
   activeUserId.value = 'user-a'
   confirmedTodos.value = []
   pendingMutations.value = []
@@ -131,6 +143,16 @@ beforeEach(() => {
       mutationId: entry.mutationId,
       partitionKey: entry.partitionKey,
     }
+    readTodoMigrationState.mockReturnValue({
+      promotedTodoIdsBySourceId: {},
+      stagedTodos: [],
+      status: 'none',
+    })
+    ensureStagedTodoPromotionId.mockImplementation(({ stagedTodoId }) =>
+      stagedTodoId === 'legacy-active'
+        ? '11111111-1111-4111-8111-111111111111'
+        : '22222222-2222-4222-8222-222222222222',
+    )
   })
   getPendingMutation.mockImplementation(
     (reference) =>
@@ -312,7 +334,7 @@ test('useTodoMutations leaves optimistic work queued when transport cannot send'
   assert.equal(rpc.mock.calls.length, 0)
 })
 
-test('useTodoMutations cancels a guest optimistic create when it is deleted before confirmation', async () => {
+test('useTodoMutations rejects signed-out create because guest CRUD is migration-only', async () => {
   activeUserId.value = null
   transportState.value = {
     canSend: false,
@@ -324,13 +346,9 @@ test('useTodoMutations cancels a guest optimistic create when it is deleted befo
 
   const { useTodoMutations } = await import('./useTodoMutations')
 
-  const mutations = useTodoMutations()
-  const todoId = mutations.createTodo('Guest draft', null)
-  mutations.deleteTodo(todoId)
+  assert.throws(() => useTodoMutations().createTodo('Guest draft', null), /approved account/i)
 
-  await Promise.resolve()
-
-  assert.equal(pendingMutations.value.length, 0)
+  assert.equal(recordPendingMutation.mock.calls.length, 0)
   assert.equal(rpc.mock.calls.length, 0)
 })
 
@@ -616,8 +634,7 @@ test('useTodoMutations preserves accepted create txid metadata and queues a foll
   )
 })
 
-test('useTodoMutations collapses a guest create update delete chain with no confirmed baseline', async () => {
-  activeUserId.value = null
+test('useTodoMutations promotes staged migration rows through normal queued create intents', async () => {
   transportState.value = {
     canSend: false,
     hasInvariantViolations: false,
@@ -625,13 +642,137 @@ test('useTodoMutations collapses a guest create update delete chain with no conf
     isOnline: false,
     requiresReauth: false,
   }
+  readTodoMigrationState.mockReturnValue({
+    promotedTodoIdsBySourceId: {},
+    stagedTodos: [
+      {
+        id: 'legacy-a',
+        label: 'Imported legacy todo',
+        weekNumber: 14,
+        done: false,
+        archived: false,
+        createdAt: 10,
+        updatedAt: 20,
+        deviceId: null,
+        userId: null,
+        deletedAt: null,
+      },
+    ],
+    status: 'available',
+  })
+  ensureStagedTodoPromotionId.mockReturnValue('11111111-1111-4111-8111-111111111111')
 
   const { useTodoMutations } = await import('./useTodoMutations')
 
-  const mutations = useTodoMutations()
-  const todoId = mutations.createTodo('Guest draft', null)
-  mutations.updateTodo(todoId, { label: 'Guest revision' })
-  mutations.deleteTodo(todoId)
+  const queuedTodoIds = useTodoMutations().keepStagedMigrationTodos()
 
-  assert.deepEqual(pendingMutations.value, [])
+  assert.deepEqual(queuedTodoIds, ['11111111-1111-4111-8111-111111111111'])
+  assert.equal(markStagedMigrationPromoting.mock.calls.length, 1)
+  assert.equal(recordPendingMutation.mock.calls.length, 1)
+  assert.equal(recordPendingMutation.mock.calls[0]?.[0].intent.kind, 'create')
+  assert.equal(
+    recordPendingMutation.mock.calls[0]?.[0].todoId,
+    '11111111-1111-4111-8111-111111111111',
+  )
+  assert.equal(
+    recordPendingMutation.mock.calls[0]?.[0].optimisticTodo?.label,
+    'Imported legacy todo',
+  )
+  assert.equal(rpc.mock.calls.length, 0)
+})
+
+test('useTodoMutations reuses stable promoted ids and does not clean staged data on acceptance alone', async () => {
+  readTodoMigrationState.mockReturnValue({
+    promotedTodoIdsBySourceId: {
+      'legacy-a': '11111111-1111-4111-8111-111111111111',
+    },
+    stagedTodos: [
+      {
+        id: 'legacy-a',
+        label: 'Imported legacy todo',
+        weekNumber: null,
+        done: false,
+        archived: false,
+        createdAt: 10,
+        updatedAt: 20,
+        deviceId: null,
+        userId: null,
+        deletedAt: null,
+      },
+    ],
+    status: 'available',
+  })
+  ensureStagedTodoPromotionId.mockReturnValue('11111111-1111-4111-8111-111111111111')
+
+  const { useTodoMutations } = await import('./useTodoMutations')
+
+  const queuedTodoIds = useTodoMutations().keepStagedMigrationTodos()
+
+  await Promise.resolve()
+  await Promise.resolve()
+  await Promise.resolve()
+
+  assert.deepEqual(queuedTodoIds, ['11111111-1111-4111-8111-111111111111'])
+  assert.equal(ensureStagedTodoPromotionId.mock.calls[0]?.[0].stagedTodoId, 'legacy-a')
+  assert.equal(
+    recordPendingMutation.mock.calls[0]?.[0].todoId,
+    '11111111-1111-4111-8111-111111111111',
+  )
+  assert.equal(acceptMutation.mock.calls.length, 1)
+  assert.equal(markStagedMigrationPromoting.mock.calls.length, 1)
+})
+
+test('useTodoMutations skips deleted staged migration rows when promoting kept todos', async () => {
+  transportState.value = {
+    canSend: false,
+    hasInvariantViolations: false,
+    isAuthReady: true,
+    isOnline: false,
+    requiresReauth: false,
+  }
+  readTodoMigrationState.mockReturnValue({
+    promotedTodoIdsBySourceId: {},
+    stagedTodos: [
+      {
+        id: 'legacy-active',
+        label: 'Keep me',
+        weekNumber: 14,
+        done: false,
+        archived: false,
+        createdAt: 10,
+        updatedAt: 20,
+        deviceId: null,
+        userId: null,
+        deletedAt: null,
+      },
+      {
+        id: 'legacy-deleted',
+        label: 'Do not keep me',
+        weekNumber: null,
+        done: false,
+        archived: false,
+        createdAt: 11,
+        updatedAt: 21,
+        deviceId: null,
+        userId: null,
+        deletedAt: 999,
+      },
+    ],
+    status: 'available',
+  })
+  ensureStagedTodoPromotionId.mockImplementation(({ stagedTodoId }) =>
+    stagedTodoId === 'legacy-active'
+      ? '11111111-1111-4111-8111-111111111111'
+      : '22222222-2222-4222-8222-222222222222',
+  )
+
+  const { useTodoMutations } = await import('./useTodoMutations')
+
+  const queuedTodoIds = useTodoMutations().keepStagedMigrationTodos()
+
+  assert.deepEqual(queuedTodoIds, ['11111111-1111-4111-8111-111111111111'])
+  assert.equal(ensureStagedTodoPromotionId.mock.calls.length, 1)
+  assert.equal(ensureStagedTodoPromotionId.mock.calls[0]?.[0].stagedTodoId, 'legacy-active')
+  assert.equal(recordPendingMutation.mock.calls.length, 1)
+  assert.equal(recordPendingMutation.mock.calls[0]?.[0].optimisticTodo?.label, 'Keep me')
 })

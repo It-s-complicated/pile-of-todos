@@ -12,9 +12,9 @@ The runtime architecture is explicitly frontend-only:
 
 - Capture tasks into a backlog or assign them to upcoming week numbers.
 - Navigate focused list views: Backlog, Current Week, Future, Unfinished, Finished, and Archived.
-- Work fully offline with local persistence.
-- Export/import your todo dataset as JSON.
-- Optionally sync local changes to a shared cloud dataset when online.
+- For the approved signed-in account, keep working offline with queued mutations that sync later.
+- Import todo JSON into durable migration staging for review.
+- Sync the approved signed-in account against the shared cloud dataset when available.
 
 ## Environment variables
 
@@ -59,8 +59,8 @@ To integrate Supabase authentication correctly in this frontend-only app:
 5. Verify session behavior in the browser:
    - Sign in/out flows complete successfully.
    - Refreshing the page restores the user session.
-   - Sync status transitions out of **Local only** only when config, connectivity, and an authenticated session are all present.
-   - Todos created while signed out remain local-only until you explicitly claim or migrate them.
+   - Approved signed-in sessions can queue mutations offline and sync them after connectivity returns.
+   - Signed-out runtime is migration-only: review staged tasks, then sign in with the approved account to keep them.
 6. Keep using Supabase Auth in the frontend until a backend exists; do not add better-auth client/server packages at this stage.
 
 ## Sync architecture summary
@@ -73,12 +73,12 @@ To integrate Supabase authentication correctly in this frontend-only app:
 
 ## GitHub auth single-user sync
 
-The app now keeps two local todo buckets:
+The app keeps durable migration staging plus one account-local pending/confirmed dataset per approved user:
 
-- guest todos in `ai-todo-app-todos-guest`
+- staged migration input in `ai-todo-app-todos-guest`
 - one account-local bucket per Supabase user id in `ai-todo-app-todos-user:<user-id>`
 
-Authenticated sync runs only for the approved GitHub account bucket. Guest todos stay local until the signed-in user either claims them into the account bucket or keeps them separate.
+Authenticated sync runs only for the approved GitHub account bucket. Signed-out sessions can review staged migration input, but creating or keeping todos requires the approved signed-in account.
 
 ### Supabase setup
 
@@ -95,28 +95,23 @@ Authenticated sync runs only for the approved GitHub account bucket. Guest todos
 - Use the GitHub identity `provider_id` as the row stored in `public.github_auth_allowlist`.
 - The database allowlist is the source of truth; the frontend env var is diagnostic only.
 
-### Guest claim flow
+### Migration staging flow
 
-- While signed out, new todos and imports go to the guest bucket and keep `userId = null`.
-- After the approved user signs in, the app pauses sync if guest todos exist and shows a one-time claim prompt.
-- Accepting the prompt rewrites guest rows to the current authenticated `userId`, moves them into the account bucket, and starts sync automatically.
-- Declining leaves the guest bucket intact and starts sync against the signed-in account bucket only.
-- Signing out returns the UI to the guest bucket without deleting the account-local cache.
+- Legacy local data and imported JSON are staged as migration input; import does not overwrite the active dataset.
+- While signed out, the app is migration-only: you can review staged tasks, but new todo creation is blocked.
+- After the approved user signs in, the app exposes **Keep staged tasks** and **Decline migration** actions.
+- Keeping staged tasks promotes them through the normal queued create flow and they appear in the merged view only after sync confirms them.
+- Declining migration leaves staged tasks quarantined outside the visible merged dataset.
 
 ## Scripts
 
-From `package.json`:
+Use Vite+ commands:
 
-- `npm run dev` — start Vite dev server.
-- `npm run build` — type-check with `vue-tsc -b` and create a production build.
-- `npm run preview` — preview the production build locally.
-- `npm run lint` — run Oxlint.
-- `npm run lint:fix` — run Oxlint with autofix.
-- `npm run fmt` / `npm run fmt:check` — format or check formatting with OXC formatter.
-
-Type-check only (without building):
-
-- `npx vue-tsc --noEmit`
+- `vp dev` — start the Vite dev server.
+- `vp check` — run formatting, lint, and type checks.
+- `vp test` — run the test suite.
+- `vp build` — produce the production build.
+- `vp preview` — preview the production build locally.
 
 ## Architecture overview
 
@@ -136,7 +131,7 @@ Type-check only (without building):
 
 - `useElectricTodos.ts`
   - Main todo state + mutation API for UI.
-  - Manages online/offline status and sync lifecycle (`synced`, `syncing`, `error`, `local-only`).
+  - Manages merged read state plus structured migration / degraded / sync statuses.
   - Reconciles local optimistic state with the Electric-confirmed read baseline.
 - `useTodos.ts`
   - Filtered todo querying by route category and current week semantics.
@@ -146,8 +141,6 @@ Type-check only (without building):
   - Reactive online/offline browser connectivity tracking.
 - `useWeekNumber.ts`
   - Week-number utility logic for planning buckets.
-- `useCloudSync.ts`
-  - Supporting sync abstractions.
 
 ### `src/components`
 
@@ -168,7 +161,7 @@ Type-check only (without building):
   - `/finished`
   - `/archived`
 - Each `src/views/*View.vue` provides section framing text and renders the shared `TodoList` component.
-- `App.vue` hosts global layout, new task form, navigation pills, sync status, and data import/export controls.
+- `App.vue` hosts global layout, new task form, navigation pills, sync status, and migration review controls.
 
 ## Data import/export behavior
 
@@ -176,32 +169,37 @@ Type-check only (without building):
   - `version`
   - `exportedAt`
   - `todos`
-- Import validates the file structure and todo payload with Valibot before applying any changes.
-- **Overwrite semantics:** import is destructive for the active collection.
-  - Existing todos are deleted first.
-  - Imported todos are then inserted in bulk.
-- Import/export targets the currently active collection provider selected by app state (local-first behavior today).
+- Export serializes the current visible merged todo set when invoked programmatically; export is not currently exposed in the visible UI.
+- Import validates the file structure and todo payload with Valibot before staging any changes.
+- **Import semantics:** import is non-destructive for the active dataset.
+  - Imported todos are staged as migration input.
+  - The active merged dataset is unchanged until the approved account explicitly keeps staged tasks and sync confirms them.
 
 ## Troubleshooting
 
 ### Offline mode expectations
 
-- If the browser goes offline, the app remains usable because todos are stored locally.
-- Sync indicator shows **Offline** while disconnected.
-- Changes made offline remain local and can be synchronized once connectivity is restored (when sync is configured).
+- Approved signed-in sessions remain usable offline because pending mutations are stored locally and retried later.
+- Signed-out sessions do not create active todos; they can only review migration staging.
+- While transport prerequisites are unavailable (for example offline or signed out), the sync indicator shows **Paused**.
 
 ### Sync status meanings
 
-- **Synced**: local and remote reconciliation completed successfully.
-- **Syncing...**: migration/reconciliation is in progress.
-- **Sync error**: a cloud operation failed; use **Retry sync** after checking credentials/connectivity.
-- **Local only**: cloud sync is unavailable after boot (for example while offline, while signed out, or while sync prerequisites recover).
-- **Local only** also covers signed-out sessions: authenticated sync is intentionally disabled until a Supabase user session exists.
+- **Migration ready**: staged migration input is available to keep or decline.
+- **Migrating staged tasks**: staged tasks are being promoted and are waiting for sync confirmation.
+- **Migration declined**: staged tasks were declined and remain outside the visible merged dataset.
+- **Re-auth required**: queued work is blocked until the approved account refreshes its Supabase session.
+- **Sync degraded**: an invariant or quarantine condition needs operator attention before normal sync can resume.
+- **Retry pending**: at least one queued mutation failed retryably; use **Retry sync** when available.
+- **Syncing...**: queued work is actively flushing or awaiting confirmation.
+- **Paused**: sync transport is unavailable or intentionally blocked, including offline, signed-out, or not-ready states.
+- **Synced**: no staged migration work, degraded state, or active sync delivery is pending.
 
 ### Common fixes
 
-- If `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` is missing in `.env.local`, the app fails at startup with a configuration error instead of entering **Local only**.
-- Confirm you are signed in before expecting remote sync; the app no longer falls back to unauthenticated writes.
+- If `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` is missing in `.env.local`, the app fails at startup with a configuration error instead of showing **Paused**.
+- Confirm you are signed in with the approved account before expecting create/keep actions or remote sync; the app no longer falls back to unauthenticated writes.
+- If staged tasks are present after import or legacy migration discovery, use **Keep staged tasks** to promote them or **Decline migration** to leave them quarantined.
 - If GitHub sign-in redirects back with an auth error, verify the approved `provider_id` seed row and the registered auth hook function.
 - Confirm your Supabase table/schema matches expected `todos` columns.
 - If Drizzle tooling fails, set `DATABASE_URL` before running migration or studio commands.

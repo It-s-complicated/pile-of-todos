@@ -92,6 +92,47 @@ test('buildTodoOverlay keeps optimistic update fields while allowing non-overlap
   )
 })
 
+test('buildTodoOverlay keeps the optimistic value when Electric conflicts on the same pending field', () => {
+  const pendingUpdate: PendingMutationEntry = {
+    mutationId: 'mutation-update-conflict',
+    partitionKey: 'user:user-a',
+    kind: 'update',
+    todoId: confirmedTodo.id,
+    status: 'accepted-awaiting-sync',
+    createdAt: 10,
+    updatedAt: 10,
+    optimisticTodo: {
+      ...confirmedTodo,
+      label: 'Optimistic label',
+      updatedAt: 30,
+    },
+    accepted: {
+      mutationId: 'mutation-update-conflict',
+      todoId: confirmedTodo.id,
+      txid: '45',
+    },
+    intent: {
+      kind: 'update',
+      mutationId: 'mutation-update-conflict',
+      todoId: confirmedTodo.id,
+      values: {
+        label: 'Optimistic label',
+        updatedAt: 30,
+      },
+    },
+  }
+
+  assert.deepEqual(
+    buildTodoOverlay({
+      confirmedTodos: [
+        { ...confirmedTodo, label: 'Electric conflict label', archived: true, updatedAt: 25 },
+      ],
+      pendingMutations: [pendingUpdate],
+    }),
+    [{ ...confirmedTodo, label: 'Optimistic label', archived: true, updatedAt: 30 }],
+  )
+})
+
 test('buildTodoOverlay hides a todo while a delete is pending', () => {
   const pendingDelete: PendingMutationEntry = {
     mutationId: 'mutation-delete',
