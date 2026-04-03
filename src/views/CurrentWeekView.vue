@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import TodoList from '../components/TodoList.vue'
-import { useWeekNumber } from '../composables/useWeekNumber'
+import TodoList from '@/components/TodoList.vue'
+import { useWeekNumber } from '@/composables/useWeekNumber'
 
 const { getCurrentWeekNumber } = useWeekNumber()
 const currentWeek = computed(() => getCurrentWeekNumber())

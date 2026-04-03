@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { Todo, TodoFilter } from '../db/collections'
+import type { Todo, TodoFilter } from '@/db/collections'
 import { FileText } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { useElectricTodos } from '../composables/useElectricTodos'
-import { useWeekNumber } from '../composables/useWeekNumber'
-import { VALID_FILTERS } from '../db/collections'
+import { useElectricTodos } from '@/composables/useElectricTodos'
+import { useWeekNumber } from '@/composables/useWeekNumber'
+import { VALID_FILTERS } from '@/db/collections'
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 

@@ -5,6 +5,8 @@ import { defineConfig } from 'vite-plus'
 import { VitePWA } from 'vite-plugin-pwa'
 import { qrcode } from 'vite-plugin-qrcode'
 import VueRouter from 'vue-router/vite'
+import { analyzer } from 'vite-bundle-analyzer'
+import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   staged: {
@@ -24,6 +26,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    analyzer(),
     VueRouter({
       dts: 'src/route-map.d.ts',
     }),
@@ -74,8 +77,11 @@ export default defineConfig({
     }),
     qrcode(),
   ],
+
   resolve: {
-    tsconfigPaths: true,
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
   },
   test: {
     include: ['src/**/*.test.ts'],
