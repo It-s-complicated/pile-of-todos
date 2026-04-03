@@ -315,6 +315,74 @@ test('useTodoMutations keeps accepted work out of retryable-error when txid conf
   assert.equal(pendingMutations.value[0]?.accepted?.txid, '42')
 })
 
+test('useTodoMutations resumes accepted work from storage by awaiting the stored txid', async () => {
+  pendingMutations.value = [
+    {
+      mutationId: 'mutation-a',
+      partitionKey: 'user:user-a',
+      kind: 'create',
+      todoId: '11111111-1111-4111-8111-111111111111',
+      status: 'accepted-awaiting-sync',
+      createdAt: 10,
+      updatedAt: 10,
+      optimisticTodo: {
+        id: '11111111-1111-4111-8111-111111111111',
+        label: 'Pending todo',
+        weekNumber: null,
+        done: false,
+        archived: false,
+        createdAt: 10,
+        updatedAt: 10,
+        deviceId: 'device-1',
+        userId: 'user-a',
+        deletedAt: null,
+      },
+      accepted: {
+        mutationId: 'mutation-a',
+        todoId: '11111111-1111-4111-8111-111111111111',
+        txid: '42',
+      },
+      intent: {
+        kind: 'create',
+        mutationId: 'mutation-a',
+        todoId: '11111111-1111-4111-8111-111111111111',
+        values: {
+          label: 'Pending todo',
+          weekNumber: null,
+          done: false,
+          archived: false,
+          createdAt: 10,
+          updatedAt: 10,
+          deletedAt: null,
+        },
+      },
+    },
+  ]
+  confirmedTodos.value = [
+    {
+      id: '11111111-1111-4111-8111-111111111111',
+      label: 'Pending todo',
+      weekNumber: null,
+      done: false,
+      archived: false,
+      createdAt: 10,
+      updatedAt: 10,
+      deviceId: 'device-1',
+      userId: 'user-a',
+      deletedAt: null,
+    },
+  ]
+
+  const { useTodoMutations } = await import('./useTodoMutations')
+
+  await useTodoMutations().flushPendingMutations()
+
+  assert.deepEqual(awaitTxId.mock.calls[0], ['42'])
+  assert.deepEqual(confirmTxid.mock.calls[0], ['42'])
+  assert.deepEqual(reconcileWithConfirmedTodos.mock.calls[0], [confirmedTodos.value])
+  assert.equal(rpc.mock.calls.length, 0)
+})
+
 test('useTodoMutations leaves optimistic work queued when transport cannot send', async () => {
   transportState.value = {
     canSend: false,

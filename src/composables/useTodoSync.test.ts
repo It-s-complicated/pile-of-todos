@@ -151,6 +151,28 @@ test('useTodoSync retries queued work through the shared mutation dispatcher', a
   assert.equal(flushPendingMutations.mock.calls.length, 1)
 })
 
+test('useTodoSync does not keep accepted work in the syncing state while it only awaits confirmation', async () => {
+  pendingMutations.value = [createPendingMutation('accepted-awaiting-sync')]
+  flushPendingMutations.mockImplementation(() => new Promise<boolean>(() => {}))
+  const { useTodoSync } = await import('./useTodoSync')
+
+  const sync = useTodoSync()
+  await Promise.resolve()
+
+  assert.ok(flushPendingMutations.mock.calls.length > 0)
+  assert.equal(sync.syncStatus.value, 'synced')
+})
+
+test('useTodoSync starts recovering accepted work that was already loaded from storage', async () => {
+  pendingMutations.value = [createPendingMutation('accepted-awaiting-sync')]
+  const { useTodoSync } = await import('./useTodoSync')
+
+  useTodoSync()
+  await Promise.resolve()
+
+  assert.ok(flushPendingMutations.mock.calls.length > 0)
+})
+
 test('useTodoSync reconciles accepted work with afterResetRefetch after Electric truncates and reloads the baseline', async () => {
   pendingMutations.value = [createPendingMutation('accepted-awaiting-sync')]
   const { useTodoSync } = await import('./useTodoSync')

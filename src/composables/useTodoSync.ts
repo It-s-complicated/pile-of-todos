@@ -76,14 +76,12 @@ export function useTodoSync(): TodoSyncState {
 
     return 'none'
   })
-  const hasActiveDelivery = computed(() =>
-    pendingStatuses.value.some(
-      (status) => status === 'sending' || status === 'accepted-awaiting-sync',
-    ),
+  const hasInFlightDelivery = computed(() =>
+    pendingStatuses.value.some((status) => status === 'sending'),
   )
   const syncStatus = computed<TodoSyncStatus>(() => {
     if (
-      !todoData.connectivity.isOnline.value ||
+      !todoData.sync.controller.transportState.value.canSend ||
       !todoData.connectivity.isReady.value ||
       degradedStatus.value !== 'none' ||
       hasRetryablePendingWork(pendingStatuses.value)
@@ -91,7 +89,7 @@ export function useTodoSync(): TodoSyncState {
       return 'paused'
     }
 
-    if (hasActiveDelivery.value || isSyncing.value) {
+    if (hasInFlightDelivery.value) {
       return 'syncing'
     }
 
@@ -119,6 +117,16 @@ export function useTodoSync(): TodoSyncState {
       isSyncing.value = false
     }
   }
+
+  void Promise.resolve().then(() => {
+    if (
+      todoData.connectivity.isReady.value &&
+      todoData.sync.controller.transportState.value.canSend &&
+      hasPendingMutations.value
+    ) {
+      void syncTodos()
+    }
+  })
 
   async function reconcileAfterResetRefetchWhenReady() {
     if (awaitResetRefetchBaselinePromise) {
@@ -167,14 +175,11 @@ export function useTodoSync(): TodoSyncState {
   watch(
     () => ({
       canSend: todoData.sync.controller.transportState.value.canSend,
+      isReady: todoData.connectivity.isReady.value,
       pendingStatuses: pendingStatuses.value.join('|'),
     }),
-    ({ canSend, pendingStatuses: nextStatuses }) => {
-      if (
-        !canSend ||
-        nextStatuses.length === 0 ||
-        !hasRetryablePendingWork(nextStatuses.split('|'))
-      ) {
+    ({ canSend, isReady }) => {
+      if (!canSend || !isReady || !hasPendingMutations.value || isSyncing.value) {
         return
       }
 

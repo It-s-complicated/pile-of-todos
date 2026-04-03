@@ -188,7 +188,42 @@ function createTodoMutations() {
       (candidate) => getPendingReferenceKey(candidate) === getPendingReferenceKey(reference),
     )
 
-    if (!entry || !['queued', 'retryable-error'].includes(entry.status)) {
+    if (!entry) {
+      return false
+    }
+
+    if (entry.status === 'accepted-awaiting-sync') {
+      if (!entry.accepted) {
+        return false
+      }
+
+      try {
+        const confirmedTodosCollection = getConfirmedTodosCollection()
+        const txidForConfirmation = entry.accepted.txid as unknown as Parameters<
+          typeof confirmedTodosCollection.utils.awaitTxId
+        >[0]
+
+        await confirmedTodosCollection.utils.awaitTxId(txidForConfirmation)
+
+        if (!todoData.sync.controller.getPendingMutation(reference)) {
+          return false
+        }
+
+        todoData.sync.controller.confirmTxid(entry.accepted.txid)
+        todoData.sync.controller.reconcileWithConfirmedTodos(
+          todoData.readModel.confirmedTodos.value,
+        )
+        return true
+      } catch {
+        if (!todoData.sync.controller.getPendingMutation(reference)) {
+          return false
+        }
+
+        return false
+      }
+    }
+
+    if (!['queued', 'sending', 'retryable-error'].includes(entry.status)) {
       return false
     }
 
@@ -257,7 +292,7 @@ function createTodoMutations() {
 
   async function flushPendingMutations() {
     const sendableMutations = todoData.sync.controller.pendingMutations.value.filter((entry) =>
-      ['queued', 'retryable-error'].includes(entry.status),
+      ['queued', 'sending', 'accepted-awaiting-sync', 'retryable-error'].includes(entry.status),
     )
 
     if (sendableMutations.length === 0) {

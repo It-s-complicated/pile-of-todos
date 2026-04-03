@@ -191,7 +191,7 @@ Use Vite+ commands:
 - **Re-auth required**: queued work is blocked until the approved account refreshes its Supabase session.
 - **Sync degraded**: an invariant or quarantine condition needs operator attention before normal sync can resume.
 - **Retry pending**: at least one queued mutation failed retryably; use **Retry sync** when available.
-- **Syncing...**: queued work is actively flushing or awaiting confirmation.
+- **Syncing...**: queued work is actively flushing.
 - **Paused**: sync transport is unavailable or intentionally blocked, including offline, signed-out, or not-ready states.
 - **Synced**: no staged migration work, degraded state, or active sync delivery is pending.
 
