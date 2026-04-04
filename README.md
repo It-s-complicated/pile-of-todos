@@ -133,8 +133,6 @@ Use Vite+ commands:
   - Main todo state + mutation API for UI.
   - Manages merged read state plus structured migration / degraded / sync statuses.
   - Reconciles local optimistic state with the Electric-confirmed read baseline.
-- `useTodos.ts`
-  - Filtered todo querying by route category and current week semantics.
 - `useDataExport.ts`
   - Export/import JSON with validation.
 - `useNetworkStatus.ts`

@@ -45,7 +45,7 @@ Replace the current dual local/remote sync coupling with one Supabase-backed cli
 
 ## Phase 4: Migration, Export, and Cleanup [DONE]
 - [x] 4.1 Update `src/lib/todo-storage.ts` and `src/composables/useDataExport.ts` so legacy guest/account buckets become migration input only, flow through the pre-auth guest migration partition, support durable available/promoting/declined migration state plus stable promoted UUID mapping, and leave the merged synced view only after reconciliation-confirmed migration cleanup
-- [x] 4.2 Reduce or delete obsolete helpers in `src/composables/useTodos.ts`, `src/composables/useCloudSync.ts`, and any dead branches in `src/db/collections.ts` that preserve the old local-storage-authoritative model
+- [x] 4.2 Reduce or delete obsolete helpers in `src/composables/useCloudSync.ts` and any dead branches in `src/db/collections.ts` that preserve the old local-storage-authoritative model
 - [x] 4.3 Extend tests in `src/lib/todo-sync.test.ts`, `src/lib/todo-storage.test.ts`, and the new ledger/overlay/reconciliation tests to cover: offline create, retry idempotency, Electric `409` reset, auth refresh vs user switch, pending remote conflict, and accepted-but-unconfirmed invariant violation
 
 ## Phase 5: Verification and Documentation [DONE]
