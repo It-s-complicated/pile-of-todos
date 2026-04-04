@@ -4,6 +4,7 @@ import UnpluginFonts from 'unplugin-fonts/vite'
 import { defineConfig } from 'vite-plus'
 import { VitePWA } from 'vite-plugin-pwa'
 import { qrcode } from 'vite-plugin-qrcode'
+import vitePluginVueDevTools from 'vite-plugin-vue-devtools'
 import VueRouter from 'vue-router/vite'
 import { analyzer } from 'vite-bundle-analyzer'
 import { fileURLToPath, URL } from 'node:url'
@@ -27,6 +28,7 @@ export default defineConfig({
   },
   plugins: [
     analyzer(),
+    vitePluginVueDevTools(),
     VueRouter({
       dts: 'src/route-map.d.ts',
     }),
