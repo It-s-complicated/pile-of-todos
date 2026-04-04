@@ -17,13 +17,13 @@ function parseImportedTodosPayload(payload: unknown): unknown[] {
   throw new Error('Import file must contain a todo array or an object with a todos array')
 }
 
+function formatImportedTodoMessage(addedCount: number) {
+  const todoLabel = addedCount === 1 ? 'todo' : 'todos'
+  return `Imported ${addedCount} ${todoLabel} into migration staging.`
+}
+
 export function useDataExport() {
   const todoData = useTodoData()
-
-  function formatImportedTodoMessage(addedCount: number) {
-    const todoLabel = addedCount === 1 ? 'todo' : 'todos'
-    return `Imported ${addedCount} ${todoLabel} into migration staging.`
-  }
 
   function exportTodos(): string {
     const visibleTodos = todoData.readModel.todos.value.filter((todo) => todo.deletedAt === null)
