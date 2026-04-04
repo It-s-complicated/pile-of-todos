@@ -19,11 +19,11 @@ importers:
         specifier: ^2.101.1
         version: 2.101.1
       '@tanstack/electric-db-collection':
-        specifier: ^0.2.43
-        version: 0.2.43(typescript@6.0.2)
+        specifier: ^0.3.0
+        version: 0.3.0(typescript@6.0.2)
       '@tanstack/vue-db':
-        specifier: ^0.0.112
-        version: 0.0.112(typescript@6.0.2)(vue@3.5.32(typescript@6.0.2))
+        specifier: ^0.0.113
+        version: 0.0.113(typescript@6.0.2)(vue@3.5.32(typescript@6.0.2))
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
@@ -1612,13 +1612,13 @@ packages:
     peerDependencies:
       typescript: '>=4.7'
 
-  '@tanstack/db@0.6.1':
-    resolution: {integrity: sha512-/9e1d9I4MouEt9MtgM0/PIzKNA9E0P71DQDxXC0/VbnBrG+VbSJpBkXxZ3A8EmehsuONfgs+FYjSO2hXbiC1xg==}
+  '@tanstack/db@0.6.2':
+    resolution: {integrity: sha512-WqKx0tupIp95YQdt/KVuG40q5qIej51nYM8s8QHz7x0XInutSBtMUKWbS0N7tVt9H2LE6Hktn4eGLlyW1Vgnxg==}
     peerDependencies:
       typescript: '>=4.7'
 
-  '@tanstack/electric-db-collection@0.2.43':
-    resolution: {integrity: sha512-OCZun7+2EcVLpYH93bTxJOhFSKSRCNs1Ya/QfNUeWQ88weQX2y2xvu5koEz0q5z3ivpad13BV9QMlO2vhP4LIA==}
+  '@tanstack/electric-db-collection@0.3.0':
+    resolution: {integrity: sha512-sDsmzWnSnHRca8RqqW7jCUkQmqIsY1/3Nx8XGznulmEhdGipi/Ym/jHWpKyg/knDGwyh/8muemIOhpu4z9I5bQ==}
 
   '@tanstack/pacer-lite@0.2.1':
     resolution: {integrity: sha512-3PouiFjR4B6x1c969/Pl4ZIJleof1M0n6fNX8NRiC9Sqv1g06CVDlEaXUR4212ycGFyfq4q+t8Gi37Xy+z34iQ==}
@@ -1627,8 +1627,8 @@ packages:
   '@tanstack/store@0.9.3':
     resolution: {integrity: sha512-8reSzl/qGWGGVKhBoxXPMWzATSbZLZFWhwBAFO9NAyp0TxzfBP0mIrGb8CP8KrQTmvzXlR/vFPPUrHTLBGyFyw==}
 
-  '@tanstack/vue-db@0.0.112':
-    resolution: {integrity: sha512-zaV4YbpaaOi8JZWDtqs3Bcoe934Ar33x25T1DXMfSzGyNTyEr+vGwsbJsLGeUasx/oT95hDWtx7uZaRu81gahg==}
+  '@tanstack/vue-db@0.0.113':
+    resolution: {integrity: sha512-Uv6FUIq9muRwD3SkzU4M30fN6YvdaK01Mq6hvkuwAXY+neDXRgX6/bCkw2NozLJkX6A3TbkU+ywVFLbBFuvfug==}
     peerDependencies:
       vue: '>=3.3.0'
 
@@ -4780,18 +4780,18 @@ snapshots:
       sorted-btree: 1.8.1
       typescript: 6.0.2
 
-  '@tanstack/db@0.6.1(typescript@6.0.2)':
+  '@tanstack/db@0.6.2(typescript@6.0.2)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@tanstack/db-ivm': 0.1.18(typescript@6.0.2)
       '@tanstack/pacer-lite': 0.2.1
       typescript: 6.0.2
 
-  '@tanstack/electric-db-collection@0.2.43(typescript@6.0.2)':
+  '@tanstack/electric-db-collection@0.3.0(typescript@6.0.2)':
     dependencies:
       '@electric-sql/client': 1.5.14
       '@standard-schema/spec': 1.1.0
-      '@tanstack/db': 0.6.1(typescript@6.0.2)
+      '@tanstack/db': 0.6.2(typescript@6.0.2)
       '@tanstack/store': 0.9.3
       debug: 4.4.3
     transitivePeerDependencies:
@@ -4802,9 +4802,9 @@ snapshots:
 
   '@tanstack/store@0.9.3': {}
 
-  '@tanstack/vue-db@0.0.112(typescript@6.0.2)(vue@3.5.32(typescript@6.0.2))':
+  '@tanstack/vue-db@0.0.113(typescript@6.0.2)(vue@3.5.32(typescript@6.0.2))':
     dependencies:
-      '@tanstack/db': 0.6.1(typescript@6.0.2)
+      '@tanstack/db': 0.6.2(typescript@6.0.2)
       vue: 3.5.32(typescript@6.0.2)
     transitivePeerDependencies:
       - typescript
