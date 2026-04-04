@@ -6,13 +6,11 @@ import { useRoute } from 'vue-router'
 import AuthStatus from './components/AuthStatus.vue'
 import { useElectricTodos } from './composables/useElectricTodos'
 import { useCreateTodoValidationState } from './composables/useCreateTodoValidationState'
-import { useSyncElectricTodos } from './composables/useSyncElectricTodos'
 import { useWeekNumber } from './composables/useWeekNumber'
 import SyncStatus from './components/SyncStatus.vue'
 
 const route = useRoute()
 const { getCurrentWeekNumber } = useWeekNumber()
-useSyncElectricTodos()
 const { addTodo, canCreateTodos, createTodoDisabledReason, migration } = useElectricTodos()
 const migrationState = computed(() => migration.value)
 

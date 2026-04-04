@@ -57,12 +57,6 @@ vi.mock('./components/SyncStatus.vue', () => ({
   }),
 }))
 
-vi.mock('./composables/useSyncElectricTodos', () => ({
-  useSyncElectricTodos: () => ({
-    statuses: {},
-  }),
-}))
-
 vi.mock('./composables/useWeekNumber', () => ({
   useWeekNumber: () => ({
     getCurrentWeekNumber: () => 14,

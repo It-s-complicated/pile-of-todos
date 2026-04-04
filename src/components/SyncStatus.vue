@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useSyncElectricTodos } from '@/composables/useSyncElectricTodos'
+import { useElectricTodos } from '@/composables/useElectricTodos'
+import { useTodoSync } from '@/composables/useTodoSync'
 
-const { canRetrySync, statuses, syncTodos } = useSyncElectricTodos()
+const { statuses } = useElectricTodos()
+const { canRetrySync, syncTodos } = useTodoSync()
 
 const statusConfig = computed(() => {
   if (statuses.migration.value === 'available') {
@@ -72,7 +74,7 @@ const statusConfig = computed(() => {
 <template>
   <div class="flex items-center gap-2 text-xs">
     <div
-      class="h-2 w-2 rounded-full transition-colors duration-200"
+      class="size-2 rounded-full transition-colors duration-200"
       :class="statusConfig.dotClass"
     />
     <span class="font-medium" :class="statusConfig.textClass">
