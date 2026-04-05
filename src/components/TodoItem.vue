@@ -2,7 +2,7 @@
 import type { Todo } from '../db/collections'
 import { Archive, Calendar, Check } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
-import { useWeekNumber } from '../composables/useWeekNumber'
+import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
 const props = defineProps<{ todo: Todo }>()
 const emit = defineEmits<{
@@ -11,7 +11,6 @@ const emit = defineEmits<{
   move: []
 }>()
 
-const { getCurrentWeekNumber } = useWeekNumber()
 const currentWeek = getCurrentWeekNumber()
 
 const isEditing = ref(false)

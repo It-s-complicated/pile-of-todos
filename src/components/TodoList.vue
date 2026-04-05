@@ -4,12 +4,11 @@ import { FileText } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useElectricTodos } from '@/composables/useElectricTodos'
-import { useWeekNumber } from '@/composables/useWeekNumber'
 import { VALID_FILTERS } from '@/db/collections'
+import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
-const { getCurrentWeekNumber } = useWeekNumber()
 const { isReady, todos, updateTodo } = useElectricTodos()
 const route = useRoute()
 

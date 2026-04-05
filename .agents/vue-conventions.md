@@ -10,7 +10,7 @@
 ## Naming
 
 - **Components/Views**: PascalCase (`TodoItem.vue`, `BacklogView.vue`)
-- **Composables**: camelCase with `use` prefix (`useWeekNumber.ts`, `useDataExport.ts`)
+- **Composables**: camelCase with `use` prefix (`useElectricTodos.ts`, `useDataExport.ts`)
 
 ## Reactivity
 
