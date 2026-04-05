@@ -603,8 +603,8 @@ test('useTodoMutations keeps an in-flight authenticated create while queuing a f
       weekNumber: null,
       done: false,
       archived: false,
-      createdAt: pendingMutations.value[0]!.optimisticTodo!.createdAt,
-      updatedAt: pendingMutations.value[0]!.optimisticTodo!.updatedAt,
+      createdAt: pendingMutations.value.at(0)!.optimisticTodo!.createdAt,
+      updatedAt: pendingMutations.value.at(0)!.optimisticTodo!.updatedAt,
       deviceId: 'device-1',
       userId: 'user-a',
       deletedAt: null,
@@ -633,8 +633,8 @@ test('useTodoMutations coalesces queued authenticated create updates so confirme
   mutations.updateTodo(todoId, { label: 'Edited label', weekNumber: 14 })
 
   assert.equal(pendingMutations.value.length, 1)
-  assert.equal(pendingMutations.value[0]?.intent.kind, 'create')
-  assert.equal(pendingMutations.value[0]?.optimisticTodo?.label, 'Edited label')
+  assert.equal(pendingMutations.value.at(0)?.intent.kind, 'create')
+  assert.equal(pendingMutations.value.at(0)?.optimisticTodo?.label, 'Edited label')
   assert.equal(
     pendingMutations.value[0]?.intent.kind === 'create'
       ? pendingMutations.value[0].intent.values.label
@@ -649,8 +649,8 @@ test('useTodoMutations coalesces queued authenticated create updates so confirme
       weekNumber: 14,
       done: false,
       archived: false,
-      createdAt: pendingMutations.value[0]!.optimisticTodo!.createdAt,
-      updatedAt: pendingMutations.value[0]!.optimisticTodo!.updatedAt,
+      createdAt: pendingMutations.value.at(0)!.optimisticTodo!.createdAt,
+      updatedAt: pendingMutations.value.at(0)!.optimisticTodo!.updatedAt,
       deviceId: 'device-1',
       userId: 'user-a',
       deletedAt: null,

@@ -14,7 +14,13 @@ export default defineConfig({
     '*': 'vp check --fix',
   },
   lint: {
+    plugins: ['unicorn', 'typescript', 'oxc', 'vue', 'vitest'],
     ignorePatterns: ['.agents/**', '.opencode/**', 'docs/**', 'src/*.d.ts'],
+    categories: {
+      correctness: 'error',
+      // suspicious: 'warn',
+      // perf: 'warn',
+    },
     options: { typeAware: true, typeCheck: true },
   },
   fmt: {
