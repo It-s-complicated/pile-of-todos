@@ -21,14 +21,20 @@ const todoCreateValuesSchema = v.strictObject({
   deletedAt: v.nullable(v.number()),
 })
 
-const todoUpdateValuesSchema = v.strictObject({
-  label: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(500))),
-  weekNumber: v.optional(v.nullable(v.number())),
-  done: v.optional(v.boolean()),
-  archived: v.optional(v.boolean()),
-  deletedAt: v.optional(v.nullable(v.number())),
-  updatedAt: v.number(),
-})
+const todoUpdateValuesSchema = v.pipe(
+  v.strictObject({
+    label: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(500))),
+    weekNumber: v.optional(v.nullable(v.number())),
+    done: v.optional(v.boolean()),
+    archived: v.optional(v.boolean()),
+    deletedAt: v.optional(v.nullable(v.number())),
+    updatedAt: v.number(),
+  }),
+  v.check(
+    (values) => values.deletedAt === undefined || values.deletedAt === null,
+    'delete intents must carry tombstones and update intents may only clear deletedAt back to null',
+  ),
+)
 
 const todoDeleteValuesSchema = v.strictObject({
   deletedAt: v.number(),
@@ -145,16 +151,6 @@ function hasMutatedUpdateField(values: TodoUpdateIntent['values']) {
   )
 }
 
-function assertValidUpdateDeleteSemantics(values: TodoUpdateIntent['values']) {
-  if (values.deletedAt === undefined || values.deletedAt === null) {
-    return
-  }
-
-  throw new Error(
-    'Todo mutation intent is invalid: delete intents must carry tombstones and update intents may only clear deletedAt back to null',
-  )
-}
-
 function assertValidCreateDeleteSemantics(values: TodoCreateIntent['values']) {
   if (values.deletedAt === null) {
     return
@@ -184,8 +180,6 @@ export function parseTodoMutationIntent(input: unknown): TodoMutationIntent {
       'Todo mutation intent is invalid: update values must include at least one mutated field',
     )
   }
-
-  assertValidUpdateDeleteSemantics(intent.values)
 
   return intent
 }

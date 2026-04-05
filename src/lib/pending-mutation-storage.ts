@@ -1,11 +1,17 @@
-import type { Todo } from '@/db/collections'
+import * as v from 'valibot'
+
+import { todoSchema, type Todo } from '@/db/collections'
 
 import type {
   TodoMutationIntent,
   TodoMutationResponse,
   TodoMutationStatus,
 } from './todo-mutation-contract'
-import { parseTodoMutationIntent, parseTodoMutationResponse } from './todo-mutation-contract'
+import {
+  parseTodoMutationIntent,
+  parseTodoMutationResponse,
+  todoMutationStatusSchema,
+} from './todo-mutation-contract'
 
 export const GUEST_PENDING_MUTATION_PARTITION = 'guest-migration'
 const STORAGE_KEY = 'ai-todo-app-pending-mutations'
@@ -16,6 +22,16 @@ export const ACTIVE_PENDING_MUTATION_STATUSES = [
   'accepted-awaiting-sync',
   'retryable-error',
 ] as const
+
+export type ActivePendingMutationStatus = (typeof ACTIVE_PENDING_MUTATION_STATUSES)[number]
+
+const pendingMutationLocalStatusSchema = v.union([
+  todoMutationStatusSchema,
+  v.literal('quarantined'),
+  v.literal('invariant-violation'),
+])
+
+const activePendingMutationStatusSchema = v.picklist(ACTIVE_PENDING_MUTATION_STATUSES)
 
 export type PendingMutationQuarantineReason =
   | 'confirmation-proof-failed'
@@ -63,37 +79,24 @@ function getBrowserStorage() {
   return typeof window === 'undefined' ? null : window.localStorage
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+function parsePendingMutationStatus(
+  value: unknown,
+  mutationId: string,
+): PendingMutationLocalStatus {
+  const result = v.safeParse(pendingMutationLocalStatusSchema, value)
 
-function isPendingMutationStatus(value: unknown): value is PendingMutationLocalStatus {
-  return [
-    'queued',
-    'sending',
-    'accepted-awaiting-sync',
-    'confirmed',
-    'retryable-error',
-    'rejected',
-    'quarantined',
-    'invariant-violation',
-  ].includes(String(value))
-}
-
-function isTodo(value: unknown): value is Todo {
-  if (!isRecord(value)) {
-    return false
+  if (!result.success) {
+    throw new Error(`Pending mutation entry ${mutationId} has an invalid status`)
   }
 
-  return typeof value.id === 'string' && typeof value.label === 'string'
+  return result.output
 }
 
 function parseStoredEntry(input: StoredPendingMutationEntry): PendingMutationEntry {
-  if (!isPendingMutationStatus(input.status)) {
-    throw new Error(`Pending mutation entry ${input.mutationId} has an invalid status`)
-  }
+  const status = parsePendingMutationStatus(input.status, input.mutationId)
+  const optimisticTodoResult = v.safeParse(v.nullable(todoSchema), input.optimisticTodo)
 
-  if (input.optimisticTodo !== null && !isTodo(input.optimisticTodo)) {
+  if (!optimisticTodoResult.success) {
     throw new Error(`Pending mutation entry ${input.mutationId} has an invalid optimistic todo`)
   }
 
@@ -102,10 +105,10 @@ function parseStoredEntry(input: StoredPendingMutationEntry): PendingMutationEnt
     partitionKey: input.partitionKey,
     kind: input.kind,
     todoId: input.todoId,
-    status: input.status,
+    status,
     createdAt: input.createdAt,
     updatedAt: input.updatedAt,
-    optimisticTodo: input.optimisticTodo,
+    optimisticTodo: optimisticTodoResult.output,
     intent: parseTodoMutationIntent(input.intent),
     accepted: input.accepted === undefined ? undefined : parseTodoMutationResponse(input.accepted),
     errorMessage: input.errorMessage,
@@ -150,10 +153,10 @@ export function getPendingMutationPartitionKey(userId: string | null) {
   return userId ? `user:${userId}` : GUEST_PENDING_MUTATION_PARTITION
 }
 
-export function isActivePendingMutationStatus(status: PendingMutationLocalStatus): boolean {
-  return ACTIVE_PENDING_MUTATION_STATUSES.includes(
-    status as (typeof ACTIVE_PENDING_MUTATION_STATUSES)[number],
-  )
+export function isActivePendingMutationStatus(
+  status: PendingMutationLocalStatus,
+): status is ActivePendingMutationStatus {
+  return v.is(activePendingMutationStatusSchema, status)
 }
 
 export function createPendingMutationStorage(options: PendingMutationStorageOptions = {}) {

@@ -1,3 +1,4 @@
+import * as v from 'valibot'
 import { computed, readonly, ref, watch } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 
@@ -5,6 +6,10 @@ import {
   readConfirmedTodosResumeState,
   subscribeToConfirmedTodosTruncate,
 } from '@/db/confirmed-todos'
+import {
+  ACTIVE_PENDING_MUTATION_STATUSES,
+  type PendingMutationLocalStatus,
+} from '@/lib/pending-mutation-storage'
 
 import { useTodoData } from './useTodoData.ts'
 import { useTodoMutations } from './useTodoMutations.ts'
@@ -25,8 +30,16 @@ type TodoSyncState = {
   syncTodos: () => Promise<boolean>
 }
 
-function hasRetryablePendingWork(statuses: string[]) {
-  return statuses.some((status) => status === 'queued' || status === 'retryable-error')
+const activePendingMutationStatusSchema = v.picklist(ACTIVE_PENDING_MUTATION_STATUSES)
+const retryableWorkPendingMutationStatusSchema = v.picklist(['queued', 'retryable-error'] as const)
+const retryableErrorPendingMutationStatusSchema = v.picklist(['retryable-error'] as const)
+const degradedPendingMutationStatusSchema = v.picklist([
+  'quarantined',
+  'invariant-violation',
+] as const)
+
+function hasRetryablePendingWork(statuses: readonly PendingMutationLocalStatus[]) {
+  return statuses.some((status) => v.is(retryableWorkPendingMutationStatusSchema, status))
 }
 
 function sleep(durationMs: number) {
@@ -52,9 +65,7 @@ export function useTodoSync(): TodoSyncState {
     todoData.sync.controller.pendingMutations.value.map((entry) => entry.status),
   )
   const hasPendingMutations = computed(() =>
-    pendingStatuses.value.some((status) =>
-      ['queued', 'sending', 'accepted-awaiting-sync', 'retryable-error'].includes(status),
-    ),
+    pendingStatuses.value.some((status) => v.is(activePendingMutationStatusSchema, status)),
   )
   const degradedStatus = computed<TodoDegradedStatus>(() => {
     if (todoData.sync.controller.transportState.value.requiresReauth) {
@@ -63,14 +74,16 @@ export function useTodoSync(): TodoSyncState {
 
     if (
       todoData.sync.controller.transportState.value.hasInvariantViolations ||
-      pendingStatuses.value.some(
-        (status) => status === 'invariant-violation' || status === 'quarantined',
-      )
+      pendingStatuses.value.some((status) => v.is(degradedPendingMutationStatusSchema, status))
     ) {
       return 'invariant-violation'
     }
 
-    if (pendingStatuses.value.includes('retryable-error')) {
+    if (
+      pendingStatuses.value.some((status) =>
+        v.is(retryableErrorPendingMutationStatusSchema, status),
+      )
+    ) {
       return 'retryable-error'
     }
 

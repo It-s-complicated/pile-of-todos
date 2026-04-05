@@ -408,12 +408,9 @@ function createTodoMutations() {
     }
 
     if (!confirmedTodo && pendingCreate && isBlockingPendingCreate(pendingCreate)) {
-      const pendingFollowUpUpdate = [...activePendingMutations]
-        .reverse()
-        .find(
-          (entry) =>
-            entry.kind === 'update' && ['queued', 'retryable-error'].includes(entry.status),
-        )
+      const pendingFollowUpUpdate = activePendingMutations.findLast(
+        (entry) => entry.kind === 'update' && ['queued', 'retryable-error'].includes(entry.status),
+      )
 
       if (pendingFollowUpUpdate) {
         replaceMutation(pendingFollowUpUpdate, createUpdateEntry(optimisticTodo), false)
@@ -438,7 +435,7 @@ function createTodoMutations() {
     const confirmedTodo = getConfirmedTodo(id)
     const activePendingMutations = getActivePendingMutations(id)
     const pendingCreate = activePendingMutations.find((entry) => entry.kind === 'create')
-    const pendingMutation = [...activePendingMutations].reverse()[0]
+    const pendingMutation = activePendingMutations.at(-1)
 
     if (!confirmedTodo && pendingCreate && isCancelablePendingCreate(pendingCreate)) {
       todoData.sync.controller.removePendingMutation(pendingCreate)
@@ -448,13 +445,11 @@ function createTodoMutations() {
     const deleteEntry = createDeleteEntry(deletedTodo)
 
     if (!confirmedTodo && pendingCreate && isBlockingPendingCreate(pendingCreate)) {
-      const pendingFollowUpMutation = [...activePendingMutations]
-        .reverse()
-        .find(
-          (entry) =>
-            entry.mutationId !== pendingCreate.mutationId &&
-            ['queued', 'retryable-error'].includes(entry.status),
-        )
+      const pendingFollowUpMutation = activePendingMutations.findLast(
+        (entry) =>
+          entry.mutationId !== pendingCreate.mutationId &&
+          ['queued', 'retryable-error'].includes(entry.status),
+      )
 
       if (pendingFollowUpMutation) {
         replaceMutation(pendingFollowUpMutation, deleteEntry, false)
