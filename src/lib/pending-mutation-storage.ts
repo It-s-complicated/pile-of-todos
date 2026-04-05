@@ -128,11 +128,11 @@ function parseStoredEntries(input: unknown): PendingMutationEntry[] {
     throw new Error('Pending mutation storage is invalid: expected an array')
   }
 
-  return parsed.map((entry) => parseStoredEntry(entry as StoredPendingMutationEntry))
+  return parsed.map((entry) => parseStoredEntry(entry))
 }
 
 function sortEntries(entries: PendingMutationEntry[]) {
-  return [...entries].sort((left, right) => left.createdAt - right.createdAt)
+  return entries.toSorted((left, right) => left.createdAt - right.createdAt)
 }
 
 function writeEntries(storage: Storage | null, entries: PendingMutationEntry[]) {

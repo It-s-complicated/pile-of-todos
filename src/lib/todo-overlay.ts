@@ -80,5 +80,5 @@ export function buildTodoOverlay({ confirmedTodos, pendingMutations }: BuildTodo
     }
   }
 
-  return [...todosById.values()].sort((left, right) => left.createdAt - right.createdAt)
+  return Array.from(todosById.values()).toSorted((left, right) => left.createdAt - right.createdAt)
 }
