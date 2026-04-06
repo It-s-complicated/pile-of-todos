@@ -115,7 +115,7 @@ const emptyStateMessage = computed(() => {
   <div class="space-y-4">
     <div
       v-if="loading"
-      class="flex min-h-[14rem] items-center justify-center rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-6 py-14 text-center"
+      class="flex min-h-56 items-center justify-center rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-6 py-14 text-center"
     >
       <div class="inline-flex items-center gap-3 text-on-surface-variant">
         <div

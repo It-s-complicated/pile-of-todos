@@ -33,7 +33,7 @@ export default defineConfig({
     },
   },
   plugins: [
-    analyzer(),
+    analyzer({ enabled: false }),
     vitePluginVueDevTools(),
     VueRouter({
       dts: 'src/route-map.d.ts',
@@ -59,8 +59,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'SoloFlow Dashboard',
-        short_name: 'SoloFlow',
+        name: 'Pile',
+        short_name: 'Pile',
         start_url: '/',
         display: 'standalone',
         background_color: '#0c0e10',

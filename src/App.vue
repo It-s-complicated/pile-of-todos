@@ -113,9 +113,7 @@ const id = useId()
       >
         <div class="flex items-center justify-between gap-6">
           <div class="min-w-0">
-            <p class="font-headline text-2xl font-extrabold tracking-tight text-primary">
-              SoloFlow
-            </p>
+            <p class="font-headline text-2xl font-extrabold tracking-tight text-primary">Pile</p>
             <p class="mt-1 text-[10px] tracking-[0.32em] text-on-surface-variant uppercase">
               Dashboard
             </p>
