@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { FileText } from 'lucide-vue-next'
+import type { Todo, TodoFilter } from '@/db/collections'
+import { Inbox } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useElectricTodos } from '@/composables/useElectricTodos'
 import { VALID_FILTERS } from '@/db/collections'
-import type { Todo, TodoFilter } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
 import TodoItem from './TodoItem.vue'
@@ -91,45 +91,55 @@ function confirmMove(weekNumber: number | null) {
 const emptyStateMessage = computed(() => {
   switch (filter.value) {
     case 'backlog':
-      return { title: 'Backlog is empty', subtitle: 'Add tasks without a week assigned' }
+      return { title: 'Backlog is empty', subtitle: 'Add tasks without a week assigned.' }
     case 'current-week':
-      return { title: 'No tasks this week', subtitle: 'Add tasks for the current week' }
+      return { title: 'No tasks this week', subtitle: 'Add tasks for the current week.' }
     case 'future':
-      return { title: 'No future tasks', subtitle: 'Plan ahead by adding tasks for future weeks' }
+      return { title: 'No future tasks', subtitle: 'Plan ahead by adding tasks for future weeks.' }
     case 'unfinished':
       return { title: 'No unfinished tasks', subtitle: 'All past tasks are complete!' }
     case 'finished':
-      return { title: 'No completed tasks', subtitle: 'Mark tasks as done to see them here' }
+      return { title: 'No completed tasks', subtitle: 'Mark tasks as done to see them here.' }
     case 'archived':
       return {
         title: 'No archived tasks',
-        subtitle: 'Archive tasks to hide them from active views',
+        subtitle: 'Archive tasks to hide them from active views.',
       }
     default:
-      return { title: 'No tasks found', subtitle: 'Add your first task to get started' }
+      return { title: 'No tasks found', subtitle: 'Add your first task to get started.' }
   }
 })
 </script>
 
 <template>
-  <div class="flex flex-col gap-3">
-    <div v-if="loading" class="py-12 text-center">
-      <div class="inline-flex items-center gap-2 text-text-muted">
-        <div class="size-5 animate-spin rounded-full border-2 border-border border-t-navy" />
+  <div class="space-y-4">
+    <div
+      v-if="loading"
+      class="flex min-h-[14rem] items-center justify-center rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/70 px-6 py-14 text-center"
+    >
+      <div class="inline-flex items-center gap-3 text-on-surface-variant">
+        <div
+          class="size-5 animate-spin rounded-full border-2 border-outline-variant/20 border-t-primary"
+        />
         <span class="text-sm font-medium">Loading tasks...</span>
       </div>
     </div>
 
-    <div v-else-if="filteredTodos.length === 0" class="px-4 py-16 text-center">
+    <div
+      v-else-if="filteredTodos.length === 0"
+      class="rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/70 px-6 py-16 text-center shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
+    >
       <div class="inline-flex flex-col items-center gap-4">
-        <div class="flex size-16 items-center justify-center rounded-full bg-cream">
-          <FileText class="size-8 text-border-hover" stroke-width="1.5" />
+        <div
+          class="flex size-16 items-center justify-center rounded-full bg-surface-container-highest text-primary"
+        >
+          <Inbox class="size-8" stroke-width="1.5" />
         </div>
         <div>
-          <p class="font-[Playfair_Display] text-lg font-medium text-navy">
+          <p class="font-headline text-lg font-semibold tracking-tight text-on-surface">
             {{ emptyStateMessage.title }}
           </p>
-          <p class="mt-1 text-sm text-text-muted">
+          <p class="mt-2 text-sm text-on-surface-variant">
             {{ emptyStateMessage.subtitle }}
           </p>
         </div>
@@ -161,7 +171,7 @@ const emptyStateMessage = computed(() => {
     >
       <div
         v-if="showWeekSelector"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-surface/70 p-4 backdrop-blur-2xl"
         @click="closeWeekSelector"
       >
         <div @click.stop>

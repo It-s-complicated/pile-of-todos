@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { CircleUserRound, Github, LogOut } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 import { useAuth } from '@/composables/useAuth'
 
-const { accessState, authError, displayName, isAuthenticated, signInWithGithub, signOut, user } =
-  useAuth()
+const { authError, displayName, isAuthenticated, signInWithGithub, signOut, user } = useAuth()
 const isWorking = ref(false)
 
 const signedInLabel = computed(() => displayName.value || user.value?.email || 'Approved account')
@@ -35,36 +35,52 @@ async function handleSignOut() {
 </script>
 
 <template>
-  <div class="flex flex-col items-end gap-2 text-right">
-    <p v-if="isAuthenticated" class="text-xs font-medium text-text-muted">
-      Signed in as <span class="text-navy">{{ signedInLabel }}</span>
-    </p>
-    <p v-else class="text-xs font-medium text-text-muted">Sign in to start account sync</p>
+  <div class="flex flex-col gap-2">
+    <div
+      class="flex items-center gap-3 rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/80 px-4 py-3 text-left shadow-[0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl"
+    >
+      <div
+        class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-container-highest text-primary"
+      >
+        <CircleUserRound class="size-5" stroke-width="1.8" />
+      </div>
 
-    <div class="flex items-center gap-2">
+      <div class="hidden min-w-0 sm:block">
+        <p class="text-[10px] font-semibold tracking-[0.3em] text-on-surface-variant uppercase">
+          Personal
+        </p>
+        <p v-if="isAuthenticated" class="truncate text-sm text-on-surface">
+          Signed in as <span class="text-primary">{{ signedInLabel }}</span>
+        </p>
+        <p v-else class="text-sm text-on-surface">Sign in to start account sync</p>
+      </div>
+
       <button
         v-if="!isAuthenticated"
         type="button"
-        class="cursor-pointer rounded-full bg-navy px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
         :disabled="isWorking"
         @click="handleSignIn"
       >
-        {{ isWorking ? 'Redirecting...' : 'Sign in with GitHub' }}
+        <Github class="size-3.5" stroke-width="2" />
+        <span>{{ isWorking ? 'Redirecting...' : 'Sign in' }}</span>
       </button>
+
       <button
         v-else
         type="button"
-        class="cursor-pointer rounded-full border border-border px-4 py-2 text-xs font-semibold text-navy transition-colors hover:bg-cream disabled:cursor-not-allowed disabled:opacity-60"
+        class="inline-flex items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container-highest px-4 py-2 text-xs font-semibold text-on-surface transition-colors duration-200 hover:bg-surface-bright disabled:cursor-not-allowed disabled:opacity-60"
         :disabled="isWorking"
         @click="handleSignOut"
       >
-        {{ isWorking ? 'Signing out...' : 'Sign out' }}
+        <LogOut class="size-3.5" stroke-width="2" />
+        <span>{{ isWorking ? 'Signing out...' : 'Sign out' }}</span>
       </button>
     </div>
 
     <p
       v-if="authError"
-      class="max-w-xs rounded-lg border border-danger/20 bg-danger-light px-3 py-2 text-xs text-danger"
+      class="rounded-2xl border border-error/20 bg-error-container/20 px-3 py-2 text-xs text-on-error-container"
     >
       {{ authError }}
     </p>

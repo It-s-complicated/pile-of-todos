@@ -31,28 +31,72 @@ const isChecked = computed(() => props.todo.done)
 
 const statusColor = computed(() => {
   if (props.todo.weekNumber === null) {
-    return 'var(--color-week-backlog)'
+    return 'var(--color-secondary)'
   }
+
   if (props.todo.weekNumber === currentWeek) {
-    return 'var(--color-week-current)'
+    return 'var(--color-primary)'
   }
+
   if (props.todo.weekNumber > currentWeek) {
-    return 'var(--color-week-future)'
+    return 'var(--color-tertiary)'
   }
-  return 'var(--color-week-past)'
+
+  return 'var(--color-error)'
 })
 
-const weekStatusLabel = computed(() => {
+type BadgeTone = {
+  className: string
+  label: string
+}
+
+const scheduleBadge = computed<BadgeTone>(() => {
   if (props.todo.weekNumber === null) {
-    return 'Backlog'
+    return {
+      className: 'bg-secondary-container/35 text-secondary',
+      label: 'Backlog',
+    }
   }
+
   if (props.todo.weekNumber === currentWeek) {
-    return `Week ${props.todo.weekNumber} · Current`
+    return {
+      className: 'bg-primary-container/35 text-primary',
+      label: `Week ${props.todo.weekNumber} · Current`,
+    }
   }
+
   if (props.todo.weekNumber > currentWeek) {
-    return `Week ${props.todo.weekNumber} · Future`
+    return {
+      className: 'bg-tertiary-container/25 text-tertiary',
+      label: `Week ${props.todo.weekNumber} · Future`,
+    }
   }
-  return `Week ${props.todo.weekNumber} · Past`
+
+  return {
+    className: 'bg-error-container/25 text-error',
+    label: `Week ${props.todo.weekNumber} · Past`,
+  }
+})
+
+const lifecycleBadge = computed<BadgeTone>(() => {
+  if (props.todo.archived) {
+    return {
+      className: 'bg-secondary-container/25 text-secondary',
+      label: 'Archived',
+    }
+  }
+
+  if (props.todo.done) {
+    return {
+      className: 'bg-primary-container/25 text-primary',
+      label: 'Complete',
+    }
+  }
+
+  return {
+    className: 'bg-surface-container-highest text-on-surface-variant',
+    label: 'Active',
+  }
 })
 
 function toggleDone() {
@@ -91,78 +135,102 @@ function cancelEdit() {
 
 <template>
   <div
-    class="group flex items-center gap-4 rounded-lg border border-border bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+    class="group flex flex-col gap-4 rounded-[1.5rem] border border-outline-variant/10 bg-surface-container p-5 shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-[0_20px_40px_rgba(0,0,0,0.24)] sm:flex-row sm:items-center sm:justify-between sm:p-6"
+    :class="{ 'opacity-90': !canMutate }"
     :style="{ borderLeft: `3px solid ${statusColor}` }"
   >
-    <button
-      type="button"
-      role="checkbox"
-      :aria-checked="isChecked"
-      :aria-label="isChecked ? 'Mark as incomplete' : 'Mark as complete'"
-      :disabled="!canMutate"
-      :title="!canMutate ? (mutateDisabledReason ?? undefined) : undefined"
-      class="relative size-5 shrink-0 scroll-pr-0.5 rounded border-2 border-navy transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-      :class="{ 'bg-navy': isChecked, 'bg-white': !isChecked }"
-      @click="toggleDone"
-    >
-      <Check
-        v-if="isChecked"
-        class="absolute inset-0 h-full w-full p-0.5 text-white transition-transform duration-200"
-        :class="{ 'animate-checkmark': isChecked }"
-        stroke-width="3"
-      />
-    </button>
-
-    <div class="min-w-0 flex-1">
-      <input
-        v-if="isEditing"
-        v-model="editLabel"
-        class="w-full rounded border border-border bg-cream px-2 py-1 text-navy focus:border-navy focus:ring-1 focus:ring-navy/10 focus:outline-none"
-        @blur="saveEdit"
-        @keyup.enter="saveEdit"
-        @keyup.esc="cancelEdit"
-      />
-      <div
-        v-else
-        :class="{
-          'cursor-pointer': canMutate && !todo.done,
-          'cursor-default': !canMutate || todo.done,
-        }"
-        @dblclick="startEdit"
+    <div class="flex min-w-0 items-start gap-4 sm:gap-5">
+      <button
+        type="button"
+        role="checkbox"
+        :aria-checked="isChecked"
+        :aria-label="isChecked ? 'Mark as incomplete' : 'Mark as complete'"
+        :disabled="!canMutate"
+        :title="!canMutate ? (mutateDisabledReason ?? undefined) : undefined"
+        class="relative mt-0.5 size-6 shrink-0 rounded-full border border-outline-variant/70 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50"
+        :class="
+          isChecked
+            ? 'border-primary bg-primary text-on-primary'
+            : 'bg-transparent hover:border-primary/70'
+        "
+        @click="toggleDone"
       >
-        <p
-          class="text-base leading-snug transition-all duration-200"
-          :class="{ 'text-text-muted line-through': todo.done, 'text-navy': !todo.done }"
+        <Check
+          v-if="isChecked"
+          class="absolute inset-0 h-full w-full p-0.5 text-on-primary transition-transform duration-200"
+          :class="{ 'animate-checkmark': isChecked }"
+          stroke-width="3"
+        />
+      </button>
+
+      <div class="min-w-0">
+        <input
+          v-if="isEditing"
+          v-model="editLabel"
+          :disabled="!canMutate"
+          :title="!canMutate ? (mutateDisabledReason ?? undefined) : undefined"
+          class="w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-3 py-2 text-base text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          @blur="saveEdit"
+          @keyup.enter="saveEdit"
+          @keyup.esc="cancelEdit"
+        />
+        <div
+          v-else
+          class="select-none"
+          :class="{
+            'cursor-pointer': canMutate && !todo.done,
+            'cursor-default': !canMutate || todo.done,
+          }"
+          @dblclick="startEdit"
         >
-          {{ todo.label }}
-        </p>
-        <p class="mt-1 flex items-center gap-1.5 font-mono text-xs text-text-muted">
-          <Calendar class="size-3" stroke-width="1.5" />
-          {{ weekStatusLabel }}
-        </p>
+          <p
+            class="text-base leading-snug text-on-surface transition-all duration-200 sm:text-[1.05rem]"
+            :class="{
+              'text-on-surface-variant line-through': todo.done,
+              'text-on-surface': !todo.done,
+            }"
+          >
+            {{ todo.label }}
+          </p>
+
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <span
+              class="rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.24em] uppercase"
+              :class="scheduleBadge.className"
+            >
+              {{ scheduleBadge.label }}
+            </span>
+            <span
+              class="rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.24em] uppercase"
+              :class="lifecycleBadge.className"
+            >
+              {{ lifecycleBadge.label }}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
 
     <div
-      class="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+      class="flex items-center gap-1 self-end opacity-100 transition-opacity duration-200 sm:self-auto sm:opacity-0 sm:group-hover:opacity-100"
     >
       <button
         type="button"
         :disabled="!canMutate"
         :title="canMutate ? 'Move to different week' : (mutateDisabledReason ?? undefined)"
-        class="rounded-md p-2 text-text-muted transition-all duration-150 hover:bg-cream hover:text-navy disabled:cursor-not-allowed disabled:opacity-50"
+        class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest hover:text-tertiary disabled:cursor-not-allowed disabled:opacity-50"
         @click="$emit('move')"
       >
-        <Calendar class="size-4" stroke-width="1.5" />
+        <Calendar class="size-4" stroke-width="1.8" />
       </button>
       <button
         type="button"
         :disabled="!canMutate"
         :title="canMutate ? 'Archive' : (mutateDisabledReason ?? undefined)"
-        class="rounded-md p-2 text-text-muted transition-all duration-150 hover:bg-danger-light hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+        class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest hover:text-secondary disabled:cursor-not-allowed disabled:opacity-50"
         @click="$emit('archive')"
       >
-        <Archive class="size-4" stroke-width="1.5" />
+        <Archive class="size-4" stroke-width="1.8" />
       </button>
     </div>
   </div>

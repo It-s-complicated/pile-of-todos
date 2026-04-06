@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RefreshCcw } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 import { useElectricTodos } from '@/composables/useElectricTodos'
@@ -10,17 +11,17 @@ const { canRetrySync, queuedCreateCount, syncTodos } = useTodoSync()
 const statusConfig = computed(() => {
   if (statuses.degraded.value === 'requires-reauth') {
     return {
-      dotClass: 'bg-red-500',
+      dotClass: 'bg-error',
       text: 'Re-auth required',
-      textClass: 'text-red-600',
+      textClass: 'text-error',
     }
   }
 
   if (statuses.degraded.value === 'retryable-error') {
     return {
-      dotClass: 'bg-amber-500',
-      text: 'Retry queued',
-      textClass: 'text-amber-700',
+      dotClass: 'bg-secondary',
+      text: 'Retry pending',
+      textClass: 'text-secondary',
     }
   }
 
@@ -50,35 +51,38 @@ const statusConfig = computed(() => {
 
   if (statuses.sync.value === 'paused') {
     return {
-      dotClass: 'bg-gray-400',
+      dotClass: 'bg-on-surface-variant',
       text: 'Paused',
-      textClass: 'text-gray-500',
+      textClass: 'text-on-surface-variant',
     }
   }
 
   return {
-    dotClass: 'bg-green-500',
-    text: 'Live',
-    textClass: 'text-green-600',
+    dotClass: 'bg-primary',
+    text: 'Synced',
+    textClass: 'text-primary',
   }
 })
 </script>
 
 <template>
-  <div class="flex items-center gap-2 text-xs">
+  <div
+    class="flex items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 py-2 text-xs shadow-[0_10px_24px_rgba(0,0,0,0.16)]"
+  >
     <div
       class="size-2 rounded-full transition-colors duration-200"
       :class="statusConfig.dotClass"
     />
-    <span class="font-medium" :class="statusConfig.textClass">
+    <span class="font-semibold tracking-[0.24em] uppercase" :class="statusConfig.textClass">
       {{ statusConfig.text }}
     </span>
     <button
       v-if="canRetrySync"
-      class="ml-2 rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600 transition-colors hover:bg-blue-100"
+      class="inline-flex items-center gap-1 rounded-full bg-surface-container-highest px-2.5 py-1 text-[10px] font-semibold tracking-[0.24em] text-on-surface uppercase transition-colors hover:bg-surface-bright"
       @click="syncTodos"
     >
-      Retry sync
+      <RefreshCcw class="size-3" stroke-width="2" />
+      <span>Retry</span>
     </button>
   </div>
 </template>

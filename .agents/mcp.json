@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "Google Stitch - TOMD": {
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "AQ.Ab8RN6JxB08Q7PQv6Ym6bGgg5ZzzTecD1Id1ILpK0K269LGgcw"
+      }
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics", "--autoConnect"]
+    }
+  }
+}

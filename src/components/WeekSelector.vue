@@ -45,65 +45,70 @@ const weekOptions = [
 </script>
 
 <template>
-  <div class="animate-fade-in-up w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
-    <!-- Header -->
-    <div class="mb-6 flex items-center justify-between">
+  <div
+    class="animate-fade-in-up w-full max-w-md rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/95 p-5 text-on-surface shadow-[0_20px_40px_rgba(0,0,0,0.38)] backdrop-blur-2xl"
+  >
+    <div class="mb-6 flex items-start justify-between gap-4">
       <div>
-        <h3 class="font-[Playfair_Display] text-xl font-semibold text-navy">Move to Week</h3>
-        <p class="mt-1 text-sm text-text-muted">Select a destination for this task</p>
+        <h3 class="font-headline text-2xl font-extrabold tracking-tight text-on-surface">
+          Move to Week
+        </h3>
+        <p class="mt-1 text-sm text-on-surface-variant">Select a destination for this task</p>
       </div>
       <button
         type="button"
-        class="rounded-lg p-2 text-text-muted transition-all duration-150 hover:bg-cream hover:text-navy"
+        class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest hover:text-on-surface"
         @click="cancel"
       >
-        <X class="size-5" stroke-width="1.5" />
+        <X class="size-5" stroke-width="1.8" />
       </button>
     </div>
 
-    <!-- Week Options -->
     <div class="mb-6 space-y-2">
       <button
         v-for="option in weekOptions"
         :key="option.value ?? 'backlog'"
         type="button"
-        class="flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-200"
+        class="flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-200"
         :class="
           selectedWeek === option.value
-            ? 'border-coral bg-cream'
-            : 'border-border bg-white hover:border-border-hover hover:bg-cream'
+            ? 'border-primary/30 bg-primary-container/20'
+            : 'border-outline-variant/10 bg-surface-container-highest hover:border-outline-variant/20 hover:bg-surface-bright'
         "
         @click="selectedWeek = option.value"
       >
         <div
-          class="flex size-5 items-center justify-center rounded-full border-2 transition-all duration-200"
-          :class="selectedWeek === option.value ? 'border-coral bg-coral' : 'border-border'"
+          class="flex size-5 items-center justify-center rounded-full border transition-all duration-200"
+          :class="
+            selectedWeek === option.value
+              ? 'border-primary bg-primary'
+              : 'border-outline-variant/50 bg-transparent'
+          "
         >
-          <div v-if="selectedWeek === option.value" class="size-2 rounded-full bg-white" />
+          <div v-if="selectedWeek === option.value" class="size-2 rounded-full bg-on-primary" />
         </div>
         <div class="flex-1">
-          <p class="font-medium text-navy">
+          <p class="font-label text-sm font-semibold text-on-surface">
             {{ option.label }}
           </p>
-          <p class="text-xs text-text-muted">
+          <p class="text-xs text-on-surface-variant">
             {{ option.description }}
           </p>
         </div>
       </button>
     </div>
 
-    <!-- Actions -->
     <div class="flex gap-3">
       <button
         type="button"
-        class="flex-1 cursor-pointer rounded-lg bg-coral px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-coral-dark hover:shadow-md active:scale-[0.98]"
+        class="flex-1 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold tracking-[0.18em] text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)]"
         @click="confirm"
       >
         Move Task
       </button>
       <button
         type="button"
-        class="cursor-pointer rounded-lg bg-cream px-4 py-2.5 text-sm font-medium text-text-secondary transition-all duration-150 hover:bg-border active:scale-[0.98]"
+        class="rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-sm font-medium text-on-surface transition-colors duration-200 hover:bg-surface-bright"
         @click="cancel"
       >
         Cancel

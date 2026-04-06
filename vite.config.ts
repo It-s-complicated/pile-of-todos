@@ -45,15 +45,11 @@ export default defineConfig({
       google: {
         families: [
           {
-            name: 'IBM Plex Mono',
-            styles: 'wght@400;500',
-          },
-          {
-            name: 'Playfair Display',
+            name: 'Epilogue',
             styles: 'wght@400..700',
           },
           {
-            name: 'Source Sans 3',
+            name: 'Inter',
             styles: 'wght@400..700',
           },
         ],
@@ -63,12 +59,12 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Todo App',
-        short_name: 'Todo',
+        name: 'SoloFlow Dashboard',
+        short_name: 'SoloFlow',
         start_url: '/',
         display: 'standalone',
-        background_color: '#ffffff',
-        theme_color: '#3b82f6',
+        background_color: '#0c0e10',
+        theme_color: '#0c0e10',
         icons: [
           {
             src: '/icon-192.png',
