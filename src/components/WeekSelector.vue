@@ -46,7 +46,7 @@ const weekOptions = [
 
 <template>
   <div
-    class="animate-fade-in-up w-full max-w-md rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/95 p-5 text-on-surface shadow-[0_20px_40px_rgba(0,0,0,0.38)] backdrop-blur-2xl"
+    class="animate-fade-in-up w-full max-w-md rounded-3xl border border-outline-variant/10 bg-surface-container/95 p-5 text-on-surface shadow-[0_20px_40px_rgba(0,0,0,0.38)] backdrop-blur-2xl"
   >
     <div class="mb-6 flex items-start justify-between gap-4">
       <div>

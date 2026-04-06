@@ -176,7 +176,7 @@ const id = useId()
           Sync Model
         </h2>
         <div
-          class="rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/80 px-5 py-4 text-sm text-on-surface-variant shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
+          class="rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-5 py-4 text-sm text-on-surface-variant shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
         >
           <p v-if="offlineQueueState.count > 0 && !isOnline">
             {{ offlineQueueState.count }} queued task{{ offlineQueueState.count === 1 ? '' : 's' }}
@@ -205,7 +205,7 @@ const id = useId()
       @submit.prevent="createTodo"
     >
       <div
-        class="rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/90 p-3 shadow-[0_20px_40px_rgba(0,0,0,0.38)] backdrop-blur-2xl"
+        class="rounded-3xl border border-outline-variant/10 bg-surface-container/90 p-3 shadow-[0_20px_40px_rgba(0,0,0,0.38)] backdrop-blur-2xl"
       >
         <div class="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
           <div class="space-y-1.5">

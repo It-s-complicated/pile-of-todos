@@ -135,7 +135,7 @@ function cancelEdit() {
 
 <template>
   <div
-    class="group flex flex-col gap-4 rounded-[1.5rem] border border-outline-variant/10 bg-surface-container p-5 shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-[0_20px_40px_rgba(0,0,0,0.24)] sm:flex-row sm:items-center sm:justify-between sm:p-6"
+    class="group flex flex-col gap-4 rounded-3xl border border-outline-variant/10 bg-surface-container p-5 shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-[0_20px_40px_rgba(0,0,0,0.24)] sm:flex-row sm:items-center sm:justify-between sm:p-6"
     :class="{ 'opacity-90': !canMutate }"
     :style="{ borderLeft: `3px solid ${statusColor}` }"
   >

@@ -37,7 +37,7 @@ async function handleSignOut() {
 <template>
   <div class="flex flex-col gap-2">
     <div
-      class="flex items-center gap-3 rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/80 px-4 py-3 text-left shadow-[0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl"
+      class="flex items-center gap-3 rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-4 py-3 text-left shadow-[0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl"
     >
       <div
         class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-container-highest text-primary"

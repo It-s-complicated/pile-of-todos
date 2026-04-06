@@ -115,7 +115,7 @@ const emptyStateMessage = computed(() => {
   <div class="space-y-4">
     <div
       v-if="loading"
-      class="flex min-h-[14rem] items-center justify-center rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/70 px-6 py-14 text-center"
+      class="flex min-h-[14rem] items-center justify-center rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-6 py-14 text-center"
     >
       <div class="inline-flex items-center gap-3 text-on-surface-variant">
         <div
@@ -127,7 +127,7 @@ const emptyStateMessage = computed(() => {
 
     <div
       v-else-if="filteredTodos.length === 0"
-      class="rounded-[1.5rem] border border-outline-variant/10 bg-surface-container/70 px-6 py-16 text-center shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
+      class="rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-6 py-16 text-center shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
     >
       <div class="inline-flex flex-col items-center gap-4">
         <div
