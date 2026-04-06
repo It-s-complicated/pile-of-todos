@@ -1,5 +1,3 @@
-import type { PostgrestError } from '@supabase/supabase-js'
-
 export type SyncTodo = {
   id: string
   label: string
@@ -26,6 +24,49 @@ export type RemoteTodoRow = {
   user_id: string
 }
 
+type TodoMutationKind = 'create' | 'update' | 'delete'
+
+type TodoMutationValues = {
+  archived?: boolean
+  createdAt?: number
+  deletedAt?: number | null
+  done?: boolean
+  label?: string
+  updatedAt: number
+  weekNumber?: number | null
+}
+
+type TodoMutationIntent = {
+  client: {
+    deviceId: string | null
+  }
+  kind: TodoMutationKind
+  mutationId: string
+  todoId: string
+  values: TodoMutationValues
+}
+
+type TodoMutationRpcError = {
+  code?: string
+  details?: string | null
+  hint?: string | null
+  message: string
+}
+
+type TodoMutationRpcResponse = {
+  data: unknown
+  error: TodoMutationRpcError | null
+}
+
+type TodoMutationRpcClient = {
+  rpc: (
+    functionName: 'apply_todo_mutation',
+    params: {
+      intent: TodoMutationIntent
+    },
+  ) => PromiseLike<TodoMutationRpcResponse>
+}
+
 export class TodoRemoteWriteError extends Error {
   readonly kind: 'auth' | 'not-found' | 'retryable'
 
@@ -36,39 +77,77 @@ export class TodoRemoteWriteError extends Error {
   }
 }
 
-type TodoTableClient = {
-  from: (table: 'todos') => any
-}
-
-function isAuthRelatedPostgrestError(error: PostgrestError): boolean {
-  const authFailureCodes = new Set(['401', '403', '42501', 'PGRST301', 'PGRST302'])
-  const authFailureDetails = [error.code, error.message, error.details, error.hint]
+function getNormalizedPostgrestText(error: TodoMutationRpcError) {
+  return [error.code, error.message, error.details, error.hint]
     .filter((value): value is string => Boolean(value))
     .join(' ')
     .toLowerCase()
+}
+
+function isAuthRelatedPostgrestError(error: TodoMutationRpcError): boolean {
+  const authFailureCodes = new Set(['401', '403', '42501', 'PGRST301', 'PGRST302'])
+  const authFailureDetails = getNormalizedPostgrestText(error)
 
   if (error.code && authFailureCodes.has(error.code)) {
     return true
   }
 
-  return [
-    'jwt',
-    'session',
-    'token',
-    'auth',
-    'row-level security',
-    'rls',
-    'permission denied',
-    'not found for the authenticated user',
-  ].some((signal) => authFailureDetails.includes(signal))
+  return ['jwt', 'session', 'token', 'auth', 'row-level security', 'rls', 'permission denied'].some(
+    (signal) => authFailureDetails.includes(signal),
+  )
 }
 
-function createTodoWriteError(error: PostgrestError) {
+function isTodoNotFoundPostgrestError(error: TodoMutationRpcError): boolean {
+  const details = getNormalizedPostgrestText(error)
+
+  return [
+    'todo was not found for the approved account',
+    'todo was not found for the authenticated user',
+    'not found for the approved account',
+    'not found for the authenticated user',
+    'was not found for the authenticated user',
+  ].some((signal) => details.includes(signal))
+}
+
+function createTodoWriteError(error: TodoMutationRpcError) {
+  if (isTodoNotFoundPostgrestError(error)) {
+    return new TodoRemoteWriteError(error.message, 'not-found')
+  }
+
   if (isAuthRelatedPostgrestError(error)) {
     return new TodoRemoteWriteError(error.message, 'auth')
   }
 
   return new TodoRemoteWriteError(error.message, 'retryable')
+}
+
+function buildTodoMutationIntent(
+  kind: TodoMutationKind,
+  todoId: string,
+  values: TodoMutationValues,
+  deviceId: string | null,
+  mutationId = crypto.randomUUID(),
+): TodoMutationIntent {
+  return {
+    client: {
+      deviceId,
+    },
+    kind,
+    mutationId,
+    todoId,
+    values,
+  }
+}
+
+async function applyRemoteTodoMutation(
+  supabase: TodoMutationRpcClient,
+  intent: TodoMutationIntent,
+): Promise<void> {
+  const { error } = await supabase.rpc('apply_todo_mutation', { intent })
+
+  if (error) {
+    throw createTodoWriteError(error)
+  }
 }
 
 export function buildRemoteTodoRow(
@@ -112,20 +191,26 @@ export function translateRemoteTodoRow(todo: RemoteTodoRow): SyncTodo {
 }
 
 export async function upsertRemoteTodo(
-  supabase: TodoTableClient,
+  supabase: TodoMutationRpcClient,
   row: RemoteTodoRow,
-): Promise<SyncTodo> {
-  const { data, error } = await supabase
-    .from('todos')
-    .upsert(row, { onConflict: 'id' })
-    .select()
-    .single()
-
-  if (error) {
-    throw createTodoWriteError(error)
-  }
-
-  return translateRemoteTodoRow(data)
+): Promise<void> {
+  await applyRemoteTodoMutation(
+    supabase,
+    buildTodoMutationIntent(
+      'create',
+      row.id,
+      {
+        archived: row.archived,
+        createdAt: row.created_at,
+        deletedAt: row.deleted_at,
+        done: row.done,
+        label: row.label,
+        updatedAt: row.updated_at,
+        weekNumber: row.week_number,
+      },
+      row.device_id,
+    ),
+  )
 }
 
 type UpdateRemoteTodoOptions = {
@@ -143,52 +228,35 @@ type UpdateRemoteTodoOptions = {
 }
 
 export async function updateRemoteTodo(
-  supabase: TodoTableClient,
+  supabase: TodoMutationRpcClient,
   options: UpdateRemoteTodoOptions,
-): Promise<SyncTodo> {
-  const updateValues: Partial<RemoteTodoRow> = {
-    updated_at: options.updates.updatedAt,
+): Promise<void> {
+  const values: TodoMutationValues = {
+    updatedAt: options.updates.updatedAt,
   }
 
   if (options.updates.label !== undefined) {
-    updateValues.label = options.updates.label
+    values.label = options.updates.label
   }
 
   if (options.updates.weekNumber !== undefined) {
-    updateValues.week_number = options.updates.weekNumber
+    values.weekNumber = options.updates.weekNumber
   }
 
   if (options.updates.done !== undefined) {
-    updateValues.done = options.updates.done
+    values.done = options.updates.done
   }
 
   if (options.updates.archived !== undefined) {
-    updateValues.archived = options.updates.archived
+    values.archived = options.updates.archived
   }
 
   if (options.updates.deletedAt !== undefined) {
-    updateValues.deleted_at = options.updates.deletedAt
+    values.deletedAt = options.updates.deletedAt
   }
 
-  if (options.updates.deviceId !== undefined) {
-    updateValues.device_id = options.updates.deviceId ?? null
-  }
-
-  const { data, error } = await supabase
-    .from('todos')
-    .update(updateValues)
-    .eq('id', options.todoId)
-    .eq('user_id', options.activeUserId)
-    .select()
-    .maybeSingle()
-
-  if (error) {
-    throw createTodoWriteError(error)
-  }
-
-  if (!data) {
-    throw new TodoRemoteWriteError('Todo was not found for the approved account', 'not-found')
-  }
-
-  return translateRemoteTodoRow(data)
+  await applyRemoteTodoMutation(
+    supabase,
+    buildTodoMutationIntent('update', options.todoId, values, options.updates.deviceId ?? null),
+  )
 }

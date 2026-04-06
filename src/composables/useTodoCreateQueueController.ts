@@ -24,7 +24,7 @@ type UseTodoCreateQueueControllerOptions = {
     isOnline: Ref<boolean>
   }
   storage?: ReturnType<typeof createOfflineTodoCreateQueue>
-  writeClient?: Pick<ReturnType<typeof getSupabaseClient>, 'from'>
+  writeClient?: Pick<ReturnType<typeof getSupabaseClient>, 'rpc'>
 }
 
 let sharedTodoCreateQueueController: ReturnType<typeof createTodoCreateQueueController> | null =
@@ -89,6 +89,10 @@ function createTodoCreateQueueController(options: UseTodoCreateQueueControllerOp
     lastError.value = message
   }
 
+  function markRetryableError(message: string) {
+    lastError.value = message
+  }
+
   function queueCreate(todo: Todo) {
     if (!activeUserId.value) {
       throw new Error('Cannot queue a todo create without an approved account')
@@ -100,8 +104,6 @@ function createTodoCreateQueueController(options: UseTodoCreateQueueControllerOp
       todo,
       updatedAt: Date.now(),
     })
-    requiresReauth.value = false
-    clearSyncError()
     reloadQueuedCreates()
   }
 
@@ -212,6 +214,7 @@ function createTodoCreateQueueController(options: UseTodoCreateQueueControllerOp
     isFlushing: readonly(isFlushing),
     lastError: readonly(lastError),
     markRequiresReauth,
+    markRetryableError,
     queuedCreateCount: computed(() => queuedCreates.value.length),
     queuedCreates: readonly(queuedCreates),
     queueCreate,

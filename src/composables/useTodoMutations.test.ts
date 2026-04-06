@@ -9,6 +9,7 @@ const isOnline = ref(true)
 
 const clearSyncError = vi.fn()
 const markRequiresReauth = vi.fn()
+const markRetryableError = vi.fn()
 const queueCreate = vi.fn()
 
 const buildRemoteTodoRow = vi.fn((todo: Todo) => ({
@@ -33,6 +34,7 @@ vi.mock('./useTodoData', () => ({
       controller: {
         clearSyncError,
         markRequiresReauth,
+        markRetryableError,
         queueCreate,
       },
     },
@@ -74,6 +76,7 @@ beforeEach(() => {
   isOnline.value = true
   clearSyncError.mockReset()
   markRequiresReauth.mockReset()
+  markRetryableError.mockReset()
   queueCreate.mockReset()
   buildRemoteTodoRow.mockClear()
   upsertRemoteTodo.mockReset()
@@ -101,7 +104,24 @@ test('useTodoMutations writes creates directly to Supabase while online', async 
 
   assert.equal(buildRemoteTodoRow.mock.calls.length, 1)
   assert.equal(upsertRemoteTodo.mock.calls.length, 1)
-  assert.equal(clearSyncError.mock.calls.length, 1)
+  assert.equal(clearSyncError.mock.calls.length, 0)
+  assert.equal(markRetryableError.mock.calls.length, 0)
+})
+
+test('useTodoMutations queues retryable create failures even while online', async () => {
+  const { TodoRemoteWriteError } = await import('@/lib/todo-sync')
+  upsertRemoteTodo.mockRejectedValueOnce(new TodoRemoteWriteError('Gateway timed out', 'retryable'))
+  const { useTodoMutations } = await import('./useTodoMutations')
+
+  const todoId = await useTodoMutations().createTodo('Retryable todo', 12)
+
+  assert.equal(todoId.length > 0, true)
+  assert.equal(queueCreate.mock.calls.length, 1)
+  assert.equal(queueCreate.mock.calls[0]?.[0]?.id, todoId)
+  assert.equal(markRetryableError.mock.calls.length, 1)
+  assert.equal(markRetryableError.mock.calls[0]?.[0], 'Gateway timed out')
+  assert.equal(upsertRemoteTodo.mock.calls.length, 1)
+  assert.equal(clearSyncError.mock.calls.length, 0)
 })
 
 test('useTodoMutations rejects updates while offline because only creates may queue', async () => {
@@ -125,7 +145,7 @@ test('useTodoMutations writes updates directly to Supabase while online', async 
   assert.equal(updateRemoteTodo.mock.calls[0]?.[1]?.activeUserId, 'user-a')
   assert.equal(updateRemoteTodo.mock.calls[0]?.[1]?.updates.done, true)
   assert.equal(updateRemoteTodo.mock.calls[0]?.[1]?.updates.weekNumber, null)
-  assert.equal(clearSyncError.mock.calls.length, 1)
+  assert.equal(clearSyncError.mock.calls.length, 0)
 })
 
 test('useTodoMutations marks reauth when a remote auth failure occurs', async () => {

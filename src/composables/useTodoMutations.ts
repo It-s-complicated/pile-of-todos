@@ -80,15 +80,11 @@ function createTodoMutations() {
         getSupabaseClient(),
         buildRemoteTodoRow(nextTodo, activeUserId, getCurrentDeviceId()),
       )
-      todoData.sync.controller.clearSyncError()
       return nextTodo.id
     } catch (error) {
-      if (
-        error instanceof TodoRemoteWriteError &&
-        error.kind === 'retryable' &&
-        !todoData.connectivity.isOnline.value
-      ) {
+      if (error instanceof TodoRemoteWriteError && error.kind === 'retryable') {
         todoData.sync.controller.queueCreate(nextTodo)
+        todoData.sync.controller.markRetryableError(error.message)
         return nextTodo.id
       }
 
@@ -125,7 +121,6 @@ function createTodoMutations() {
           updatedAt: optimisticTodo.updatedAt,
         },
       })
-      todoData.sync.controller.clearSyncError()
     } catch (error) {
       if (error instanceof TodoRemoteWriteError && error.kind === 'auth') {
         todoData.sync.controller.markRequiresReauth(error.message)
