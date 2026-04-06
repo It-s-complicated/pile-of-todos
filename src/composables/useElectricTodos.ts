@@ -1,12 +1,8 @@
 import { computed } from 'vue'
 
-import { declineStagedMigrationTodos } from '@/lib/todo-storage'
-
 import { useTodoData } from './useTodoData.ts'
 import { useTodoMutations } from './useTodoMutations.ts'
 import { useTodoSync } from './useTodoSync.ts'
-
-export type TodoMigrationStatus = 'none' | 'available' | 'promoting' | 'declined'
 
 function getCreateTodoDisabledReason(
   accessState: ReturnType<typeof useTodoData>['auth']['accessState']['value'],
@@ -18,20 +14,15 @@ function getCreateTodoDisabledReason(
   return 'Sign in with the approved account to create todos.'
 }
 
-function getKeepMigrationDisabledReason(
+function getMutateTodoDisabledReason(
   accessState: ReturnType<typeof useTodoData>['auth']['accessState']['value'],
-  migrationStatus: TodoMigrationStatus,
-  promotableTodoCount: number,
+  isOnline: boolean,
 ) {
-  if (migrationStatus !== 'available' || promotableTodoCount === 0) {
-    return null
-  }
-
   if (accessState === 'approved') {
-    return null
+    return isOnline ? null : 'Reconnect to update todos.'
   }
 
-  return 'Sign in with the approved account to keep staged todos.'
+  return 'Sign in with the approved account to update todos.'
 }
 
 export function useElectricTodos() {
@@ -41,54 +32,30 @@ export function useElectricTodos() {
   const createTodoDisabledReason = computed(() =>
     getCreateTodoDisabledReason(todoData.auth.accessState.value),
   )
-  const migration = computed(() => {
-    const status = todoData.migration.status.value
-    const promotableTodoCount = todoData.migration.state.value.stagedTodos.filter(
-      (stagedTodo) => stagedTodo.deletedAt === null,
-    ).length
-    const keepDisabledReason = getKeepMigrationDisabledReason(
+  const mutateTodoDisabledReason = computed(() =>
+    getMutateTodoDisabledReason(
       todoData.auth.accessState.value,
-      status,
-      promotableTodoCount,
-    )
-    const canKeep = status === 'available' && promotableTodoCount > 0 && keepDisabledReason === null
-    const canDecline = status === 'available'
-
-    return {
-      canDecline,
-      canKeep,
-      decline() {
-        if (!canDecline) {
-          return false
-        }
-
-        return declineStagedMigrationTodos()
-      },
-      keep() {
-        if (!canKeep) {
-          return []
-        }
-
-        return todoMutations.keepStagedMigrationTodos()
-      },
-      keepDisabledReason,
-      stagedTodoCount: promotableTodoCount,
-      status,
-    }
-  })
+      todoData.connectivity.isOnline.value,
+    ),
+  )
 
   return {
     addTodo: todoMutations.createTodo,
     canCreateTodos: computed(() => createTodoDisabledReason.value === null),
+    canMutateTodos: computed(() => mutateTodoDisabledReason.value === null),
     createTodoDisabledReason,
     deleteTodo: todoMutations.deleteTodo,
     isOnline: todoData.connectivity.isOnline,
     isReady: todoData.connectivity.isReady,
-    migration,
+    mutateTodoDisabledReason,
+    offlineQueue: computed(() => ({
+      count: todoData.sync.controller.queuedCreateCount.value,
+      isFlushing: todoData.sync.controller.isFlushing.value,
+      lastError: todoData.sync.controller.lastError.value,
+    })),
     restoreTodo: todoMutations.restoreTodo,
     statuses: {
       degraded: todoSync.degradedStatus,
-      migration: computed<TodoMigrationStatus>(() => migration.value.status),
       sync: todoSync.syncStatus,
     },
     todos: todoData.readModel.todos,

@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import type { Todo, TodoFilter } from '@/db/collections'
 import { FileText } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+
 import { useElectricTodos } from '@/composables/useElectricTodos'
 import { VALID_FILTERS } from '@/db/collections'
+import type { Todo, TodoFilter } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
-const { isReady, todos, updateTodo } = useElectricTodos()
+const { canMutateTodos, isReady, mutateTodoDisabledReason, todos, updateTodo } = useElectricTodos()
 const route = useRoute()
 
 const currentWeek = getCurrentWeekNumber()
@@ -49,14 +51,24 @@ const showWeekSelector = ref(false)
 const selectedTodo = ref<Todo | null>(null)
 
 function handleUpdate(id: string, updates: Partial<Todo>) {
-  updateTodo(id, updates)
+  if (!canMutateTodos.value) {
+    return
+  }
+
+  void updateTodo(id, updates).catch((error) => {
+    console.error('Todo update failed:', error)
+  })
 }
 
 function handleArchive(id: string) {
-  updateTodo(id, { archived: true })
+  handleUpdate(id, { archived: true })
 }
 
 function handleMove(todo: Todo) {
+  if (!canMutateTodos.value) {
+    return
+  }
+
   selectedTodo.value = todo
   showWeekSelector.value = true
 }
@@ -72,7 +84,7 @@ function confirmMove(weekNumber: number | null) {
     return
   }
 
-  updateTodo(selectedTodo.value.id, { weekNumber })
+  handleUpdate(selectedTodo.value.id, { weekNumber })
   closeWeekSelector()
 }
 
@@ -128,6 +140,8 @@ const emptyStateMessage = computed(() => {
       <TodoItem
         v-for="(todo, index) in filteredTodos"
         :key="todo.id"
+        :can-mutate="canMutateTodos"
+        :mutate-disabled-reason="mutateTodoDisabledReason"
         :todo="todo"
         class="animate-fade-in-up"
         :style="{ animationDelay: `${Math.min(index * 50, 500)}ms` }"

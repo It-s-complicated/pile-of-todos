@@ -3,15 +3,17 @@ import { Archive, Calendar, CheckCircle, Clock, Inbox, Layers } from 'lucide-vue
 import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
 import { computed, ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
+
 import AuthStatus from './components/AuthStatus.vue'
-import { useElectricTodos } from './composables/useElectricTodos'
-import { useCreateTodoValidationState } from './composables/useCreateTodoValidationState'
 import SyncStatus from './components/SyncStatus.vue'
+import { useCreateTodoValidationState } from './composables/useCreateTodoValidationState'
+import { useElectricTodos } from './composables/useElectricTodos'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
 const route = useRoute()
-const { addTodo, canCreateTodos, createTodoDisabledReason, migration } = useElectricTodos()
-const migrationState = computed(() => migration.value)
+const { addTodo, canCreateTodos, createTodoDisabledReason, isOnline, offlineQueue } =
+  useElectricTodos()
+const offlineQueueState = computed(() => offlineQueue.value)
 
 const newTodoLabel = ref('')
 const newTodoWeek = ref<number | null>(null)
@@ -26,7 +28,7 @@ const TodoLabelSchema = pipe(
   regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
 )
 
-function createTodo() {
+async function createTodo() {
   if (!canCreateTodos.value) {
     validation.setGateError(createTodoDisabledReason.value ?? 'You cannot create todos right now.')
     return
@@ -40,10 +42,14 @@ function createTodo() {
     return
   }
 
-  addTodo(trimmedLabel, newTodoWeek.value)
-  validation.clearError()
-  newTodoLabel.value = ''
-  newTodoWeek.value = null
+  try {
+    await addTodo(trimmedLabel, newTodoWeek.value)
+    validation.clearError()
+    newTodoLabel.value = ''
+    newTodoWeek.value = null
+  } catch (error) {
+    validation.setGateError(error instanceof Error ? error.message : 'Unable to create todo.')
+  }
 }
 
 const navItems = [
@@ -166,54 +172,25 @@ const id = useId()
     <RouterView />
 
     <section class="mt-10 border-t border-border pt-8">
-      <h2 class="mb-4 text-xs font-medium tracking-wide text-text-muted uppercase">
-        Data Management
-      </h2>
+      <h2 class="mb-4 text-xs font-medium tracking-wide text-text-muted uppercase">Sync Model</h2>
       <div class="rounded-lg border border-border bg-cream px-4 py-3 text-sm text-text-muted">
-        <template v-if="migrationState.status === 'available'">
-          <p v-if="migrationState.stagedTodoCount > 0">
-            {{ migrationState.stagedTodoCount }} staged task{{
-              migrationState.stagedTodoCount === 1 ? '' : 's'
-            }}
-            {{ migrationState.stagedTodoCount === 1 ? 'is' : 'are' }} ready to keep in this account.
-          </p>
-          <p v-else>No staged tasks are available to keep.</p>
-          <p class="mt-2">
-            Signed-out users stay in migration review until the approved account signs in and keeps
-            the staged tasks.
-          </p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <button
-              v-if="migrationState.canKeep || migrationState.keepDisabledReason"
-              type="button"
-              :disabled="!migrationState.canKeep"
-              :title="migrationState.keepDisabledReason ?? undefined"
-              class="rounded-lg bg-navy px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-600"
-              @click="migrationState.keep()"
-            >
-              Keep staged tasks
-            </button>
-            <button
-              type="button"
-              class="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-text-secondary transition-colors hover:bg-white"
-              @click="migrationState.decline()"
-            >
-              Decline migration
-            </button>
-          </div>
-          <p v-if="migrationState.keepDisabledReason" class="mt-2 text-xs text-text-muted">
-            {{ migrationState.keepDisabledReason }}
-          </p>
-        </template>
-        <p v-else-if="migrationState.status === 'promoting'">
-          Migration is in progress. Staged tasks will appear after sync confirms them.
+        <p v-if="offlineQueueState.count > 0 && !isOnline">
+          {{ offlineQueueState.count }} queued task{{ offlineQueueState.count === 1 ? '' : 's' }}
+          will be created in Supabase when the connection returns.
         </p>
-        <p v-else-if="migrationState.status === 'declined'">
-          Staged legacy/imported tasks were declined and remain quarantined outside the synced view.
+        <p v-else-if="offlineQueueState.count > 0 && offlineQueueState.isFlushing">
+          Queued tasks are being written to Supabase and will appear when Electric catches up.
+        </p>
+        <p v-else-if="offlineQueueState.count > 0">
+          Queued tasks are ready to sync and will appear as soon as Electric refreshes the live
+          view.
         </p>
         <p v-else>
-          Imports stage tasks for migration review before sync. Signed-out access is limited to
-          migration review until the approved account signs in and keeps the staged tasks.
+          Todo views come only from Electric live queries. The app stores local data only for newly
+          created offline tasks until it can write them to Supabase.
+        </p>
+        <p v-if="offlineQueueState.lastError" class="mt-2 text-xs text-danger">
+          {{ offlineQueueState.lastError }}
         </p>
       </div>
     </section>
