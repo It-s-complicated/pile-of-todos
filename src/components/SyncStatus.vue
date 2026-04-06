@@ -1,36 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+
 import { useElectricTodos } from '@/composables/useElectricTodos'
 import { useTodoSync } from '@/composables/useTodoSync'
 
-const { statuses } = useElectricTodos()
-const { canRetrySync, syncTodos } = useTodoSync()
+const { isOnline, statuses } = useElectricTodos()
+const { canRetrySync, queuedCreateCount, syncTodos } = useTodoSync()
 
 const statusConfig = computed(() => {
-  if (statuses.migration.value === 'available') {
-    return {
-      dotClass: 'bg-amber-500',
-      text: 'Migration ready',
-      textClass: 'text-amber-700',
-    }
-  }
-
-  if (statuses.migration.value === 'promoting') {
-    return {
-      dotClass: 'bg-yellow-500 animate-pulse',
-      text: 'Migrating staged tasks',
-      textClass: 'text-yellow-600',
-    }
-  }
-
-  if (statuses.migration.value === 'declined') {
-    return {
-      dotClass: 'bg-gray-400',
-      text: 'Migration declined',
-      textClass: 'text-gray-500',
-    }
-  }
-
   if (statuses.degraded.value === 'requires-reauth') {
     return {
       dotClass: 'bg-red-500',
@@ -39,19 +16,35 @@ const statusConfig = computed(() => {
     }
   }
 
-  if (statuses.degraded.value === 'invariant-violation') {
-    return {
-      dotClass: 'bg-red-500',
-      text: 'Sync degraded',
-      textClass: 'text-red-600',
-    }
-  }
-
   if (statuses.degraded.value === 'retryable-error') {
     return {
       dotClass: 'bg-amber-500',
-      text: 'Retry pending',
+      text: 'Retry queued',
       textClass: 'text-amber-700',
+    }
+  }
+
+  if (statuses.sync.value === 'queued-offline') {
+    return {
+      dotClass: 'bg-amber-500',
+      text: `${queuedCreateCount.value} queued offline`,
+      textClass: 'text-amber-700',
+    }
+  }
+
+  if (statuses.sync.value === 'syncing') {
+    return {
+      dotClass: 'bg-blue-500 animate-pulse',
+      text: 'Syncing queued tasks',
+      textClass: 'text-blue-600',
+    }
+  }
+
+  if (!isOnline.value) {
+    return {
+      dotClass: 'bg-gray-400',
+      text: 'Offline',
+      textClass: 'text-gray-500',
     }
   }
 
@@ -65,7 +58,7 @@ const statusConfig = computed(() => {
 
   return {
     dotClass: 'bg-green-500',
-    text: 'Synced',
+    text: 'Live',
     textClass: 'text-green-600',
   }
 })

@@ -4,16 +4,13 @@ import { renderToString } from 'vue/server-renderer'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
 const routePath = '/backlog'
-const addTodo = vi.fn()
-const keepMigration = vi.fn()
-const declineMigration = vi.fn()
-const migrationCanDecline = ref(true)
-const migrationCanKeep = ref(true)
-const migrationKeepDisabledReason = ref<string | null>(null)
-const migrationStagedTodoCount = ref(0)
-const migrationStatus = ref<'none' | 'available' | 'promoting' | 'declined'>('none')
+const addTodo = vi.fn(async () => 'todo-a')
 const canCreateTodos = ref(true)
 const createTodoDisabledReason = ref<string | null>(null)
+const isOnline = ref(true)
+const queuedCount = ref(0)
+const queueError = ref<string | null>(null)
+const isFlushing = ref(false)
 
 vi.mock('lucide-vue-next', () => {
   const icon = defineComponent({
@@ -66,14 +63,11 @@ vi.mock('./composables/useElectricTodos', () => ({
     addTodo,
     canCreateTodos: computed(() => canCreateTodos.value),
     createTodoDisabledReason: computed(() => createTodoDisabledReason.value),
-    migration: computed(() => ({
-      canDecline: migrationCanDecline.value,
-      canKeep: migrationCanKeep.value,
-      decline: declineMigration,
-      keep: keepMigration,
-      keepDisabledReason: migrationKeepDisabledReason.value,
-      stagedTodoCount: migrationStagedTodoCount.value,
-      status: migrationStatus.value,
+    isOnline: computed(() => isOnline.value),
+    offlineQueue: computed(() => ({
+      count: queuedCount.value,
+      isFlushing: isFlushing.value,
+      lastError: queueError.value,
     })),
   }),
 }))
@@ -113,76 +107,44 @@ async function renderApp() {
 beforeEach(() => {
   vi.resetModules()
   addTodo.mockReset()
-  keepMigration.mockReset()
-  declineMigration.mockReset()
-  migrationCanDecline.value = true
-  migrationCanKeep.value = true
-  migrationKeepDisabledReason.value = null
-  migrationStagedTodoCount.value = 0
-  migrationStatus.value = 'none'
+  addTodo.mockResolvedValue('todo-a')
   canCreateTodos.value = true
   createTodoDisabledReason.value = null
+  isOnline.value = true
+  queuedCount.value = 0
+  queueError.value = null
+  isFlushing.value = false
 })
 
-test('App renders the available migration branch with a disabled keep button reason when keep is gated', async () => {
-  migrationStatus.value = 'available'
-  migrationStagedTodoCount.value = 2
-  migrationCanKeep.value = false
-  migrationKeepDisabledReason.value = 'Sign in with the approved account to keep staged todos.'
+test('App explains the offline queue when tasks are waiting locally', async () => {
+  isOnline.value = false
+  queuedCount.value = 2
 
   const html = await renderApp()
 
-  assert.match(html, /2 staged tasks are ready to keep in this account\./)
-  assert.match(
-    html,
-    /Signed-out users stay in migration review until the approved account signs in and keeps the staged tasks\./,
-  )
-  assert.match(html, /Keep staged tasks/)
-  assert.match(html, /disabled/)
-  assert.match(html, /Sign in with the approved account to keep staged todos\./)
+  assert.match(html, /2 queued tasks will be created in Supabase when the connection returns\./)
 })
 
-test('App renders the promoting and declined migration branches reliably', async () => {
-  migrationStatus.value = 'promoting'
-
-  const promotingHtml = await renderApp()
-
-  assert.match(
-    promotingHtml,
-    /Migration is in progress\. Staged tasks will appear after sync confirms them\./,
-  )
-
-  vi.resetModules()
-  migrationStatus.value = 'declined'
-
-  const declinedHtml = await renderApp()
-
-  assert.match(
-    declinedHtml,
-    /Staged legacy\/imported tasks were declined and remain quarantined outside the synced view\./,
-  )
-})
-
-test('App does not advertise a keep action when available migration rows are deleted-only', async () => {
-  migrationStatus.value = 'available'
-  migrationStagedTodoCount.value = 0
-  migrationCanKeep.value = false
-  migrationKeepDisabledReason.value = null
-
-  const html = await renderApp()
-
-  assert.match(html, /No staged tasks are available to keep\./)
-  assert.equal(/Keep staged tasks/.test(html), false)
-})
-
-test('App default migration message requires sign-in and keeping staged tasks', async () => {
-  migrationStatus.value = 'none'
+test('App explains queue flushing and shows queue errors', async () => {
+  queuedCount.value = 1
+  isFlushing.value = true
+  queueError.value = 'Queue replay failed'
 
   const html = await renderApp()
 
   assert.match(
     html,
-    /Imports stage tasks for migration review before sync\. Signed-out access is limited to migration review until the approved account signs in and keeps the staged tasks\./,
+    /Queued tasks are being written to Supabase and will appear when Electric catches up\./,
+  )
+  assert.match(html, /Queue replay failed/)
+})
+
+test('App defaults to the remote-only sync explanation when nothing is queued', async () => {
+  const html = await renderApp()
+
+  assert.match(
+    html,
+    /Todo views come only from Electric live queries\. The app stores local data only for newly created offline tasks until it can write them to Supabase\./,
   )
 })
 

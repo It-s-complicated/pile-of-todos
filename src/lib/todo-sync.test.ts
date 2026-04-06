@@ -1,17 +1,38 @@
 import { assert, test } from 'vite-plus/test'
-import type { TodoMutationIntent } from './todo-mutation-contract.ts'
+
 import type { SyncTodo } from './todo-sync.ts'
 
 import {
-  awaitAcceptedTodoMutation,
+  TodoRemoteWriteError,
   buildRemoteTodoRow,
-  buildTodoMutationIntent,
-  deriveTodoMutationId,
-  shouldPushTodoForUser,
-  shouldWriteTodoToRemote,
-  submitTodoMutation,
   translateRemoteTodoRow,
+  updateRemoteTodo,
+  upsertRemoteTodo,
 } from './todo-sync.ts'
+
+type RpcError = {
+  code?: string
+  details?: string | null
+  hint?: string | null
+  message: string
+}
+
+type RpcIntent = {
+  client: {
+    deviceId: string | null
+  }
+  kind: string
+  mutationId: string
+  todoId: string
+  values: Record<string, unknown>
+}
+
+type RpcCall = {
+  functionName: 'apply_todo_mutation'
+  params: {
+    intent: RpcIntent
+  }
+}
 
 const baseTodo: SyncTodo = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -26,289 +47,207 @@ const baseTodo: SyncTodo = {
   userId: '33333333-3333-4333-8333-333333333333',
 }
 
-test('buildRemoteTodoRow includes the authenticated owner id', () => {
-  assert.deepEqual(buildRemoteTodoRow(baseTodo, 'device-1'), {
-    id: '11111111-1111-4111-8111-111111111111',
-    label: 'Write migration',
-    week_number: 12,
-    done: false,
-    archived: false,
-    created_at: 10,
-    updated_at: 20,
-    device_id: 'device-1',
-    deleted_at: null,
-    user_id: '33333333-3333-4333-8333-333333333333',
-  })
-})
-
-test('buildRemoteTodoRow preserves an existing device id', () => {
-  assert.equal(
-    buildRemoteTodoRow({ ...baseTodo, deviceId: 'device-2' }, 'device-1').device_id,
-    'device-2',
-  )
-})
-
-test('shouldPushTodoForUser only syncs todos owned by the active user', () => {
-  assert.equal(shouldPushTodoForUser(baseTodo, '33333333-3333-4333-8333-333333333333'), true)
-  assert.equal(shouldPushTodoForUser(baseTodo, '99999999-9999-4999-8999-999999999999'), false)
-  assert.equal(
-    shouldPushTodoForUser({ ...baseTodo, userId: null }, '33333333-3333-4333-8333-333333333333'),
-    false,
-  )
-  assert.equal(shouldPushTodoForUser(baseTodo, null), false)
-})
-
-test('shouldWriteTodoToRemote skips local tombstones that never existed remotely', () => {
-  assert.equal(
-    shouldWriteTodoToRemote(baseTodo, undefined, '33333333-3333-4333-8333-333333333333'),
-    true,
-  )
-  assert.equal(
-    shouldWriteTodoToRemote(
-      { ...baseTodo, deletedAt: 50, updatedAt: 50 },
-      undefined,
-      '33333333-3333-4333-8333-333333333333',
-    ),
-    false,
-  )
-  assert.equal(
-    shouldWriteTodoToRemote(
-      baseTodo,
-      { ...baseTodo, updatedAt: 25 },
-      '33333333-3333-4333-8333-333333333333',
-    ),
-    false,
-  )
-  assert.equal(
-    shouldWriteTodoToRemote(
-      { ...baseTodo, updatedAt: 30 },
-      { ...baseTodo, updatedAt: 25 },
-      '33333333-3333-4333-8333-333333333333',
-    ),
-    true,
-  )
-})
-
-test('deriveTodoMutationId does not accept fallbackDeviceId', () => {
-  // deriveTodoMutationId should not need fallbackDeviceId since mutation identity
-  // is determined by todo state and activeUserId only (idempotent retry requirement).
-  // This test verifies the parameter was removed from the API contract.
-  const firstAttemptId = deriveTodoMutationId({
-    todo: baseTodo,
-    remoteTodo: undefined,
-    activeUserId: '33333333-3333-4333-8333-333333333333',
-  })
-
-  const retryAttemptId = deriveTodoMutationId({
-    todo: baseTodo,
-    remoteTodo: undefined,
-    activeUserId: '33333333-3333-4333-8333-333333333333',
-  })
-
-  assert.equal(retryAttemptId, firstAttemptId)
-})
-
-test('buildTodoMutationIntent maps local todo state to the Supabase RPC contract', () => {
-  const remoteTodo = { ...baseTodo, updatedAt: 15 }
-
-  assert.deepEqual(
-    buildTodoMutationIntent({
-      todo: baseTodo,
-      remoteTodo: undefined,
-      activeUserId: '33333333-3333-4333-8333-333333333333',
-      fallbackDeviceId: 'device-1',
-    }),
-    {
-      kind: 'create',
-      mutationId:
-        'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:create:10',
-      todoId: '11111111-1111-4111-8111-111111111111',
-      client: { deviceId: 'device-1' },
-      values: {
-        label: 'Write migration',
-        weekNumber: 12,
-        done: false,
-        archived: false,
-        createdAt: 10,
-        updatedAt: 20,
-        deletedAt: null,
+function createRpcClient(response: { data?: unknown; error?: RpcError | null }, calls: RpcCall[]) {
+  return {
+    rpc: async (
+      functionName: 'apply_todo_mutation',
+      params: {
+        intent: RpcIntent
       },
-    } satisfies TodoMutationIntent,
-  )
+    ) => {
+      calls.push({ functionName, params })
 
-  assert.deepEqual(
-    buildTodoMutationIntent({
-      todo: { ...baseTodo, label: 'Ship RPC', updatedAt: 30 },
-      remoteTodo,
-      activeUserId: '33333333-3333-4333-8333-333333333333',
-      fallbackDeviceId: 'device-1',
-    }),
-    {
-      kind: 'update',
-      mutationId:
-        'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:update:30',
-      todoId: '11111111-1111-4111-8111-111111111111',
-      client: { deviceId: 'device-1' },
-      values: {
-        label: 'Ship RPC',
-        weekNumber: 12,
-        done: false,
-        archived: false,
-        deletedAt: null,
-        updatedAt: 30,
-      },
-    } satisfies TodoMutationIntent,
-  )
-
-  assert.deepEqual(
-    buildTodoMutationIntent({
-      todo: { ...baseTodo, deletedAt: 40, updatedAt: 40 },
-      remoteTodo,
-      activeUserId: '33333333-3333-4333-8333-333333333333',
-      fallbackDeviceId: 'device-1',
-    }),
-    {
-      kind: 'delete',
-      mutationId:
-        'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:delete:40:40',
-      todoId: '11111111-1111-4111-8111-111111111111',
-      client: { deviceId: 'device-1' },
-      values: {
-        deletedAt: 40,
-        updatedAt: 40,
-      },
-    } satisfies TodoMutationIntent,
-  )
-})
-
-test('buildTodoMutationIntent leaves ownership derivation to the database contract', () => {
-  const createIntent = buildTodoMutationIntent({
-    todo: baseTodo,
-    remoteTodo: undefined,
-    activeUserId: '33333333-3333-4333-8333-333333333333',
-    fallbackDeviceId: 'device-1',
-  })
-
-  const updateIntent = buildTodoMutationIntent({
-    todo: { ...baseTodo, label: 'Ship RPC', updatedAt: 30 },
-    remoteTodo: { ...baseTodo, updatedAt: 15 },
-    activeUserId: '33333333-3333-4333-8333-333333333333',
-    fallbackDeviceId: 'device-1',
-  })
-
-  const deleteIntent = buildTodoMutationIntent({
-    todo: { ...baseTodo, deletedAt: 40, updatedAt: 40 },
-    remoteTodo: { ...baseTodo, updatedAt: 15 },
-    activeUserId: '33333333-3333-4333-8333-333333333333',
-    fallbackDeviceId: 'device-1',
-  })
-
-  assert.equal('user_id' in createIntent, false)
-  assert.equal('user_id' in updateIntent, false)
-  assert.equal('user_id' in deleteIntent, false)
-})
-
-test('buildTodoMutationIntent keeps the same mutation id across client retry attempts', () => {
-  const firstAttempt = buildTodoMutationIntent({
-    todo: baseTodo,
-    remoteTodo: undefined,
-    activeUserId: '33333333-3333-4333-8333-333333333333',
-    fallbackDeviceId: 'device-1',
-  })
-
-  const retryAttempt = buildTodoMutationIntent({
-    todo: baseTodo,
-    remoteTodo: undefined,
-    activeUserId: '33333333-3333-4333-8333-333333333333',
-    fallbackDeviceId: 'device-9',
-  })
-
-  assert.equal(firstAttempt.todoId, retryAttempt.todoId)
-  assert.equal(firstAttempt.mutationId, retryAttempt.mutationId)
-  assert.notEqual(firstAttempt.client?.deviceId, retryAttempt.client?.deviceId)
-})
-
-test('submitTodoMutation calls the database RPC and normalizes the accepted txid', async () => {
-  const rpcCalls: Array<{ fn: string; args: { intent: TodoMutationIntent } }> = []
-  const intent = buildTodoMutationIntent({
-    todo: baseTodo,
-    remoteTodo: undefined,
-    activeUserId: '33333333-3333-4333-8333-333333333333',
-    fallbackDeviceId: 'device-1',
-  })
-
-  const response = await submitTodoMutation(
-    {
-      rpc: async (fn: 'apply_todo_mutation', args: { intent: TodoMutationIntent }) => {
-        rpcCalls.push({ fn, args })
-        return {
-          data: {
-            mutationId:
-              'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:create:10',
-            todoId: '11111111-1111-4111-8111-111111111111',
-            txid: 42,
-          },
-          error: null,
-        }
-      },
+      return {
+        data: response.data ?? null,
+        error: response.error ?? null,
+      }
     },
-    intent,
-  )
+  }
+}
 
-  assert.deepEqual(rpcCalls, [{ fn: 'apply_todo_mutation', args: { intent } }])
-  assert.deepEqual(response, {
-    mutationId:
-      'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:create:10',
-    todoId: '11111111-1111-4111-8111-111111111111',
-    txid: '42',
-  })
+test('buildRemoteTodoRow includes the authenticated owner id', () => {
+  assert.deepEqual(
+    buildRemoteTodoRow(baseTodo, '33333333-3333-4333-8333-333333333333', 'device-1'),
+    {
+      id: '11111111-1111-4111-8111-111111111111',
+      label: 'Write migration',
+      week_number: 12,
+      done: false,
+      archived: false,
+      created_at: 10,
+      updated_at: 20,
+      device_id: 'device-1',
+      deleted_at: null,
+      user_id: '33333333-3333-4333-8333-333333333333',
+    },
+  )
 })
 
-test('translateRemoteTodoRow normalizes Electric row fields into app todo fields', () => {
+test('buildRemoteTodoRow rejects todos outside the active user scope', () => {
+  assert.throws(
+    () => buildRemoteTodoRow(baseTodo, '99999999-9999-4999-8999-999999999999', 'device-1'),
+    /active user scope/,
+  )
+})
+
+test('translateRemoteTodoRow maps snake_case fields back to the client shape', () => {
   assert.deepEqual(
     translateRemoteTodoRow({
       id: '11111111-1111-4111-8111-111111111111',
-      label: 'Confirmed row',
-      week_number: 9,
+      label: 'Remote todo',
+      week_number: 15,
       done: true,
       archived: false,
-      created_at: 100,
-      updated_at: 150,
-      device_id: 'device-9',
+      created_at: 10,
+      updated_at: 30,
+      device_id: 'device-2',
       deleted_at: null,
       user_id: '33333333-3333-4333-8333-333333333333',
     }),
     {
       id: '11111111-1111-4111-8111-111111111111',
-      label: 'Confirmed row',
-      weekNumber: 9,
+      label: 'Remote todo',
+      weekNumber: 15,
       done: true,
       archived: false,
-      createdAt: 100,
-      updatedAt: 150,
-      deviceId: 'device-9',
+      createdAt: 10,
+      updatedAt: 30,
+      deviceId: 'device-2',
       deletedAt: null,
       userId: '33333333-3333-4333-8333-333333333333',
-    } satisfies SyncTodo,
+    },
   )
 })
 
-test('awaitAcceptedTodoMutation waits for Electric txid confirmation before resolving', async () => {
-  const calls: string[] = []
+test('upsertRemoteTodo sends create mutations through the RPC', async () => {
+  const rpcCalls: RpcCall[] = []
 
-  await awaitAcceptedTodoMutation(
+  await upsertRemoteTodo(
+    createRpcClient(
+      {
+        data: {
+          mutationId: 'mutation-1',
+          todoId: baseTodo.id,
+          txid: '123',
+        },
+        error: null,
+      },
+      rpcCalls,
+    ),
+    buildRemoteTodoRow(baseTodo, '33333333-3333-4333-8333-333333333333', 'device-1'),
+  )
+
+  assert.equal(rpcCalls.length, 1)
+  assert.deepEqual(rpcCalls[0]?.params.intent.kind, 'create')
+  assert.equal(rpcCalls[0]?.params.intent.todoId, baseTodo.id)
+  assert.equal(rpcCalls[0]?.params.intent.client.deviceId, 'device-1')
+  assert.match(rpcCalls[0]?.params.intent.mutationId ?? '', /.+/)
+  assert.deepEqual(rpcCalls[0]?.params.intent.values, {
+    archived: false,
+    createdAt: 10,
+    deletedAt: null,
+    done: false,
+    label: 'Write migration',
+    updatedAt: 20,
+    weekNumber: 12,
+  })
+})
+
+test('upsertRemoteTodo surfaces row-level security failures as auth errors', async () => {
+  try {
+    await upsertRemoteTodo(
+      createRpcClient(
+        {
+          error: {
+            code: '42501',
+            message: 'new row violates row-level security policy for table "todos"',
+            details: null,
+            hint: null,
+          },
+        },
+        [],
+      ),
+      buildRemoteTodoRow(baseTodo, '33333333-3333-4333-8333-333333333333', 'device-1'),
+    )
+    assert.fail('Expected upsertRemoteTodo to reject')
+  } catch (error) {
+    assert.equal(error instanceof TodoRemoteWriteError, true)
+    assert.equal(error instanceof TodoRemoteWriteError ? error.kind : null, 'auth')
+  }
+})
+
+test('updateRemoteTodo sends update mutations through the RPC', async () => {
+  const rpcCalls: RpcCall[] = []
+
+  await updateRemoteTodo(
+    createRpcClient(
+      {
+        data: {
+          mutationId: 'mutation-2',
+          todoId: baseTodo.id,
+          txid: '456',
+        },
+        error: null,
+      },
+      rpcCalls,
+    ),
     {
-      mutationId:
-        'todo-mutation:33333333-3333-4333-8333-333333333333:11111111-1111-4111-8111-111111111111:create:10',
-      todoId: '11111111-1111-4111-8111-111111111111',
-      txid: '42',
-    },
-    {
-      awaitTxId: async (txid) => {
-        calls.push(txid)
+      activeUserId: '33333333-3333-4333-8333-333333333333',
+      todoId: baseTodo.id,
+      updates: {
+        archived: true,
+        deletedAt: null,
+        deviceId: 'device-1',
+        done: true,
+        label: 'Updated label',
+        updatedAt: 40,
+        weekNumber: null,
       },
     },
   )
 
-  assert.deepEqual(calls, ['42'])
+  assert.equal(rpcCalls.length, 1)
+  assert.deepEqual(rpcCalls[0]?.params.intent.kind, 'update')
+  assert.equal(rpcCalls[0]?.params.intent.todoId, baseTodo.id)
+  assert.equal(rpcCalls[0]?.params.intent.client.deviceId, 'device-1')
+  assert.match(rpcCalls[0]?.params.intent.mutationId ?? '', /.+/)
+  assert.deepEqual(rpcCalls[0]?.params.intent.values, {
+    archived: true,
+    deletedAt: null,
+    done: true,
+    label: 'Updated label',
+    updatedAt: 40,
+    weekNumber: null,
+  })
+})
+
+test('updateRemoteTodo throws a not-found error when the RPC reports a missing todo', async () => {
+  try {
+    await updateRemoteTodo(
+      createRpcClient(
+        {
+          error: {
+            code: 'P0001',
+            message:
+              'todo 11111111-1111-4111-8111-111111111111 was not found for the authenticated user',
+            details: null,
+            hint: null,
+          },
+        },
+        [],
+      ),
+      {
+        activeUserId: '33333333-3333-4333-8333-333333333333',
+        todoId: baseTodo.id,
+        updates: {
+          updatedAt: 40,
+        },
+      },
+    )
+    assert.fail('Expected updateRemoteTodo to reject')
+  } catch (error) {
+    assert.equal(error instanceof TodoRemoteWriteError, true)
+    assert.equal(error instanceof TodoRemoteWriteError ? error.kind : null, 'not-found')
+    assert.match(error instanceof Error ? error.message : String(error), /not found/)
+  }
 })
