@@ -54,11 +54,11 @@ function createTodoMutations() {
     throw new Error(`Cannot ${action} while offline`)
   }
 
-  async function createTodo(label: string, weekNumber: number | null) {
+  async function createTodo(label: string, weekNumber: number | null, id?: string) {
     const activeUserId = getRequiredActiveUserId(todoData.auth.activeUserId.value, 'create a todo')
     const now = Date.now()
     const nextTodo: Todo = {
-      id: crypto.randomUUID(),
+      id: id ?? crypto.randomUUID(),
       label,
       weekNumber,
       done: false,
