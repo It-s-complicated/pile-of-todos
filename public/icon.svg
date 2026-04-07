@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Colorful stack of checklist sticky notes">
-  <rect width="512" height="512" fill="#f3f3f5"/>
+  <rect width="512" height="512" fill="#0c0e10"/>
 
   <defs>
     <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">

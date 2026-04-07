@@ -63,8 +63,8 @@ export default defineConfig({
         short_name: 'Pile',
         start_url: '/',
         display: 'standalone',
-        background_color: '#f3f3f5',
-        theme_color: '#f3f3f5',
+        background_color: '#0c0e10',
+        theme_color: '#0c0e10',
         icons: [
           {
             src: '/icon.svg',
