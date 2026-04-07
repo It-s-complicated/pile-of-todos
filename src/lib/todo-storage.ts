@@ -1,12 +1,10 @@
 import type { Todo } from '@/db/collections'
 
-const GUEST_STORAGE_KEY = 'ai-todo-app-todos-guest'
-const ACCOUNT_STORAGE_KEY_PREFIX = 'ai-todo-app-todos-user:'
 const MIGRATION_INPUT_STORAGE_KEY = 'ai-todo-app-migration-input:guest'
 
-export type TodoMigrationStatus = 'none' | 'available' | 'promoting' | 'declined'
+type TodoMigrationStatus = 'none' | 'available' | 'promoting' | 'declined'
 
-export type TodoMigrationState = {
+type TodoMigrationState = {
   status: TodoMigrationStatus
   stagedTodos: Todo[]
   promotedTodoIdsBySourceId: Record<string, string>
@@ -23,15 +21,6 @@ type StageImportedTodosOptions = TodoStorageOptions & {
 type StagedMigrationInputResult = {
   addedCount: number
   totalCount: number
-}
-
-type StagedTodoPromotionIdOptions = TodoStorageOptions & {
-  createTodoId?: () => string
-  stagedTodoId: string
-}
-
-type RemoveConfirmedPromotedStagedTodosOptions = TodoStorageOptions & {
-  confirmedTodoIds: readonly string[]
 }
 
 const migrationInputListeners = new Set<() => void>()
@@ -236,14 +225,6 @@ function parseTodoList(input: unknown): Todo[] {
   return parsed.map((entry) => normalizeMigrationInputTodo(entry))
 }
 
-function tryParseTodoList(input: unknown): Todo[] | null {
-  try {
-    return parseTodoList(input)
-  } catch {
-    return null
-  }
-}
-
 function mergeTodos(existingTodos: Todo[], incomingTodos: Todo[]) {
   const mergedTodos = [...existingTodos]
   const todoIndexes = new Map(mergedTodos.map((todo, index) => [todo.id, index]))
@@ -265,49 +246,6 @@ function mergeTodos(existingTodos: Todo[], incomingTodos: Todo[]) {
   return mergedTodos
 }
 
-function listLegacyAccountKeys(storage: Storage | null) {
-  if (!storage) {
-    return []
-  }
-
-  const keys: string[] = []
-
-  for (let index = 0; index < storage.length; index += 1) {
-    const storageKey = storage.key(index)
-
-    if (storageKey?.startsWith(ACCOUNT_STORAGE_KEY_PREFIX)) {
-      keys.push(storageKey)
-    }
-  }
-
-  return keys
-}
-
-export function getGuestStorageKey(): string {
-  return GUEST_STORAGE_KEY
-}
-
-export function getAccountStorageKey(userId: string): string {
-  return `${ACCOUNT_STORAGE_KEY_PREFIX}${userId}`
-}
-
-export function getActiveStorageKey(userId: string | null): string {
-  return userId ? getAccountStorageKey(userId) : getGuestStorageKey()
-}
-
-export function getMigrationInputStorageKey(): string {
-  return MIGRATION_INPUT_STORAGE_KEY
-}
-
-export function readMigrationInputTodos(options: TodoStorageOptions = {}): Todo[] {
-  const storage = resolveStorage(options.storage)
-  return readStoredTodoMigrationState(storage).stagedTodos
-}
-
-export function readTodoMigrationState(options: TodoStorageOptions = {}): TodoMigrationState {
-  return readStoredTodoMigrationState(resolveStorage(options.storage))
-}
-
 export function stageImportedTodosAsMigrationInput({
   storage: providedStorage,
   todos,
@@ -326,149 +264,4 @@ export function stageImportedTodosAsMigrationInput({
     addedCount: nextTodos.length - existingState.stagedTodos.length,
     totalCount: nextTodos.length,
   }
-}
-
-export function migrateLegacyBucketsToGuestMigrationInput(
-  options: TodoStorageOptions = {},
-): number {
-  const storage = resolveStorage(options.storage)
-
-  if (!storage) {
-    return 0
-  }
-
-  const legacyBucketKeys = [GUEST_STORAGE_KEY, ...listLegacyAccountKeys(storage)]
-  const migratedLegacyBucketKeys: string[] = []
-  const legacyTodos = legacyBucketKeys.flatMap((storageKey) => {
-    const parsedTodos = tryParseTodoList(storage.getItem(storageKey) ?? null)
-
-    if (!parsedTodos) {
-      return []
-    }
-
-    migratedLegacyBucketKeys.push(storageKey)
-    return parsedTodos
-  })
-
-  if (legacyTodos.length === 0) {
-    return readMigrationInputTodos({ storage }).length
-  }
-
-  const existingState = readStoredTodoMigrationState(storage)
-  const mergedTodos = mergeTodos(existingState.stagedTodos, legacyTodos)
-  writeTodoMigrationState(storage, {
-    ...existingState,
-    stagedTodos: mergedTodos,
-  })
-
-  for (const storageKey of migratedLegacyBucketKeys) {
-    storage.removeItem(storageKey)
-  }
-
-  emitMigrationInputChanged()
-  return mergedTodos.length
-}
-
-export function subscribeToMigrationInputChanges(listener: () => void) {
-  migrationInputListeners.add(listener)
-
-  return () => {
-    migrationInputListeners.delete(listener)
-  }
-}
-
-export function ensureStagedTodoPromotionId({
-  createTodoId = () => crypto.randomUUID(),
-  stagedTodoId,
-  storage: providedStorage,
-}: StagedTodoPromotionIdOptions) {
-  const storage = resolveStorage(providedStorage)
-  const state = readStoredTodoMigrationState(storage)
-
-  if (!state.stagedTodos.some((todo) => todo.id === stagedTodoId)) {
-    throw new Error(`Cannot promote unknown staged todo ${stagedTodoId}`)
-  }
-
-  const existingPromotedTodoId = state.promotedTodoIdsBySourceId[stagedTodoId]
-
-  if (existingPromotedTodoId) {
-    return existingPromotedTodoId
-  }
-
-  const promotedTodoId = createTodoId()
-  writeTodoMigrationState(storage, {
-    ...state,
-    promotedTodoIdsBySourceId: {
-      ...state.promotedTodoIdsBySourceId,
-      [stagedTodoId]: promotedTodoId,
-    },
-  })
-  emitMigrationInputChanged()
-  return promotedTodoId
-}
-
-export function markStagedMigrationPromoting(options: TodoStorageOptions = {}) {
-  const storage = resolveStorage(options.storage)
-  const state = readStoredTodoMigrationState(storage)
-
-  if (state.status === 'none' || state.status === 'declined') {
-    return false
-  }
-
-  writeTodoMigrationState(storage, {
-    ...state,
-    status: 'promoting',
-  })
-  emitMigrationInputChanged()
-  return true
-}
-
-export function declineStagedMigrationTodos(options: TodoStorageOptions = {}) {
-  const storage = resolveStorage(options.storage)
-  const state = readStoredTodoMigrationState(storage)
-
-  if (state.status === 'none') {
-    return false
-  }
-
-  writeTodoMigrationState(storage, {
-    ...state,
-    status: 'declined',
-  })
-  emitMigrationInputChanged()
-  return true
-}
-
-export function removeConfirmedPromotedStagedTodos({
-  confirmedTodoIds,
-  storage: providedStorage,
-}: RemoveConfirmedPromotedStagedTodosOptions) {
-  if (confirmedTodoIds.length === 0) {
-    return 0
-  }
-
-  const storage = resolveStorage(providedStorage)
-  const state = readStoredTodoMigrationState(storage)
-  const confirmedTodoIdSet = new Set(confirmedTodoIds)
-  const removedTodoIds = new Set(
-    Object.entries(state.promotedTodoIdsBySourceId)
-      .filter(([, promotedTodoId]) => confirmedTodoIdSet.has(promotedTodoId))
-      .map(([stagedTodoId]) => stagedTodoId),
-  )
-
-  if (removedTodoIds.size === 0) {
-    return 0
-  }
-
-  writeTodoMigrationState(storage, {
-    ...state,
-    promotedTodoIdsBySourceId: Object.fromEntries(
-      Object.entries(state.promotedTodoIdsBySourceId).filter(
-        ([stagedTodoId]) => !removedTodoIds.has(stagedTodoId),
-      ),
-    ),
-    stagedTodos: state.stagedTodos.filter((todo) => !removedTodoIds.has(todo.id)),
-  })
-  emitMigrationInputChanged()
-  return removedTodoIds.size
 }
