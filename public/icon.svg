@@ -1,9 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Colorful stack of checklist sticky notes">
-  <rect width="512" height="512" fill="#0c0e10"/>
-
   <defs>
     <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="6" dy="10" stdDeviation="8" flood-color="#111827" flood-opacity="0.32"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+      <feOffset in="blur" dx="6" dy="10" result="offsetBlur"/>
+      <feFlood flood-color="#111827" flood-opacity="0.32" result="flood"/>
+      <feComposite in="flood" in2="offsetBlur" operator="in" result="shadowColor"/>
+      <feMerge>
+        <feMergeNode in="shadowColor"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
     <g id="note-lines" stroke="#1f2937" stroke-opacity="0.58" fill="none" stroke-width="3">
       <rect x="20" y="22" width="14" height="14" />
