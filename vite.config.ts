@@ -40,7 +40,6 @@ export default defineConfig({
     }),
     vue(),
     tailwindcss(),
-    // @ts-expect-error - this is some vite 8 + ts 6 issue
     UnpluginFonts({
       google: {
         families: [

@@ -11,60 +11,6 @@ import { todoSchema } from './collections'
 import { getElectricReadShapeUrl } from './electric-read-config'
 import { createElectricScopeParams } from './electric-user-scope'
 
-type ConfirmedTodosResumeState =
-  | {
-      kind: 'reset'
-      updatedAt: number
-    }
-  | {
-      kind: 'resume'
-      offset: string
-      handle: string
-      shapeId: string
-      updatedAt: number
-    }
-
-function parseConfirmedTodosResumeState(value: unknown): ConfirmedTodosResumeState | null {
-  if (!value || typeof value !== 'object') {
-    return null
-  }
-
-  if (
-    'kind' in value &&
-    value.kind === 'reset' &&
-    'updatedAt' in value &&
-    typeof value.updatedAt === 'number'
-  ) {
-    return {
-      kind: 'reset',
-      updatedAt: value.updatedAt,
-    }
-  }
-
-  if (
-    'kind' in value &&
-    value.kind === 'resume' &&
-    'offset' in value &&
-    typeof value.offset === 'string' &&
-    'handle' in value &&
-    typeof value.handle === 'string' &&
-    'shapeId' in value &&
-    typeof value.shapeId === 'string' &&
-    'updatedAt' in value &&
-    typeof value.updatedAt === 'number'
-  ) {
-    return {
-      kind: 'resume',
-      offset: value.offset,
-      handle: value.handle,
-      shapeId: value.shapeId,
-      updatedAt: value.updatedAt,
-    }
-  }
-
-  return null
-}
-
 function createConfirmedTodosCollection(shapeUrl: string) {
   const approvedGithubProviderId = getApprovedGithubProviderId()
   const readCurrentSyncAccess = async () => {
@@ -118,16 +64,4 @@ export function getConfirmedTodosCollection() {
 
   cachedConfirmedTodosCollection = createConfirmedTodosCollection(getElectricReadShapeUrl())
   return cachedConfirmedTodosCollection
-}
-
-export function readConfirmedTodosResumeState(): ConfirmedTodosResumeState | null {
-  return parseConfirmedTodosResumeState(
-    getConfirmedTodosCollection()._state.syncedCollectionMetadata.get('electric:resume'),
-  )
-}
-
-export function subscribeToConfirmedTodosTruncate(callback: () => void) {
-  return getConfirmedTodosCollection().on('truncate', () => {
-    callback()
-  })
 }
