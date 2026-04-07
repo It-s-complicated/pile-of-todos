@@ -21,8 +21,8 @@
   },
   "dependencies": {
     "@electric-sql/client": "^1.5.14",
-    "@supabase/supabase-js": "^2.101.1",
-    "@tanstack/electric-db-collection": "^0.3.0",
+    "@supabase/supabase-js": "^2.102.1",
+    "@tanstack/electric-db-collection": "^0.3.1",
     "@tanstack/vue-db": "^0.0.113",
     "drizzle-orm": "^0.45.2",
     "drizzle-valibot": "^0.4.2",
