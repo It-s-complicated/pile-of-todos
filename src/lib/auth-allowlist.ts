@@ -46,21 +46,6 @@ export function getGithubProviderId(
   return trimmedProviderId.length > 0 ? trimmedProviderId : null
 }
 
-export function isApprovedGithubIdentity(
-  identity: AuthIdentityLike | null | undefined,
-  approvedGithubProviderId: string,
-): boolean {
-  const providerId = getGithubProviderId(identity ? [identity] : [])
-  const approvedProviderId = approvedGithubProviderId.trim()
-
-  return (
-    identity?.provider === 'github' &&
-    providerId !== null &&
-    approvedProviderId.length > 0 &&
-    providerId === approvedProviderId
-  )
-}
-
 export function getAuthAccessState({
   isAuthenticated,
   githubProviderId,
@@ -91,12 +76,4 @@ export function getAuthSyncAccess(params: AuthSyncAccessParams): AuthSyncAccess 
     userId: params.userId,
     accessToken: params.accessToken,
   }
-}
-
-export function shouldShowGuestClaimPrompt({
-  isAuthenticated,
-  guestTodoCount,
-  hasHandledClaimPrompt,
-}: GuestClaimPromptState): boolean {
-  return isAuthenticated && guestTodoCount > 0 && !hasHandledClaimPrompt
 }

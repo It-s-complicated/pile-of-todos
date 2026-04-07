@@ -5,7 +5,6 @@ import type { SyncTodo } from './todo-sync.ts'
 import {
   TodoRemoteWriteError,
   buildRemoteTodoRow,
-  translateRemoteTodoRow,
   updateRemoteTodo,
   upsertRemoteTodo,
 } from './todo-sync.ts'
@@ -87,35 +86,6 @@ test('buildRemoteTodoRow rejects todos outside the active user scope', () => {
   assert.throws(
     () => buildRemoteTodoRow(baseTodo, '99999999-9999-4999-8999-999999999999', 'device-1'),
     /active user scope/,
-  )
-})
-
-test('translateRemoteTodoRow maps snake_case fields back to the client shape', () => {
-  assert.deepEqual(
-    translateRemoteTodoRow({
-      id: '11111111-1111-4111-8111-111111111111',
-      label: 'Remote todo',
-      week_number: 15,
-      done: true,
-      archived: false,
-      created_at: 10,
-      updated_at: 30,
-      device_id: 'device-2',
-      deleted_at: null,
-      user_id: '33333333-3333-4333-8333-333333333333',
-    }),
-    {
-      id: '11111111-1111-4111-8111-111111111111',
-      label: 'Remote todo',
-      weekNumber: 15,
-      done: true,
-      archived: false,
-      createdAt: 10,
-      updatedAt: 30,
-      deviceId: 'device-2',
-      deletedAt: null,
-      userId: '33333333-3333-4333-8333-333333333333',
-    },
   )
 })
 

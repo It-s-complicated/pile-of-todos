@@ -1,40 +1,6 @@
 import { assert, test } from 'vite-plus/test'
 
-import {
-  getAuthAccessState,
-  getAuthSyncAccess,
-  getGithubProviderId,
-  isApprovedGithubIdentity,
-  shouldShowGuestClaimPrompt,
-} from './auth-allowlist.ts'
-
-test('isApprovedGithubIdentity detects the approved GitHub provider_id', () => {
-  assert.equal(
-    isApprovedGithubIdentity(
-      {
-        provider: 'github',
-        identity_data: {
-          sub: 'github-user-42',
-        },
-      },
-      'github-user-42',
-    ),
-    true,
-  )
-
-  assert.equal(
-    isApprovedGithubIdentity(
-      {
-        provider: 'github',
-        identity_data: {
-          sub: 'github-user-99',
-        },
-      },
-      'github-user-42',
-    ),
-    false,
-  )
-})
+import { getAuthAccessState, getAuthSyncAccess, getGithubProviderId } from './auth-allowlist.ts'
 
 test('getGithubProviderId returns the GitHub provider identity when present', () => {
   assert.equal(
@@ -124,43 +90,5 @@ test('getAuthSyncAccess strips synced credentials from denied authenticated user
       userId: 'user-approved',
       accessToken: 'token-approved',
     },
-  )
-})
-
-test('shouldShowGuestClaimPrompt only shows once for authenticated users with guest todos', () => {
-  assert.equal(
-    shouldShowGuestClaimPrompt({
-      isAuthenticated: true,
-      guestTodoCount: 2,
-      hasHandledClaimPrompt: false,
-    }),
-    true,
-  )
-
-  assert.equal(
-    shouldShowGuestClaimPrompt({
-      isAuthenticated: true,
-      guestTodoCount: 0,
-      hasHandledClaimPrompt: false,
-    }),
-    false,
-  )
-
-  assert.equal(
-    shouldShowGuestClaimPrompt({
-      isAuthenticated: false,
-      guestTodoCount: 2,
-      hasHandledClaimPrompt: false,
-    }),
-    false,
-  )
-
-  assert.equal(
-    shouldShowGuestClaimPrompt({
-      isAuthenticated: true,
-      guestTodoCount: 2,
-      hasHandledClaimPrompt: true,
-    }),
-    false,
   )
 })
