@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "code-philosophy": {
+      "source": "kdcokenny/opencode-workspace",
+      "sourceType": "github",
+      "computedHash": "fd5f04f69ffe21d2935626d47248856192bb7bdfd6ebd570ff551aa87d4195a4"
+    },
     "electric-debugging": {
       "source": "electric-sql/electric",
       "sourceType": "github",
@@ -30,6 +35,11 @@
       "source": "electric-sql/electric",
       "sourceType": "github",
       "computedHash": "84c9f269aa486fe684628bf9e37de1d914f24b3e6ea7ab7c283f3bb449f3ae83"
+    },
+    "frontend-philosophy": {
+      "source": "kdcokenny/opencode-workspace",
+      "sourceType": "github",
+      "computedHash": "e8417abc6b145f1f2df6f603cc6d43aac41eeeeaa3d41a686f8afddd8632dc6d"
     },
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
