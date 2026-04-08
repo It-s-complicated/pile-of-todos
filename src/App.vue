@@ -184,18 +184,18 @@ const id = useId()
         >
           <p v-if="offlineQueueState.count > 0 && !isOnline">
             {{ offlineQueueState.count }} queued task{{ offlineQueueState.count === 1 ? '' : 's' }}
-            will be created in Supabase when the connection returns.
+            will be created when the connection returns.
           </p>
           <p v-else-if="offlineQueueState.count > 0 && offlineQueueState.isFlushing">
-            Queued tasks are being written to Supabase and will appear when Electric catches up.
+            Queued tasks are being written and will appear when syncing catches up.
           </p>
           <p v-else-if="offlineQueueState.count > 0">
-            Queued tasks are ready to sync and will appear as soon as Electric refreshes the live
+            Queued tasks are ready to sync and will appear as soon as syncing refreshes the live
             view.
           </p>
           <p v-else>
-            Todo views come only from Electric live queries. The app stores local data only for
-            newly created offline tasks until it can write them to Supabase.
+            Todo views come only from live queries. The app stores local data only for newly created
+            offline tasks until it can finally persist them.
           </p>
           <p v-if="offlineQueueState.lastError" class="text-danger mt-2 text-xs">
             {{ offlineQueueState.lastError }}

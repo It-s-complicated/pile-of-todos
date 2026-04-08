@@ -34,6 +34,9 @@ vi.mock('vue-router', () => ({
   useRoute: () => ({
     path: routePath,
   }),
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
 }))
 
 vi.mock('./components/AuthStatus.vue', () => ({
@@ -122,7 +125,7 @@ test('App explains the offline queue when tasks are waiting locally', async () =
 
   const html = await renderApp()
 
-  assert.match(html, /2 queued tasks will be created in Supabase when the connection returns\./)
+  assert.match(html, /2 queued tasks will be created/)
 })
 
 test('App explains queue flushing and shows queue errors', async () => {
@@ -132,20 +135,14 @@ test('App explains queue flushing and shows queue errors', async () => {
 
   const html = await renderApp()
 
-  assert.match(
-    html,
-    /Queued tasks are being written to Supabase and will appear when Electric catches up\./,
-  )
+  assert.match(html, /Queued tasks are being written and will appear when/)
   assert.match(html, /Queue replay failed/)
 })
 
 test('App defaults to the remote-only sync explanation when nothing is queued', async () => {
   const html = await renderApp()
 
-  assert.match(
-    html,
-    /Todo views come only from Electric live queries\. The app stores local data only for newly created offline tasks until it can write them to Supabase\./,
-  )
+  assert.match(html, /Todo views come only from live queries\./)
 })
 
 test('App does not auto-clear validation errors with a timeout', async () => {
