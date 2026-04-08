@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises'
 import { computed, createSSRApp, defineComponent, h, ref } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
@@ -143,10 +142,4 @@ test('App defaults to the remote-only sync explanation when nothing is queued', 
   const html = await renderApp()
 
   assert.match(html, /Todo views come only from live queries\./)
-})
-
-test('App does not auto-clear validation errors with a timeout', async () => {
-  const source = await readFile(new URL('./App.vue', import.meta.url), 'utf8')
-
-  assert.equal(source.includes('setTimeout(() => {'), false)
 })

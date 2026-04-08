@@ -7,6 +7,32 @@ const ledgerMigrationPath = new URL('../db/out/0005_todo_mutation_ledger.sql', i
 const ledgerSnapshotPath = new URL('../db/out/meta/0005_snapshot.json', import.meta.url)
 const journalPath = new URL('../db/out/meta/_journal.json', import.meta.url)
 
+type LedgerSnapshot = {
+  tables: {
+    'public.todo_mutation_ledger': {
+      columns: {
+        accepted_at: {
+          default: string
+        }
+      }
+    }
+  }
+}
+
+type DrizzleJournal = {
+  entries: Array<{
+    tag: string
+  }>
+}
+
+const ledgerMigrationSqlPromise = readFile(ledgerMigrationPath, 'utf8')
+const ledgerSnapshotPromise = readFile(ledgerSnapshotPath, 'utf8').then(
+  (contents) => JSON.parse(contents) as LedgerSnapshot,
+)
+const journalPromise = readFile(journalPath, 'utf8').then(
+  (contents) => JSON.parse(contents) as DrizzleJournal,
+)
+
 test('todo mutation RPC migration derives auth scope inside the database function', async () => {
   const migrationSql = await readFile(rpcMigrationPath, 'utf8')
 
@@ -31,7 +57,7 @@ test('todo mutation RPC migration derives auth scope inside the database functio
 })
 
 test('todo mutation ledger migration persists accepted results for idempotent replay', async () => {
-  const migrationSql = await readFile(ledgerMigrationPath, 'utf8')
+  const migrationSql = await ledgerMigrationSqlPromise
 
   assert.match(migrationSql, /create table public\.todo_mutation_ledger/i)
   assert.match(migrationSql, /"?mutation_id"? text not null/i)
@@ -59,19 +85,22 @@ test('todo mutation ledger migration persists accepted results for idempotent re
 })
 
 test('todo mutation ledger migration uses a session-safe timestamptz default for accepted_at', async () => {
-  const migrationSql = await readFile(ledgerMigrationPath, 'utf8')
-  const snapshotJson = await readFile(ledgerSnapshotPath, 'utf8')
+  const migrationSql = await ledgerMigrationSqlPromise
+  const snapshotJson = await ledgerSnapshotPromise
 
   assert.match(migrationSql, /accepted_at timestamp with time zone not null default now\(\)/i)
   assert.notMatch(
     migrationSql,
     /accepted_at timestamp with time zone not null default timezone\('utc'::text, now\(\)\)/i,
   )
-  assert.match(snapshotJson, /"accepted_at"[\s\S]*"default": "now\(\)"/i)
+  assert.equal(
+    snapshotJson.tables['public.todo_mutation_ledger'].columns.accepted_at.default,
+    'now()',
+  )
 })
 
 test('todo mutation ledger migration reserves accepted ledger writes for the mutation function', async () => {
-  const migrationSql = await readFile(ledgerMigrationPath, 'utf8')
+  const migrationSql = await ledgerMigrationSqlPromise
 
   assert.notMatch(migrationSql, /create policy "todo_mutation_ledger_insert_own"/i)
   assert.notMatch(
@@ -86,8 +115,14 @@ test('todo mutation ledger migration reserves accepted ledger writes for the mut
 })
 
 test('todo mutation RPC migration is registered in the Drizzle journal', async () => {
-  const journal = await readFile(journalPath, 'utf8')
+  const journal = await journalPromise
 
-  assert.match(journal, /0004_todo_mutation_rpc/)
-  assert.match(journal, /0005_todo_mutation_ledger/)
+  assert.equal(
+    journal.entries.some(({ tag }) => tag === '0004_todo_mutation_rpc'),
+    true,
+  )
+  assert.equal(
+    journal.entries.some(({ tag }) => tag === '0005_todo_mutation_ledger'),
+    true,
+  )
 })
