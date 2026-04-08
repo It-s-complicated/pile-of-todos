@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
 import { computed, ref, useId } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import AuthStatus from './components/AuthStatus.vue'
 import SyncStatus from './components/SyncStatus.vue'
@@ -15,6 +15,7 @@ type WorkspaceCopy = {
 }
 
 const route = useRoute()
+const router = useRouter()
 const { addTodo, canCreateTodos, createTodoDisabledReason, isOnline, offlineQueue } =
   useElectricTodos()
 const offlineQueueState = computed(() => offlineQueue.value)
@@ -93,6 +94,13 @@ async function createTodo() {
   try {
     await addTodo(trimmedLabel, newTodoWeek.value)
     validation.clearError()
+    const path =
+      newTodoWeek.value === null
+        ? `/backlog`
+        : newTodoWeek.value === currentWeek
+          ? `/current-week`
+          : `/future`
+    await router.push(path)
     newTodoLabel.value = ''
     newTodoWeek.value = null
   } catch (error) {
