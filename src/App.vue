@@ -71,12 +71,6 @@ const navItems = [
   { label: 'Archived', path: '/archived' },
 ] as const
 
-function getNavLinkClass(path: string): string {
-  return route.path === path
-    ? 'text-primary font-semibold'
-    : 'text-on-surface-variant hover:text-primary'
-}
-
 async function createTodo() {
   if (!canCreateTodos.value) {
     validation.setGateError(createTodoDisabledReason.value ?? 'You cannot create todos right now.')
@@ -135,7 +129,11 @@ const id = useId()
             v-for="item in navItems"
             :key="item.path"
             :to="item.path"
-            :class="getNavLinkClass(item.path)"
+            :class="
+              route.path === item.path
+                ? 'font-semibold text-primary'
+                : 'text-on-surface-variant hover:text-primary'
+            "
             :aria-current="route.path === item.path ? 'page' : undefined"
             class="relative shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 hover:bg-surface-container"
           >
