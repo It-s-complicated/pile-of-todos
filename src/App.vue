@@ -129,11 +129,10 @@ const id = useId()
             v-for="item in navItems"
             :key="item.path"
             :to="item.path"
-            :class="
-              route.path === item.path
-                ? 'font-semibold text-primary'
-                : 'text-on-surface-variant hover:text-primary'
-            "
+            :class="{
+              'font-semibold text-primary': route.path === item.path,
+              'text-on-surface-variant hover:text-primary': route.path !== item.path,
+            }"
             :aria-current="route.path === item.path ? 'page' : undefined"
             class="relative shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 hover:bg-surface-container"
           >
