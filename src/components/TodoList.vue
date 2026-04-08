@@ -2,29 +2,23 @@
 import type { Todo, TodoFilter } from '@/db/collections'
 import { Inbox } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
 
 import { useElectricTodos } from '@/composables/useElectricTodos'
-import { VALID_FILTERS } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
 const { canMutateTodos, isReady, mutateTodoDisabledReason, todos, updateTodo } = useElectricTodos()
-const route = useRoute()
+const props = defineProps<{ filter: TodoFilter }>()
 
 const currentWeek = getCurrentWeekNumber()
-const rawFilter = computed(() => (route.params.filter as TodoFilter) || (route.name as TodoFilter))
-const filter = computed(() =>
-  VALID_FILTERS.includes(rawFilter.value) ? rawFilter.value : 'backlog',
-)
 const loading = computed(() => !isReady.value)
 
 const filteredTodos = computed(() => {
   const visibleTodos = todos.value.filter((todo) => todo.deletedAt === null)
 
-  switch (filter.value) {
+  switch (props.filter) {
     case 'backlog':
       return visibleTodos.filter((todo) => todo.weekNumber === null && !todo.archived)
     case 'current-week':
@@ -89,7 +83,7 @@ function confirmMove(weekNumber: number | null) {
 }
 
 const emptyStateMessage = computed(() => {
-  switch (filter.value) {
+  switch (props.filter) {
     case 'backlog':
       return { title: 'Backlog is empty', subtitle: 'Add tasks without a week assigned.' }
     case 'current-week':
@@ -149,6 +143,7 @@ const emptyStateMessage = computed(() => {
     <div v-else class="flex flex-col gap-3">
       <TodoItem
         v-for="(todo, index) in filteredTodos"
+        :id="todo.id"
         :key="todo.id"
         :can-mutate="canMutateTodos"
         :mutate-disabled-reason="mutateTodoDisabledReason"

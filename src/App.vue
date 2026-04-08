@@ -38,7 +38,7 @@ const workspaceCopy: Record<string, WorkspaceCopy> = {
     subtitle: 'Unscheduled tasks waiting to be organized.',
     title: 'The Backlog',
   },
-  '/current-week': {
+  '/current': {
     subtitle: `Week ${currentWeek} · Tasks for this week.`,
     title: 'Current Week',
   },
@@ -64,7 +64,7 @@ const activeWorkspace = computed(() => workspaceCopy[route.path] ?? workspaceCop
 
 const navItems = [
   { label: 'Backlog', path: '/backlog' },
-  { label: 'Current Week', path: '/current-week' },
+  { label: 'Current Week', path: '/current' },
   { label: 'Future Week', path: '/future' },
   { label: 'Unfinished', path: '/unfinished' },
   { label: 'Completed', path: '/finished' },
@@ -86,15 +86,15 @@ async function createTodo() {
   }
 
   try {
-    await addTodo(trimmedLabel, newTodoWeek.value)
+    const todoId = await addTodo(trimmedLabel, newTodoWeek.value)
     validation.clearError()
     const path =
       newTodoWeek.value === null
         ? `/backlog`
         : newTodoWeek.value === currentWeek
-          ? `/current-week`
+          ? `/current`
           : `/future`
-    await router.push(path)
+    await router.push({ path, hash: `#${todoId}` })
     newTodoLabel.value = ''
     newTodoWeek.value = null
   } catch (error) {
@@ -206,6 +206,7 @@ const id = useId()
 
     <form
       class="fixed bottom-4 left-1/2 z-40 w-[min(100%-1rem,48rem)] -translate-x-1/2"
+      autocomplete="off"
       @submit.prevent="createTodo"
     >
       <div
@@ -223,6 +224,7 @@ const id = useId()
               :id="`${id}-new`"
               v-model="newTodoLabel"
               placeholder="What needs to be done?"
+              autocomplete="off"
               required
               class="w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-base text-on-surface transition-all duration-200 placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
             />
@@ -260,7 +262,7 @@ const id = useId()
                   class="w-full cursor-pointer appearance-none rounded-2xl border border-outline-variant/10 bg-surface-container-highest bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a8abb0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-size-[1rem] bg-position-[right_0.75rem_center] bg-no-repeat px-4 py-3 pr-10 text-sm text-on-surface transition-all duration-200 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
                 >
                   <option :value="null">Backlog</option>
-                  <option :value="currentWeek">Week {{ currentWeek }}</option>
+                  <option :value="currentWeek">Week {{ currentWeek }} (current)</option>
                   <option :value="currentWeek + 1">Week {{ currentWeek + 1 }}</option>
                   <option :value="currentWeek + 2">Week {{ currentWeek + 2 }}</option>
                 </select>

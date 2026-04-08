@@ -3,5 +3,5 @@ import TodoList from '@/components/TodoList.vue'
 </script>
 
 <template>
-  <TodoList />
+  <TodoList filter="current-week" />
 </template>
