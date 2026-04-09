@@ -16,8 +16,8 @@ type WorkspaceCopy = {
 
 const navItems = [
   { label: 'Backlog', path: '/backlog' },
-  { label: 'Current Week', path: '/current' },
-  { label: 'Future Week', path: '/future' },
+  { label: 'Current', path: '/current' },
+  { label: 'Future', path: '/future' },
   { label: 'Unfinished', path: '/unfinished' },
   { label: 'Completed', path: '/finished' },
   { label: 'Archived', path: '/archived' },
