@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { ref, useId } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -16,6 +16,7 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const id = useId()
 const selectedWeek = ref<number | null>(props.selectedWeek)
 
 function confirm() {
@@ -65,6 +66,7 @@ const weekOptions = [
       </div>
       <button
         type="button"
+        aria-label="Close week selector"
         class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest hover:text-on-surface"
         @click="cancel"
       >
@@ -72,39 +74,53 @@ const weekOptions = [
       </button>
     </div>
 
-    <div class="mb-6 space-y-2">
-      <button
-        v-for="option in weekOptions"
-        :key="option.value ?? 'backlog'"
-        type="button"
-        class="flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-200"
-        :class="
-          selectedWeek === option.value
-            ? 'border-primary/30 bg-primary-container/20'
-            : 'border-outline-variant/10 bg-surface-container-highest hover:border-outline-variant/20 hover:bg-surface-bright'
-        "
-        @click="selectedWeek = option.value"
-      >
-        <div
-          class="flex size-5 items-center justify-center rounded-full border transition-all duration-200"
-          :class="
-            selectedWeek === option.value
-              ? 'border-primary bg-primary'
-              : 'border-outline-variant/50 bg-transparent'
-          "
-        >
-          <div v-if="selectedWeek === option.value" class="size-2 rounded-full bg-on-primary" />
+    <fieldset class="mb-6">
+      <legend class="sr-only">Choose a destination week for this task</legend>
+
+      <div class="space-y-2">
+        <div v-for="option in weekOptions" :key="option.value ?? 'backlog'">
+          <input
+            :id="`${id}-week-${option.value ?? 'backlog'}`"
+            v-model="selectedWeek"
+            :value="option.value"
+            :name="`${id}-week`"
+            type="radio"
+            class="peer sr-only"
+          />
+          <label
+            :for="`${id}-week-${option.value ?? 'backlog'}`"
+            class="flex w-full cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/20 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-container"
+            :class="
+              selectedWeek === option.value
+                ? 'border-primary/30 bg-primary-container/20'
+                : 'border-outline-variant/10 bg-surface-container-highest hover:border-outline-variant/20 hover:bg-surface-bright'
+            "
+          >
+            <span
+              class="flex size-5 items-center justify-center rounded-full border transition-all duration-200"
+              :class="
+                selectedWeek === option.value
+                  ? 'border-primary bg-primary'
+                  : 'border-outline-variant/50 bg-transparent'
+              "
+            >
+              <span
+                v-if="selectedWeek === option.value"
+                class="size-2 rounded-full bg-on-primary"
+              />
+            </span>
+            <span class="flex-1">
+              <span class="block font-label text-sm font-semibold text-on-surface">
+                {{ option.label }}
+              </span>
+              <span class="block text-xs text-on-surface-variant">
+                {{ option.description }}
+              </span>
+            </span>
+          </label>
         </div>
-        <div class="flex-1">
-          <p class="font-label text-sm font-semibold text-on-surface">
-            {{ option.label }}
-          </p>
-          <p class="text-xs text-on-surface-variant">
-            {{ option.description }}
-          </p>
-        </div>
-      </button>
-    </div>
+      </div>
+    </fieldset>
 
     <div class="flex gap-3">
       <button
