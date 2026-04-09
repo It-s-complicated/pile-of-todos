@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
-import { computed, ref, useId } from 'vue'
+import { computed, reactive, useId } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useCreateTodoValidationState } from '@/composables/useCreateTodoValidationState'
@@ -11,8 +11,10 @@ const { addTodo, canCreateTodos, createTodoDisabledReason } = useElectricTodos()
 const router = useRouter()
 const currentWeek = getCurrentWeekNumber()
 const id = useId()
-const newTodoLabel = ref('')
-const newTodoWeek = ref<number | null>(null)
+const formState = reactive<{ label: string; weekNumber: null | number }>({
+  label: '',
+  weekNumber: currentWeek,
+})
 const validation = useCreateTodoValidationState({ canCreateTodos })
 const validationError = validation.error
 
@@ -23,7 +25,7 @@ const TodoLabelSchema = pipe(
   regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
 )
 
-const showWeekOptions = computed(() => newTodoLabel.value.trim().length > 0)
+const showWeekOptions = computed(() => formState.label.trim().length > 0)
 
 async function createTodo() {
   if (!canCreateTodos.value) {
@@ -31,7 +33,7 @@ async function createTodo() {
     return
   }
 
-  const trimmedLabel = newTodoLabel.value.trim()
+  const trimmedLabel = formState.label.trim()
   const result = safeParse(TodoLabelSchema, trimmedLabel)
 
   if (!result.success) {
@@ -40,17 +42,17 @@ async function createTodo() {
   }
 
   try {
-    const todoId = await addTodo(trimmedLabel, newTodoWeek.value)
+    const todoId = await addTodo(trimmedLabel, formState.weekNumber)
     validation.clearError()
     const path =
-      newTodoWeek.value === null
+      formState.weekNumber === null
         ? `/backlog`
-        : newTodoWeek.value === currentWeek
+        : formState.weekNumber === currentWeek
           ? `/current`
           : `/future`
     await router.push({ path, hash: `#${todoId}` })
-    newTodoLabel.value = ''
-    newTodoWeek.value = null
+    formState.label = ''
+    formState.weekNumber = currentWeek
   } catch (error) {
     validation.setGateError(error instanceof Error ? error.message : 'Unable to create todo.')
   }
@@ -85,7 +87,7 @@ async function createTodo() {
           </label>
           <input
             :id="`${id}-new`"
-            v-model="newTodoLabel"
+            v-model="formState.label"
             placeholder="What needs to be done?"
             autocomplete="off"
             required
@@ -121,7 +123,7 @@ async function createTodo() {
               </label>
               <select
                 :id="`${id}-week`"
-                v-model="newTodoWeek"
+                v-model="formState.weekNumber"
                 class="w-full cursor-pointer appearance-none rounded-2xl border border-outline-variant/10 bg-surface-container-highest bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a8abb0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-size-[1rem] bg-position-[right_0.75rem_center] bg-no-repeat px-4 py-3 pr-10 text-sm text-on-surface transition-all duration-200 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
               >
                 <option :value="null">Backlog</option>
