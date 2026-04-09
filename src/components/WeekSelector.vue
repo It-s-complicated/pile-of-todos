@@ -2,13 +2,21 @@
 import { X } from 'lucide-vue-next'
 import { ref } from 'vue'
 
-const props = defineProps<{ currentWeek: number }>()
+const props = withDefaults(
+  defineProps<{
+    currentWeek: number
+    selectedWeek?: number | null
+  }>(),
+  {
+    selectedWeek: null,
+  },
+)
 const emit = defineEmits<{
   confirm: [weekNumber: number | null]
   cancel: []
 }>()
 
-const selectedWeek = ref<number | null>(null)
+const selectedWeek = ref<number | null>(props.selectedWeek)
 
 function confirm() {
   emit('confirm', selectedWeek.value)

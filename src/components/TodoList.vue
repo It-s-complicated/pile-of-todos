@@ -191,6 +191,7 @@ const emptyStateMessage = computed(() => {
         <div @click.stop>
           <WeekSelector
             :current-week="currentWeek"
+            :selected-week="selectedTodo?.weekNumber"
             @confirm="confirmMove"
             @cancel="closeWeekSelector"
           />
