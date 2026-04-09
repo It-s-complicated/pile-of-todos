@@ -4,6 +4,15 @@ import { computed, ref } from 'vue'
 
 import { useAuth } from '@/composables/useAuth'
 
+withDefaults(
+  defineProps<{
+    showDetailsOnMobile?: boolean
+  }>(),
+  {
+    showDetailsOnMobile: false,
+  },
+)
+
 const { authError, displayName, isAuthenticated, signInWithGithub, signOut, user } = useAuth()
 const isWorking = ref(false)
 
@@ -45,7 +54,7 @@ async function handleSignOut() {
         <CircleUserRound class="size-5" stroke-width="1.8" />
       </div>
 
-      <div class="hidden min-w-0 sm:block">
+      <div :class="showDetailsOnMobile ? 'block min-w-0 sm:block' : 'hidden min-w-0 sm:block'">
         <p class="text-[10px] font-semibold tracking-[0.3em] text-on-surface-variant uppercase">
           Personal
         </p>

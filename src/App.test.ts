@@ -2,7 +2,7 @@ import { computed, createSSRApp, defineComponent, h, ref } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
-const routePath = '/backlog'
+let routePath = '/backlog'
 const addTodo = vi.fn(async () => 'todo-a')
 const canCreateTodos = ref(true)
 const createTodoDisabledReason = ref<string | null>(null)
@@ -26,6 +26,8 @@ vi.mock('lucide-vue-next', () => {
     Clock: icon,
     Inbox: icon,
     Layers: icon,
+    Menu: icon,
+    X: icon,
   }
 })
 
@@ -108,6 +110,7 @@ async function renderApp() {
 
 beforeEach(() => {
   vi.resetModules()
+  routePath = '/backlog'
   addTodo.mockReset()
   addTodo.mockResolvedValue('todo-a')
   canCreateTodos.value = true
@@ -142,4 +145,30 @@ test('App defaults to the remote-only sync explanation when nothing is queued', 
   const html = await renderApp()
 
   assert.match(html, /Todo views come only from live queries\./)
+})
+
+test('App renders the primary header links and collapsed menu trigger for secondary routes', async () => {
+  routePath = '/archived'
+
+  const html = await renderApp()
+
+  assert.match(
+    html,
+    /Pile[\s\S]*Backlog[\s\S]*Current Week[\s\S]*Future Week[\s\S]*aria-controls="header-menu-panel"/,
+  )
+  assert.notMatch(html, /Unfinished/)
+  assert.notMatch(html, /Completed/)
+  assert.notMatch(html, /Archived/)
+  assert.notMatch(html, /Saved Views/)
+  assert.match(html, /aria-expanded="false"/)
+  assert.match(html, /aria-label="Open workspace menu"/)
+})
+
+test('App keeps the offline queue default copy unchanged in SSR output', async () => {
+  const html = await renderApp()
+
+  assert.match(
+    html,
+    /Todo views come only from live queries\. The app stores local data only for newly created offline tasks until it can finally persist them\./,
+  )
 })

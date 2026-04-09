@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { Menu, X } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import AuthStatus from './components/AuthStatus.vue'
@@ -13,10 +14,23 @@ type WorkspaceCopy = {
   title: string
 }
 
+const navItems = [
+  { label: 'Backlog', path: '/backlog' },
+  { label: 'Current Week', path: '/current' },
+  { label: 'Future Week', path: '/future' },
+  { label: 'Unfinished', path: '/unfinished' },
+  { label: 'Completed', path: '/finished' },
+  { label: 'Archived', path: '/archived' },
+] as const
+const primaryNavItems = navItems.slice(0, 3)
+const secondaryNavItems = navItems.slice(3)
+
 const route = useRoute()
 const { isOnline, offlineQueue } = useElectricTodos()
 const offlineQueueState = computed(() => offlineQueue.value)
 const currentWeek = getCurrentWeekNumber()
+const isHeaderMenuOpen = ref(false)
+const headerMenuPanelId = 'header-menu-panel'
 
 const workspaceCopy: Record<string, WorkspaceCopy> = {
   '/backlog': {
@@ -40,15 +54,38 @@ const workspaceCopy: Record<string, WorkspaceCopy> = {
 }
 
 const activeWorkspace = computed(() => workspaceCopy[route.path] ?? workspaceCopy['/backlog'])
+const headerMenuToggleLabel = computed(() =>
+  isHeaderMenuOpen.value ? 'Close workspace menu' : 'Open workspace menu',
+)
 
-const navItems = [
-  { label: 'Backlog', path: '/backlog' },
-  { label: 'Current Week', path: '/current' },
-  { label: 'Future Week', path: '/future' },
-  { label: 'Unfinished', path: '/unfinished' },
-  { label: 'Completed', path: '/finished' },
-  { label: 'Archived', path: '/archived' },
-] as const
+function closeHeaderMenu() {
+  isHeaderMenuOpen.value = false
+}
+
+function toggleHeaderMenu() {
+  isHeaderMenuOpen.value = !isHeaderMenuOpen.value
+}
+
+function handleWindowKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    closeHeaderMenu()
+  }
+}
+
+watch(
+  () => route.path,
+  () => {
+    closeHeaderMenu()
+  },
+)
+
+onMounted(() => {
+  window.addEventListener('keydown', handleWindowKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleWindowKeydown)
+})
 </script>
 
 <template>
@@ -57,22 +94,17 @@ const navItems = [
       class="sticky top-0 z-40 border-b border-outline-variant/10 bg-surface/80 backdrop-blur-2xl"
     >
       <div
-        class="mx-auto grid max-w-screen-2xl gap-4 px-6 py-5 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center lg:px-8"
+        class="mx-auto grid max-w-screen-2xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-6 py-4 lg:px-8"
       >
-        <div class="flex items-center justify-between gap-6">
-          <div class="min-w-0">
-            <p class="font-headline text-2xl font-extrabold tracking-tight text-primary">Pile</p>
-            <p class="mt-1 text-[10px] tracking-[0.32em] text-on-surface-variant uppercase">
-              Dashboard
-            </p>
-          </div>
+        <div class="min-w-0">
+          <p class="font-headline text-2xl font-extrabold tracking-tight text-primary">Pile</p>
         </div>
 
         <nav
-          class="flex min-w-0 items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          class="flex min-w-0 items-center gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:justify-center md:gap-2 [&::-webkit-scrollbar]:hidden"
         >
           <RouterLink
-            v-for="item in navItems"
+            v-for="item in primaryNavItems"
             :key="item.path"
             :to="item.path"
             :class="{
@@ -80,7 +112,7 @@ const navItems = [
               'text-on-surface-variant hover:text-primary': route.path !== item.path,
             }"
             :aria-current="route.path === item.path ? 'page' : undefined"
-            class="relative shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 hover:bg-surface-container"
+            class="relative shrink-0 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 hover:bg-surface-container md:rounded-lg"
           >
             <span>{{ item.label }}</span>
             <span
@@ -91,12 +123,77 @@ const navItems = [
           </RouterLink>
         </nav>
 
-        <div class="flex items-center gap-3 md:justify-self-end">
-          <SyncStatus class="shrink-0" />
-          <AuthStatus class="shrink-0" />
-        </div>
+        <button
+          type="button"
+          class="inline-flex size-11 items-center justify-center justify-self-end rounded-full border border-outline-variant/10 bg-surface-container/80 text-on-surface shadow-[0_10px_24px_rgba(0,0,0,0.12)] transition-colors duration-200 hover:bg-surface-container-highest"
+          :aria-controls="headerMenuPanelId"
+          :aria-expanded="isHeaderMenuOpen"
+          :aria-label="headerMenuToggleLabel"
+          @click="toggleHeaderMenu"
+        >
+          <Menu v-if="!isHeaderMenuOpen" class="size-4.5" stroke-width="2.2" />
+          <X v-else class="size-4.5" stroke-width="2.2" />
+        </button>
       </div>
+
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="-translate-y-2 opacity-0"
+        enter-to-class="translate-y-0 opacity-100"
+        leave-active-class="transition duration-125 ease-in"
+        leave-from-class="translate-y-0 opacity-100"
+        leave-to-class="-translate-y-2 opacity-0"
+      >
+        <div
+          v-if="isHeaderMenuOpen"
+          :id="headerMenuPanelId"
+          class="absolute inset-x-0 top-full z-40"
+        >
+          <div class="mx-auto flex max-w-screen-2xl justify-end px-6 pb-4 lg:px-8">
+            <div
+              class="w-full space-y-4 rounded-3xl border border-outline-variant/10 bg-surface/95 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:max-w-md"
+            >
+              <div class="space-y-2">
+                <p
+                  class="text-[10px] font-semibold tracking-[0.28em] text-on-surface-variant uppercase"
+                >
+                  Saved Views
+                </p>
+                <nav class="grid gap-2 sm:grid-cols-3 md:grid-cols-1">
+                  <RouterLink
+                    v-for="item in secondaryNavItems"
+                    :key="item.path"
+                    :to="item.path"
+                    :class="{
+                      'border-primary/20 bg-primary/10 text-primary': route.path === item.path,
+                      'border-outline-variant/10 bg-surface-container/60 text-on-surface-variant hover:text-primary':
+                        route.path !== item.path,
+                    }"
+                    :aria-current="route.path === item.path ? 'page' : undefined"
+                    class="rounded-2xl border px-3 py-3 text-sm font-semibold transition-colors duration-200"
+                    @click="closeHeaderMenu"
+                  >
+                    {{ item.label }}
+                  </RouterLink>
+                </nav>
+              </div>
+
+              <div class="space-y-3 border-t border-outline-variant/10 pt-4">
+                <SyncStatus class="w-full" />
+                <AuthStatus class="w-full" :show-details-on-mobile="true" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </header>
+
+    <div
+      v-if="isHeaderMenuOpen"
+      aria-hidden="true"
+      class="fixed inset-0 z-30 bg-surface/20 backdrop-blur-[1px]"
+      @click="closeHeaderMenu"
+    />
 
     <main class="mx-auto max-w-4xl px-6 pt-12 pb-72 lg:px-8">
       <section class="mb-14 sm:mb-16">
