@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Todo, TodoFilter } from '@/db/collections'
-import { Inbox } from 'lucide-vue-next'
+import { Archive, Calendar, Check, Inbox } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 import { useElectricTodos } from '@/composables/useElectricTodos'
@@ -9,37 +9,11 @@ import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
-const { canMutateTodos, isReady, mutateTodoDisabledReason, todos, updateTodo } = useElectricTodos()
-const props = defineProps<{ filter: TodoFilter }>()
+const { canMutateTodos, isReady, mutateTodoDisabledReason, updateTodo } = useElectricTodos()
+const props = defineProps<{ filter: TodoFilter; todos: Todo[] }>()
 
-const currentWeek = getCurrentWeekNumber()
 const loading = computed(() => !isReady.value)
-
-const filteredTodos = computed(() => {
-  const visibleTodos = todos.value.filter((todo) => todo.deletedAt === null)
-
-  switch (props.filter) {
-    case 'backlog':
-      return visibleTodos.filter((todo) => todo.weekNumber === null && !todo.archived)
-    case 'current-week':
-      return visibleTodos.filter((todo) => todo.weekNumber === currentWeek && !todo.archived)
-    case 'future':
-      return visibleTodos.filter(
-        (todo) => todo.weekNumber !== null && todo.weekNumber > currentWeek && !todo.archived,
-      )
-    case 'unfinished':
-      return visibleTodos.filter(
-        (todo) =>
-          todo.weekNumber !== null && todo.weekNumber < currentWeek && !todo.done && !todo.archived,
-      )
-    case 'archived':
-      return visibleTodos.filter((todo) => todo.archived)
-    case 'finished':
-      return visibleTodos.filter((todo) => todo.done && !todo.archived)
-    default:
-      return visibleTodos
-  }
-})
+const currentWeek = getCurrentWeekNumber()
 
 const showWeekSelector = ref(false)
 const selectedTodo = ref<Todo | null>(null)
@@ -120,7 +94,7 @@ const emptyStateMessage = computed(() => {
     </div>
 
     <div
-      v-else-if="filteredTodos.length === 0"
+      v-else-if="props.todos.length === 0"
       class="rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-6 py-16 text-center shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
     >
       <div class="inline-flex flex-col items-center gap-4">
@@ -142,7 +116,7 @@ const emptyStateMessage = computed(() => {
 
     <div v-else class="flex flex-col gap-3">
       <TodoItem
-        v-for="(todo, index) in filteredTodos"
+        v-for="(todo, index) in props.todos"
         :id="todo.id"
         :key="todo.id"
         :can-mutate="canMutateTodos"
@@ -151,9 +125,54 @@ const emptyStateMessage = computed(() => {
         :style="{ '--staggered-animation-delay': `${Math.min(index * 50, 500)}ms` }"
         class="animate-fade-in-up animation-delay-(--staggered-animation-delay)"
         @update="handleUpdate(todo.id, $event)"
-        @archive="handleArchive(todo.id)"
-        @move="handleMove(todo)"
-      />
+      >
+        <template #primaryAction>
+          <button
+            type="button"
+            role="checkbox"
+            :aria-checked="todo.done"
+            :aria-label="todo.done ? 'Mark as incomplete' : 'Mark as complete'"
+            :disabled="!canMutateTodos"
+            :title="!canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined"
+            class="relative mt-0.5 size-6 shrink-0 rounded-full border border-outline-variant/70 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50"
+            :class="
+              todo.done
+                ? 'border-primary bg-primary text-on-primary'
+                : 'bg-transparent hover:border-primary/70'
+            "
+            @click="handleUpdate(todo.id, { done: !todo.done })"
+          >
+            <Check
+              v-if="todo.done"
+              class="absolute inset-0 h-full w-full p-0.5 text-on-primary transition-transform duration-200"
+              :class="{ 'animate-checkmark': todo.done }"
+              stroke-width="3"
+            />
+          </button>
+        </template>
+        <template #actions>
+          <button
+            type="button"
+            :disabled="!canMutateTodos"
+            :title="
+              canMutateTodos ? 'Move to different week' : (mutateTodoDisabledReason ?? undefined)
+            "
+            class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest hover:text-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+            @click="handleMove(todo)"
+          >
+            <Calendar class="size-4" stroke-width="1.8" />
+          </button>
+          <button
+            type="button"
+            :disabled="!canMutateTodos"
+            :title="canMutateTodos ? 'Archive' : (mutateTodoDisabledReason ?? undefined)"
+            class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest hover:text-secondary disabled:cursor-not-allowed disabled:opacity-50"
+            @click="handleArchive(todo.id)"
+          >
+            <Archive class="size-4" stroke-width="1.8" />
+          </button>
+        </template>
+      </TodoItem>
     </div>
 
     <Transition
