@@ -55,7 +55,7 @@ async function handleSignOut() {
       </div>
 
       <div :class="showDetailsOnMobile ? 'block min-w-0 sm:block' : 'hidden min-w-0 sm:block'">
-        <p class="text-[10px] font-semibold tracking-[0.3em] text-on-surface-variant uppercase">
+        <p class="text-tiny font-semibold tracking-loosest text-on-surface-variant uppercase">
           Personal
         </p>
         <p v-if="isAuthenticated" class="truncate text-sm text-on-surface">

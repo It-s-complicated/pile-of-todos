@@ -155,7 +155,7 @@ onBeforeUnmount(() => {
             >
               <div class="space-y-2">
                 <p
-                  class="text-[10px] font-semibold tracking-[0.28em] text-on-surface-variant uppercase"
+                  class="text-tiny font-semibold tracking-looser text-on-surface-variant uppercase"
                 >
                   Saved Views
                 </p>
@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
       <RouterView />
 
       <section class="mt-16 border-t border-outline-variant/10 pt-10">
-        <h2 class="mb-4 text-xs font-medium tracking-[0.32em] text-on-surface-variant uppercase">
+        <h2 class="mb-4 text-xs font-medium tracking-looser text-on-surface-variant uppercase">
           Sync Model
         </h2>
         <div

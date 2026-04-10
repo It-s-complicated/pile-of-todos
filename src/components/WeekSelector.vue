@@ -125,7 +125,7 @@ const weekOptions = [
     <div class="flex gap-3">
       <button
         type="button"
-        class="flex-1 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold tracking-[0.18em] text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)]"
+        class="flex-1 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold tracking-loose text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)]"
         @click="confirm"
       >
         Move Task

@@ -178,7 +178,7 @@ function cancelEdit() {
           <span
             v-for="badge in [scheduleBadge, lifecycleBadge]"
             :key="badge.label"
-            class="rounded-full px-2.5 py-2 text-[10px] font-semibold tracking-[0.24em] uppercase trim-both-cap-alphabetic"
+            class="rounded-full px-2.5 py-2 text-tiny font-semibold tracking-looser uppercase trim-both-cap-alphabetic"
             :class="badge.className"
           >
             {{ badge.label }}

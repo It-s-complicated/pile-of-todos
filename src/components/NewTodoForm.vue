@@ -81,7 +81,7 @@ async function createTodo() {
         <div class="space-y-1.5">
           <label
             :for="`${id}-new`"
-            class="block text-[10px] font-semibold tracking-[0.3em] text-on-surface-variant uppercase"
+            class="block text-tiny font-semibold tracking-loosest text-on-surface-variant uppercase"
           >
             New Task
           </label>
@@ -98,7 +98,7 @@ async function createTodo() {
           type="submit"
           :disabled="!canCreateTodos"
           :title="createTodoDisabledReason ?? undefined"
-          class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3.5 text-sm font-semibold tracking-[0.18em] whitespace-nowrap text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c4d3ca] hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
+          class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3.5 text-sm font-semibold tracking-loose whitespace-nowrap text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-high hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           Add Task
         </button>
@@ -117,7 +117,7 @@ async function createTodo() {
             <div class="w-full max-w-56">
               <label
                 :for="`${id}-week`"
-                class="mb-1.5 block text-[10px] font-semibold tracking-[0.3em] text-on-surface-variant uppercase"
+                class="mb-1.5 block text-tiny font-semibold tracking-loosest text-on-surface-variant uppercase"
               >
                 Week
               </label>
