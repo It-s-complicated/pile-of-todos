@@ -150,7 +150,7 @@ function cancelEdit() {
         />
         <div
           v-else
-          class="select-none"
+          class="space-y-3 pt-2 select-none"
           :class="{
             'cursor-pointer': canMutate && !todo.done,
             'cursor-default': !canMutate || todo.done,
@@ -158,7 +158,7 @@ function cancelEdit() {
           @dblclick="startEdit"
         >
           <p
-            class="text-base leading-snug text-on-surface transition-all duration-200 sm:text-[1.05rem]"
+            class="text-base leading-snug text-on-surface transition-all duration-200 trim-both-cap-alphabetic"
             :class="{
               'text-on-surface-variant line-through': todo.done,
               'text-on-surface': !todo.done,
@@ -169,16 +169,12 @@ function cancelEdit() {
 
           <div class="mt-2 flex flex-wrap items-center gap-2">
             <span
-              class="rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.24em] uppercase"
-              :class="scheduleBadge.className"
+              v-for="badge in [scheduleBadge, lifecycleBadge]"
+              :key="badge.label"
+              class="rounded-full px-2.5 py-2 text-[10px] font-semibold tracking-[0.24em] uppercase trim-both-cap-alphabetic"
+              :class="badge.className"
             >
-              {{ scheduleBadge.label }}
-            </span>
-            <span
-              class="rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.24em] uppercase"
-              :class="lifecycleBadge.className"
-            >
-              {{ lifecycleBadge.label }}
+              {{ badge.label }}
             </span>
           </div>
         </div>

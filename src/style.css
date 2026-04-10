@@ -177,6 +177,10 @@ body::before {
   animation-delay: var(--tw-animation-delay);
 }
 
+@utility trim-both-cap-alphabetic {
+  text-box: trim-both cap alphabetic;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

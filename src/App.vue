@@ -198,7 +198,7 @@ onBeforeUnmount(() => {
     <main class="mx-auto max-w-4xl px-6 pt-12 pb-72 lg:px-8">
       <section class="mb-14 sm:mb-16">
         <h1
-          class="font-headline text-4xl font-extrabold tracking-tight text-on-surface sm:text-5xl lg:text-6xl"
+          class="font-headline text-4xl font-extrabold tracking-tight text-on-surface trim-both-cap-alphabetic sm:text-5xl lg:text-6xl"
         >
           {{ activeWorkspace.title }}
         </h1>
