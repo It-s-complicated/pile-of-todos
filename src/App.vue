@@ -101,7 +101,7 @@ onBeforeUnmount(() => {
         </div>
 
         <nav
-          class="flex min-w-0 items-center gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:justify-center md:gap-2 [&::-webkit-scrollbar]:hidden"
+          class="flex min-w-0 items-center justify-center gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-2 [&::-webkit-scrollbar]:hidden"
         >
           <RouterLink
             v-for="item in primaryNavItems"
