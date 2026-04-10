@@ -127,63 +127,69 @@ function cancelEdit() {
 
 <template>
   <div
-    class="group flex flex-col gap-4 rounded-3xl border border-outline-variant/10 bg-surface-container p-5 shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-[0_20px_40px_rgba(0,0,0,0.24)] sm:flex-row sm:items-center sm:justify-between sm:p-6"
+    class="group grid grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_auto] gap-x-4 gap-y-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-5 shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-[0_20px_40px_rgba(0,0,0,0.24)] sm:gap-x-5 sm:p-6"
     :class="{
       'opacity-90': !canMutate,
       'border-l-3 border-solid border-l-(--status-color)': true,
     }"
     :style="{ '--status-color': statusColor }"
   >
-    <div class="flex min-w-0 items-start gap-4 sm:gap-5">
-      <slot v-if="slots.primaryAction" name="primaryAction" />
+    <div v-if="slots.primaryAction" class="row-span-2 self-start">
+      <slot name="primaryAction" />
+    </div>
 
-      <div class="min-w-0">
-        <input
-          v-if="isEditing"
-          v-model="editLabel"
-          :disabled="!canMutate"
-          :title="!canMutate ? (mutateDisabledReason ?? undefined) : undefined"
-          class="w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-3 py-2 text-base text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-          @blur="saveEdit"
-          @keyup.enter="saveEdit"
-          @keyup.esc="cancelEdit"
-        />
-        <div
-          v-else
-          class="space-y-3 pt-2 select-none"
+    <div
+      class="row-span-2 grid min-w-0 grid-rows-subgrid"
+      :class="{
+        'col-start-2': slots.primaryAction,
+        'col-span-2 col-start-1': !slots.primaryAction,
+      }"
+    >
+      <input
+        v-if="isEditing"
+        v-model="editLabel"
+        :disabled="!canMutate"
+        :title="!canMutate ? (mutateDisabledReason ?? undefined) : undefined"
+        class="row-span-2 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-3 py-2 text-base text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        @blur="saveEdit"
+        @keyup.enter="saveEdit"
+        @keyup.esc="cancelEdit"
+      />
+      <div
+        v-else
+        class="row-span-2 grid grid-rows-subgrid pt-2 select-none"
+        :class="{
+          'cursor-pointer': canMutate && !todo.done,
+          'cursor-default': !canMutate || todo.done,
+        }"
+        @dblclick="startEdit"
+      >
+        <p
+          class="row-start-1 text-base leading-snug text-on-surface transition-all duration-200 trim-both-cap-alphabetic"
           :class="{
-            'cursor-pointer': canMutate && !todo.done,
-            'cursor-default': !canMutate || todo.done,
+            'text-on-surface-variant line-through': todo.done,
+            'text-on-surface': !todo.done,
           }"
-          @dblclick="startEdit"
         >
-          <p
-            class="text-base leading-snug text-on-surface transition-all duration-200 trim-both-cap-alphabetic"
-            :class="{
-              'text-on-surface-variant line-through': todo.done,
-              'text-on-surface': !todo.done,
-            }"
-          >
-            {{ todo.label }}
-          </p>
+          {{ todo.label }}
+        </p>
 
-          <div class="mt-2 flex flex-wrap items-center gap-2">
-            <span
-              v-for="badge in [scheduleBadge, lifecycleBadge]"
-              :key="badge.label"
-              class="rounded-full px-2.5 py-2 text-[10px] font-semibold tracking-[0.24em] uppercase trim-both-cap-alphabetic"
-              :class="badge.className"
-            >
-              {{ badge.label }}
-            </span>
-          </div>
+        <div class="row-start-2 flex flex-wrap items-center gap-2 self-start">
+          <span
+            v-for="badge in [scheduleBadge, lifecycleBadge]"
+            :key="badge.label"
+            class="rounded-full px-2.5 py-2 text-[10px] font-semibold tracking-[0.24em] uppercase trim-both-cap-alphabetic"
+            :class="badge.className"
+          >
+            {{ badge.label }}
+          </span>
         </div>
       </div>
     </div>
 
     <div
       v-if="slots.actions"
-      class="flex items-center gap-1 self-end opacity-100 transition-opacity duration-200 sm:self-auto sm:opacity-0 sm:group-hover:opacity-100"
+      class="col-span-full row-start-3 flex items-center gap-1 self-end justify-self-end opacity-100 transition-opacity duration-200 sm:col-span-1 sm:col-start-3 sm:row-span-full sm:self-center sm:opacity-0 sm:group-hover:opacity-100"
     >
       <slot name="actions" />
     </div>
