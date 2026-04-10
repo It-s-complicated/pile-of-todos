@@ -28,7 +28,7 @@ function handleUpdate(id: string, updates: Partial<Todo>) {
   })
 }
 
-function handleArchive(id: string) {
+function handleArchive({ id }: { id: string }) {
   handleUpdate(id, { archived: true })
 }
 
@@ -152,24 +152,35 @@ const emptyStateMessage = computed(() => {
         </template>
         <template #actions>
           <button
+            v-for="action in [
+              {
+                icon: Calendar,
+                label: 'Move to different week',
+                handler: handleMove,
+                disabled: !canMutateTodos,
+                class: 'hover:text-tertiary',
+                title: canMutateTodos
+                  ? 'Move to different week'
+                  : (mutateTodoDisabledReason ?? undefined),
+              },
+              {
+                icon: Archive,
+                label: 'Archive',
+                handler: handleArchive,
+                disabled: !canMutateTodos,
+                class: 'hover:text-secondary',
+                title: canMutateTodos ? 'Archive' : (mutateTodoDisabledReason ?? undefined),
+              },
+            ]"
             type="button"
-            :disabled="!canMutateTodos"
-            :title="
-              canMutateTodos ? 'Move to different week' : (mutateTodoDisabledReason ?? undefined)
-            "
-            class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest hover:text-tertiary disabled:cursor-not-allowed disabled:opacity-50"
-            @click="handleMove(todo)"
+            :key="action.label"
+            :disabled="action.disabled"
+            :title="action.title"
+            class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest disabled:cursor-not-allowed disabled:opacity-50"
+            :class="action.class"
+            @click="action.handler(todo)"
           >
-            <Calendar class="size-4" stroke-width="1.8" />
-          </button>
-          <button
-            type="button"
-            :disabled="!canMutateTodos"
-            :title="canMutateTodos ? 'Archive' : (mutateTodoDisabledReason ?? undefined)"
-            class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest hover:text-secondary disabled:cursor-not-allowed disabled:opacity-50"
-            @click="handleArchive(todo.id)"
-          >
-            <Archive class="size-4" stroke-width="1.8" />
+            <component :is="action.icon" class="size-4" stroke-width="1.8" />
           </button>
         </template>
       </TodoItem>
