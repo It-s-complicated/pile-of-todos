@@ -20,5 +20,9 @@ const filteredTodos = computed(() =>
 </script>
 
 <template>
-  <TodoList filter="unfinished" :todos="filteredTodos" />
+  <TodoList filter="unfinished" :todos="filteredTodos">
+    <template #empty>
+      <TodoItemEmpty title="No unfinished tasks" subtitle="All past tasks are complete!" />
+    </template>
+  </TodoList>
 </template>

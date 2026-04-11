@@ -19,5 +19,12 @@ const filteredTodos = computed(() =>
 </script>
 
 <template>
-  <TodoList filter="future" :todos="filteredTodos" />
+  <TodoList filter="future" :todos="filteredTodos">
+    <template #empty>
+      <TodoItemEmpty
+        title="No future tasks"
+        subtitle="Plan ahead by adding tasks for future weeks."
+      />
+    </template>
+  </TodoList>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Todo, TodoFilter } from '@/db/collections'
-import { Archive, Calendar, Check, Inbox } from 'lucide-vue-next'
+import { Archive, Calendar, Check } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 import { useElectricTodos } from '@/composables/useElectricTodos'
@@ -55,28 +55,6 @@ function confirmMove(weekNumber: number | null) {
   handleUpdate(selectedTodo.value.id, { weekNumber })
   closeWeekSelector()
 }
-
-const emptyStateMessage = computed(() => {
-  switch (props.filter) {
-    case 'backlog':
-      return { title: 'Backlog is empty', subtitle: 'Add tasks without a week assigned.' }
-    case 'current-week':
-      return { title: 'No tasks this week', subtitle: 'Add tasks for the current week.' }
-    case 'future':
-      return { title: 'No future tasks', subtitle: 'Plan ahead by adding tasks for future weeks.' }
-    case 'unfinished':
-      return { title: 'No unfinished tasks', subtitle: 'All past tasks are complete!' }
-    case 'finished':
-      return { title: 'No completed tasks', subtitle: 'Mark tasks as done to see them here.' }
-    case 'archived':
-      return {
-        title: 'No archived tasks',
-        subtitle: 'Archive tasks to hide them from active views.',
-      }
-    default:
-      return { title: 'No tasks found', subtitle: 'Add your first task to get started.' }
-  }
-})
 </script>
 
 <template>
@@ -93,26 +71,7 @@ const emptyStateMessage = computed(() => {
       </div>
     </div>
 
-    <div
-      v-else-if="props.todos.length === 0"
-      class="rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-6 py-16 text-center shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
-    >
-      <div class="inline-flex flex-col items-center gap-4">
-        <div
-          class="flex size-16 items-center justify-center rounded-full bg-surface-container-highest text-primary"
-        >
-          <Inbox class="size-8" stroke-width="1.5" />
-        </div>
-        <div>
-          <p class="font-headline text-lg font-semibold tracking-tight text-on-surface">
-            {{ emptyStateMessage.title }}
-          </p>
-          <p class="mt-2 text-sm text-on-surface-variant">
-            {{ emptyStateMessage.subtitle }}
-          </p>
-        </div>
-      </div>
-    </div>
+    <slot name="empty" v-else-if="props.todos.length === 0" />
 
     <div v-else class="flex flex-col gap-3">
       <TodoItem
