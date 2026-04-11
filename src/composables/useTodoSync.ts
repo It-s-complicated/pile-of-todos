@@ -3,8 +3,8 @@ import type { ComputedRef, Ref } from 'vue'
 
 import { useTodoData } from './useTodoData.ts'
 
-export type TodoSyncStatus = 'paused' | 'queued-offline' | 'syncing' | 'synced'
-export type TodoDegradedStatus = 'none' | 'retryable-error' | 'requires-reauth'
+type TodoSyncStatus = 'paused' | 'queued-offline' | 'syncing' | 'synced'
+type TodoDegradedStatus = 'none' | 'retryable-error' | 'requires-reauth'
 
 type TodoSyncState = {
   canRetrySync: ComputedRef<boolean>

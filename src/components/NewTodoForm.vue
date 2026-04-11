@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { maxLength, minLength, pipe, regex, safeParse, string } from 'valibot'
 import { computed, reactive, useId } from 'vue'
 import { useRouter } from 'vue-router'
+import { safeParse } from 'valibot'
 
 import { useCreateTodoValidationState } from '@/composables/useCreateTodoValidationState'
 import { useElectricTodos } from '@/composables/useElectricTodos'
+import { todoLabelSchema } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
 const { addTodo, canCreateTodos, createTodoDisabledReason } = useElectricTodos()
@@ -18,13 +19,6 @@ const formState = reactive<{ label: string; weekNumber: null | number }>({
 const validation = useCreateTodoValidationState({ canCreateTodos })
 const validationError = validation.error
 
-const TodoLabelSchema = pipe(
-  string(),
-  minLength(1, 'Label cannot be empty'),
-  maxLength(500, 'Label must be less than 500 characters'),
-  regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
-)
-
 const showWeekOptions = computed(() => formState.label.trim().length > 0)
 
 async function createTodo() {
@@ -34,7 +28,7 @@ async function createTodo() {
   }
 
   const trimmedLabel = formState.label.trim()
-  const result = safeParse(TodoLabelSchema, trimmedLabel)
+  const result = safeParse(todoLabelSchema, trimmedLabel)
 
   if (!result.success) {
     validation.setValidationError(result.issues[0].message)

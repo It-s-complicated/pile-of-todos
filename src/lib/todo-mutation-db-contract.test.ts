@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { readFile } from 'node:fs/promises'
 
 import { assert, test } from 'vite-plus/test'

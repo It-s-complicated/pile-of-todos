@@ -115,7 +115,7 @@ export async function getSupabaseSession(): Promise<Session | null> {
   return currentSession.value
 }
 
-export function setSupabaseAuthError(message: string | null) {
+function setSupabaseAuthError(message: string | null) {
   authErrorMessage.value = message?.trim() || null
 }
 

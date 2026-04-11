@@ -11,7 +11,7 @@ export type SyncTodo = {
   userId: string | null
 }
 
-export type RemoteTodoRow = {
+type RemoteTodoRow = {
   id: string
   label: string
   week_number: number | null

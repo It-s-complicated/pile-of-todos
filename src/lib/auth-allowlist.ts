@@ -1,4 +1,4 @@
-export type AuthIdentityLike = {
+type AuthIdentityLike = {
   provider?: string | null
   provider_id?: string | null
   identity_data?: {
@@ -7,20 +7,20 @@ export type AuthIdentityLike = {
   } | null
 }
 
-export type AuthAccessState = 'signed-out' | 'approved' | 'denied'
+type AuthAccessState = 'signed-out' | 'approved' | 'denied'
 
-export type AuthAccessStateParams = {
+type AuthAccessStateParams = {
   isAuthenticated: boolean
   githubProviderId: string | null
   approvedGithubProviderId: string
 }
 
-export type AuthSyncAccessParams = AuthAccessStateParams & {
+type AuthSyncAccessParams = AuthAccessStateParams & {
   userId: string | null
   accessToken: string | null
 }
 
-export type AuthSyncAccess = {
+type AuthSyncAccess = {
   accessState: AuthAccessState
   userId: string | null
   accessToken: string | null

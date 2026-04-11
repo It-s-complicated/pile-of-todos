@@ -27,7 +27,6 @@ const secondaryNavItems = navItems.slice(3)
 
 const route = useRoute()
 const { isOnline, offlineQueue } = useElectricTodos()
-const offlineQueueState = computed(() => offlineQueue.value)
 const currentWeek = getCurrentWeekNumber()
 const isHeaderMenuOpen = ref(false)
 const headerMenuPanelId = 'header-menu-panel'
@@ -72,12 +71,7 @@ function handleWindowKeydown(event: KeyboardEvent) {
   }
 }
 
-watch(
-  () => route.path,
-  () => {
-    closeHeaderMenu()
-  },
-)
+watch(() => route.path, closeHeaderMenu)
 
 onMounted(() => {
   window.addEventListener('keydown', handleWindowKeydown)
@@ -213,14 +207,14 @@ onBeforeUnmount(() => {
         <div
           class="rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-5 py-4 text-sm text-on-surface-variant shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
         >
-          <p v-if="offlineQueueState.count > 0 && !isOnline">
-            {{ offlineQueueState.count }} queued task{{ offlineQueueState.count === 1 ? '' : 's' }}
+          <p v-if="offlineQueue.count > 0 && !isOnline">
+            {{ offlineQueue.count }} queued task{{ offlineQueue.count === 1 ? '' : 's' }}
             will be created when the connection returns.
           </p>
-          <p v-else-if="offlineQueueState.count > 0 && offlineQueueState.isFlushing">
+          <p v-else-if="offlineQueue.count > 0 && offlineQueue.isFlushing">
             Queued tasks are being written and will appear when syncing catches up.
           </p>
-          <p v-else-if="offlineQueueState.count > 0">
+          <p v-else-if="offlineQueue.count > 0">
             Queued tasks are ready to sync and will appear as soon as syncing refreshes the live
             view.
           </p>
@@ -228,8 +222,8 @@ onBeforeUnmount(() => {
             Todo views come only from live queries. The app stores local data only for newly created
             offline tasks until it can finally persist them.
           </p>
-          <p v-if="offlineQueueState.lastError" class="text-danger mt-2 text-xs">
-            {{ offlineQueueState.lastError }}
+          <p v-if="offlineQueue.lastError" class="text-danger mt-2 text-xs">
+            {{ offlineQueue.lastError }}
           </p>
         </div>
       </section>

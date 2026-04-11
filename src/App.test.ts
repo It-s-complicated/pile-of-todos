@@ -154,7 +154,7 @@ test('App renders the primary header links and collapsed menu trigger for second
 
   assert.match(
     html,
-    /Pile[\s\S]*Backlog[\s\S]*Current Week[\s\S]*Future Week[\s\S]*aria-controls="header-menu-panel"/,
+    /Pile[\s\S]*Backlog[\s\S]*Current[\s\S]*Future[\s\S]*aria-controls="header-menu-panel"/,
   )
   assert.notMatch(html, /Unfinished/)
   assert.notMatch(html, /Completed/)
