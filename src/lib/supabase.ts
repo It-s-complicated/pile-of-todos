@@ -1,6 +1,6 @@
 import { computed, readonly, shallowRef } from 'vue'
 import { createClient } from '@supabase/supabase-js'
-import type { Session, SupabaseClient, User } from '@supabase/supabase-js'
+import type { Session, SupabaseClient } from '@supabase/supabase-js'
 
 import { env } from './env'
 
@@ -113,18 +113,6 @@ export function getApprovedGithubProviderId(): string {
 export async function getSupabaseSession(): Promise<Session | null> {
   await ensureSupabaseAuthState()
   return currentSession.value
-}
-
-export async function getSupabaseUser(): Promise<User | null> {
-  return (await getSupabaseSession())?.user ?? null
-}
-
-export async function getSupabaseUserId(): Promise<string | null> {
-  return (await getSupabaseSession())?.user.id ?? null
-}
-
-export async function getSupabaseAccessToken(): Promise<string | null> {
-  return (await getSupabaseSession())?.access_token ?? null
 }
 
 export function setSupabaseAuthError(message: string | null) {

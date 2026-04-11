@@ -175,21 +175,6 @@ export function buildRemoteTodoRow(
   }
 }
 
-export function translateRemoteTodoRow(todo: RemoteTodoRow): SyncTodo {
-  return {
-    id: todo.id,
-    label: todo.label,
-    weekNumber: todo.week_number,
-    done: todo.done,
-    archived: todo.archived,
-    createdAt: todo.created_at,
-    updatedAt: todo.updated_at,
-    deviceId: todo.device_id,
-    deletedAt: todo.deleted_at,
-    userId: todo.user_id,
-  }
-}
-
 export async function upsertRemoteTodo(
   supabase: TodoMutationRpcClient,
   row: RemoteTodoRow,

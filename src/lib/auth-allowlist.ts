@@ -9,12 +9,6 @@ export type AuthIdentityLike = {
 
 export type AuthAccessState = 'signed-out' | 'approved' | 'denied'
 
-export type GuestClaimPromptState = {
-  isAuthenticated: boolean
-  guestTodoCount: number
-  hasHandledClaimPrompt: boolean
-}
-
 export type AuthAccessStateParams = {
   isAuthenticated: boolean
   githubProviderId: string | null
