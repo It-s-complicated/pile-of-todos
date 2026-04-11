@@ -5,6 +5,7 @@ import { defineConfig } from 'vite-plus'
 import { VitePWA } from 'vite-plugin-pwa'
 import { qrcode } from 'vite-plugin-qrcode'
 import vitePluginVueDevTools from 'vite-plugin-vue-devtools'
+import netlify from '@netlify/vite-plugin'
 import VueRouter from 'vue-router/vite'
 import { analyzer } from 'vite-bundle-analyzer'
 import { fileURLToPath, URL } from 'node:url'
@@ -33,6 +34,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    netlify(),
     analyzer({ enabled: false }),
     vitePluginVueDevTools(),
     VueRouter({

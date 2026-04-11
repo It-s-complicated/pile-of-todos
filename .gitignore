@@ -30,3 +30,6 @@ session-ses*.md
 .ocx
 .worktrees/
 browser-data
+
+# Local Netlify folder
+.netlify
