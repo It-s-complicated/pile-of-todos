@@ -81,7 +81,7 @@ const statusConfig = computed(() => {
       class="inline-flex items-center gap-1 rounded-full bg-surface-container-highest px-2.5 py-1 text-tiny font-semibold tracking-looser text-on-surface uppercase transition-colors hover:bg-surface-bright"
       @click="syncTodos"
     >
-      <RefreshCcw class="size-3" stroke-width="2" />
+      <RefreshCcw class="size-3" stroke-width="2" aria-hidden />
       <span>Retry</span>
     </button>
   </div>

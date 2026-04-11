@@ -71,7 +71,7 @@ async function handleSignOut() {
         :disabled="isWorking"
         @click="handleSignIn"
       >
-        <Github class="size-3.5" stroke-width="2" />
+        <Github class="size-3.5" stroke-width="2" aria-hidden />
         <span>{{ isWorking ? 'Redirecting...' : 'Sign in' }}</span>
       </button>
 
@@ -82,7 +82,7 @@ async function handleSignOut() {
         :disabled="isWorking"
         @click="handleSignOut"
       >
-        <LogOut class="size-3.5" stroke-width="2" />
+        <LogOut class="size-3.5" stroke-width="2" aria-hidden />
         <span>{{ isWorking ? 'Signing out...' : 'Sign out' }}</span>
       </button>
     </div>
