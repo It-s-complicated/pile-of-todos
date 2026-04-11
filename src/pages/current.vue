@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import TodoList from '@/components/TodoList.vue'
+import TodoListEmpty from '@/components/TodoListEmpty.vue'
 import { useElectricTodos } from '@/composables/useElectricTodos'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
