@@ -20,7 +20,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/client": "^1.5.14",
+    "@electric-sql/client": "^1.5.15",
     "@supabase/supabase-js": "^2.103.0",
     "@tanstack/electric-db-collection": "^0.3.2",
     "@tanstack/vue-db": "^0.0.115",

@@ -26,8 +26,8 @@ importers:
   .:
     dependencies:
       '@electric-sql/client':
-        specifier: ^1.5.14
-        version: 1.5.14
+        specifier: ^1.5.15
+        version: 1.5.15
       '@supabase/supabase-js':
         specifier: ^2.103.0
         version: 2.103.0
@@ -659,8 +659,8 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
-  '@electric-sql/client@1.5.14':
-    resolution: {integrity: sha512-/bT33y++WsX1McYZ0oa6NtnTfxTB8JgFdrGkSWtQnBNusDRNBEpF+Wn4Meg0Hjxj99gfAbQprqBz4U0KGG/EBA==}
+  '@electric-sql/client@1.5.15':
+    resolution: {integrity: sha512-8C+mqZu6r68kU/jf63FLuc90M2ejyeTgB/68G0ufX4H2WepQw/NJXrIY3veE+sLrDGL+uyQB+fDStHH30fi8qg==}
     hasBin: true
 
   '@esbuild-kit/core-utils@3.3.2':
@@ -2135,8 +2135,8 @@ packages:
   birpc@2.9.0:
     resolution: {integrity: sha512-KrayHS5pBi69Xi9JmvoqrIgYGDkD6mcSe/i6YKi3w5kekCLzrX4+nawcXqrj2tIp50Kw/mT/s3p+GVK0A0sKxw==}
 
-  brace-expansion@2.0.3:
-    resolution: {integrity: sha512-MCV/fYJEbqx68aE58kv2cA/kiky1G8vux3OR6/jbS+jIMe/6fJWa0DTzJU7dqijOWYwHi1t29FlfYI9uytqlpA==}
+  brace-expansion@2.1.0:
+    resolution: {integrity: sha512-TN1kCZAgdgweJhWWpgKYrQaMNHcDULHkWwQIspdtjV4Y5aurRdZpjAqn6yX3FPqTA9ngHCc4hJxMAMgGfve85w==}
 
   brace-expansion@5.0.5:
     resolution: {integrity: sha512-VZznLgtwhn+Mact9tfiwx64fA9erHH/MCXEUfB/0bX/6Fz6ny5EGTXYltMocqg4xFAQZtnO3DHWWXi8RiuN7cQ==}
@@ -4427,7 +4427,7 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@electric-sql/client@1.5.14':
+  '@electric-sql/client@1.5.15':
     dependencies:
       '@microsoft/fetch-event-source': 2.0.1
     optionalDependencies:
@@ -5100,7 +5100,7 @@ snapshots:
 
   '@tanstack/electric-db-collection@0.3.2(typescript@6.0.2)':
     dependencies:
-      '@electric-sql/client': 1.5.14
+      '@electric-sql/client': 1.5.15
       '@standard-schema/spec': 1.1.0
       '@tanstack/db': 0.6.4(typescript@6.0.2)
       '@tanstack/store': 0.9.3
@@ -5484,7 +5484,7 @@ snapshots:
 
   birpc@2.9.0: {}
 
-  brace-expansion@2.0.3:
+  brace-expansion@2.1.0:
     dependencies:
       balanced-match: 1.0.2
 
@@ -6262,7 +6262,7 @@ snapshots:
 
   minimatch@5.1.9:
     dependencies:
-      brace-expansion: 2.0.3
+      brace-expansion: 2.1.0
 
   minipass@7.1.3: {}
 
