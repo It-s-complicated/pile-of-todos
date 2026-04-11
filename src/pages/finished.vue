@@ -13,7 +13,7 @@ const filteredTodos = computed(() =>
 <template>
   <TodoList filter="finished" :todos="filteredTodos">
     <template #empty>
-      <TodoItemEmpty title="No completed tasks" subtitle="Mark tasks as done to see them here." />
+      <TodoListEmpty title="No completed tasks" subtitle="Mark tasks as done to see them here." />
     </template>
   </TodoList>
 </template>

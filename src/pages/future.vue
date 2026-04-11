@@ -21,7 +21,7 @@ const filteredTodos = computed(() =>
 <template>
   <TodoList filter="future" :todos="filteredTodos">
     <template #empty>
-      <TodoItemEmpty
+      <TodoListEmpty
         title="No future tasks"
         subtitle="Plan ahead by adding tasks for future weeks."
       />

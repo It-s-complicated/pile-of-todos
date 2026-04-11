@@ -13,7 +13,7 @@ const filteredTodos = computed(() =>
 <template>
   <TodoList filter="archived" :todos="filteredTodos">
     <template #empty>
-      <TodoItemEmpty
+      <TodoListEmpty
         title="No archived tasks"
         subtitle="Archive tasks to hide them from active views."
       />

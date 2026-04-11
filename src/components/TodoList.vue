@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Todo, TodoFilter } from '@/db/collections'
+import type { Todo } from '@/db/collections'
 import { Archive, Calendar, Check } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
@@ -10,7 +10,7 @@ import TodoItem from './TodoItem.vue'
 import WeekSelector from './WeekSelector.vue'
 
 const { canMutateTodos, isReady, mutateTodoDisabledReason, updateTodo } = useElectricTodos()
-const props = defineProps<{ filter: TodoFilter; todos: Todo[] }>()
+defineProps<{ todos: Todo[] }>()
 
 const loading = computed(() => !isReady.value)
 const currentWeek = getCurrentWeekNumber()
@@ -71,11 +71,11 @@ function confirmMove(weekNumber: number | null) {
       </div>
     </div>
 
-    <slot name="empty" v-else-if="props.todos.length === 0" />
+    <slot name="empty" v-else-if="todos.length === 0" />
 
     <div v-else class="flex flex-col gap-3">
       <TodoItem
-        v-for="(todo, index) in props.todos"
+        v-for="(todo, index) in todos"
         :id="todo.id"
         :key="todo.id"
         :can-mutate="canMutateTodos"
