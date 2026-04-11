@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Inbox } from 'lucide-vue-next'
 defineProps<{ title: string; subtitle: string }>()
 </script>
 
