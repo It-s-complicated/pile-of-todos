@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@electric-sql/client": "^1.5.15",
-    "@supabase/supabase-js": "^2.103.0",
+    "@supabase/supabase-js": "^2.103.2",
     "@tanstack/electric-db-collection": "^0.3.3",
     "@tanstack/vue-db": "^0.0.115",
     "drizzle-orm": "^0.45.2",
@@ -33,7 +33,7 @@
     "vue-router": "^5.0.4"
   },
   "devDependencies": {
-    "@netlify/vite-plugin": "^2.11.4",
+    "@netlify/vite-plugin": "^2.11.5",
     "@tailwindcss/vite": "^4.2.2",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.12.2",
