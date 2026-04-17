@@ -90,8 +90,20 @@ onBeforeUnmount(() => {
       <div
         class="mx-auto grid max-w-screen-2xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-6 py-4 lg:px-8"
       >
-        <div class="min-w-0">
-          <p class="font-headline text-2xl font-extrabold tracking-tight text-primary">Pile</p>
+        <div class="font-headline leading-none">
+          <p
+            class="mb-1.5 text-4xl font-extrabold tracking-tight text-primary trim-both-cap-alphabetic"
+          >
+            Pile
+          </p>
+          <p
+            class="flex items-baseline justify-center gap-1 text-[0.55rem] font-semibold tracking-loose text-on-surface-variant"
+          >
+            <span class="trim-both-cap-alphabetic">of</span>
+            <span class="text-[0.72rem] tracking-[0.14em] text-primary trim-both-cap-alphabetic"
+              >Todos</span
+            >
+          </p>
         </div>
 
         <nav

@@ -60,8 +60,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Pile',
-        short_name: 'Pile',
+        name: 'Pile of Todos',
+        short_name: 'Pile of Todos',
         start_url: '/',
         display: 'standalone',
         background_color: '#0c0e10',

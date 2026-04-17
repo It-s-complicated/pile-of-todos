@@ -1,6 +1,6 @@
 {
-  "name": "Pile App",
-  "short_name": "Pile",
+  "name": "Pile of Todos",
+  "short_name": "Pile of Todos",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0e10",
