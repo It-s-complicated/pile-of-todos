@@ -1,4 +1,4 @@
-# AI Todo App
+# Pile of Todos
 
 A weekly planning todo app built with Vue 3, TanStack DB, and Tailwind CSS.
 
