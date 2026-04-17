@@ -6,7 +6,7 @@ import { useElectricTodos } from '@/composables/useElectricTodos'
 import { useTodoSync } from '@/composables/useTodoSync'
 
 const { isOnline, statuses } = useElectricTodos()
-const { canRetrySync, queuedCreateCount, syncTodos } = useTodoSync()
+const { acceptedMutationCount, canRetrySync, queuedMutationCount, syncTodos } = useTodoSync()
 
 const statusConfig = computed(() => {
   if (statuses.degraded.value === 'requires-reauth') {
@@ -25,10 +25,18 @@ const statusConfig = computed(() => {
     }
   }
 
+  if (statuses.degraded.value === 'quarantined') {
+    return {
+      dotClass: 'bg-amber-500',
+      text: 'Confirmation blocked',
+      textClass: 'text-amber-700',
+    }
+  }
+
   if (statuses.sync.value === 'queued-offline') {
     return {
       dotClass: 'bg-amber-500',
-      text: `${queuedCreateCount.value} queued offline`,
+      text: `${queuedMutationCount.value} queued offline`,
       textClass: 'text-amber-700',
     }
   }
@@ -36,8 +44,16 @@ const statusConfig = computed(() => {
   if (statuses.sync.value === 'syncing') {
     return {
       dotClass: 'bg-blue-500 animate-pulse',
-      text: 'Syncing queued tasks',
+      text: 'Syncing pending changes',
       textClass: 'text-blue-600',
+    }
+  }
+
+  if (statuses.sync.value === 'awaiting-confirmation') {
+    return {
+      dotClass: 'bg-sky-500 animate-pulse',
+      text: `${acceptedMutationCount.value} awaiting confirmation`,
+      textClass: 'text-sky-600',
     }
   }
 

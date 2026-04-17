@@ -24,9 +24,9 @@ type RemoteTodoRow = {
   user_id: string
 }
 
-type TodoMutationKind = 'create' | 'update' | 'delete'
+export type TodoMutationKind = 'create' | 'update' | 'delete'
 
-type TodoMutationValues = {
+export type TodoMutationValues = {
   archived?: boolean
   createdAt?: number
   deletedAt?: number | null
@@ -44,6 +44,12 @@ type TodoMutationIntent = {
   mutationId: string
   todoId: string
   values: TodoMutationValues
+}
+
+export type AcceptedTodoMutation = {
+  mutationId: string
+  todoId: string
+  txid: number
 }
 
 type TodoMutationRpcError = {
@@ -126,7 +132,7 @@ function buildTodoMutationIntent(
   todoId: string,
   values: TodoMutationValues,
   deviceId: string | null,
-  mutationId = crypto.randomUUID(),
+  mutationId: string = crypto.randomUUID(),
 ): TodoMutationIntent {
   return {
     client: {
@@ -139,15 +145,60 @@ function buildTodoMutationIntent(
   }
 }
 
+function parseTxid(input: unknown): number {
+  if (typeof input === 'number' && Number.isInteger(input) && input >= 0) {
+    return input
+  }
+
+  if (typeof input === 'string' && input.trim().length > 0) {
+    const txid = Number.parseInt(input, 10)
+
+    if (Number.isInteger(txid) && txid >= 0) {
+      return txid
+    }
+  }
+
+  throw new Error('Todo mutation RPC response did not include a valid txid')
+}
+
+function parseAcceptedTodoMutation(
+  data: unknown,
+  fallback: Pick<AcceptedTodoMutation, 'mutationId' | 'todoId'>,
+): AcceptedTodoMutation {
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Todo mutation RPC response was missing accepted mutation data')
+  }
+
+  const mutationIdValue = (data as { mutationId?: unknown }).mutationId
+  const todoIdValue = (data as { todoId?: unknown }).todoId
+  const mutationId =
+    typeof mutationIdValue === 'string' && mutationIdValue.trim().length > 0
+      ? mutationIdValue
+      : fallback.mutationId
+  const todoId =
+    typeof todoIdValue === 'string' && todoIdValue.trim().length > 0 ? todoIdValue : fallback.todoId
+
+  return {
+    mutationId,
+    todoId,
+    txid: parseTxid((data as { txid?: unknown }).txid),
+  }
+}
+
 async function applyRemoteTodoMutation(
   supabase: TodoMutationRpcClient,
   intent: TodoMutationIntent,
-): Promise<void> {
-  const { error } = await supabase.rpc('apply_todo_mutation', { intent })
+): Promise<AcceptedTodoMutation> {
+  const { data, error } = await supabase.rpc('apply_todo_mutation', { intent })
 
   if (error) {
     throw createTodoWriteError(error)
   }
+
+  return parseAcceptedTodoMutation(data, {
+    mutationId: intent.mutationId,
+    todoId: intent.todoId,
+  })
 }
 
 export function buildRemoteTodoRow(
@@ -178,8 +229,11 @@ export function buildRemoteTodoRow(
 export async function upsertRemoteTodo(
   supabase: TodoMutationRpcClient,
   row: RemoteTodoRow,
-): Promise<void> {
-  await applyRemoteTodoMutation(
+  options: {
+    mutationId?: string
+  } = {},
+): Promise<AcceptedTodoMutation> {
+  return applyRemoteTodoMutation(
     supabase,
     buildTodoMutationIntent(
       'create',
@@ -194,12 +248,15 @@ export async function upsertRemoteTodo(
         weekNumber: row.week_number,
       },
       row.device_id,
+      options.mutationId,
     ),
   )
 }
 
 type UpdateRemoteTodoOptions = {
   activeUserId: string
+  kind?: Extract<TodoMutationKind, 'delete' | 'update'>
+  mutationId?: string
   todoId: string
   updates: {
     archived?: boolean
@@ -215,7 +272,7 @@ type UpdateRemoteTodoOptions = {
 export async function updateRemoteTodo(
   supabase: TodoMutationRpcClient,
   options: UpdateRemoteTodoOptions,
-): Promise<void> {
+): Promise<AcceptedTodoMutation> {
   const values: TodoMutationValues = {
     updatedAt: options.updates.updatedAt,
   }
@@ -240,8 +297,14 @@ export async function updateRemoteTodo(
     values.deletedAt = options.updates.deletedAt
   }
 
-  await applyRemoteTodoMutation(
+  return applyRemoteTodoMutation(
     supabase,
-    buildTodoMutationIntent('update', options.todoId, values, options.updates.deviceId ?? null),
+    buildTodoMutationIntent(
+      options.kind ?? 'update',
+      options.todoId,
+      values,
+      options.updates.deviceId ?? null,
+      options.mutationId,
+    ),
   )
 }

@@ -25,9 +25,6 @@ interface ImportMetaEnv {
 
   /** Supabase publishable/anon key used by the browser client. */
   readonly VITE_SUPABASE_ANON_KEY: string
-
-  /** Approved GitHub provider_id used for allowlist diagnostics in the UI. */
-  readonly VITE_APPROVED_GITHUB_PROVIDER_ID: string
 }
 
 interface ImportMeta {

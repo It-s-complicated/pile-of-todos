@@ -1,11 +1,5 @@
 import { getCurrentDeviceId, type Todo } from '@/db/collections'
-import { getSupabaseClient } from '@/lib/supabase'
-import {
-  TodoRemoteWriteError,
-  buildRemoteTodoRow,
-  updateRemoteTodo,
-  upsertRemoteTodo,
-} from '@/lib/todo-sync'
+import type { QueuedTodoMutation } from '@/lib/offline-todo-mutation-queue'
 
 import { useTodoData } from './useTodoData'
 
@@ -31,7 +25,7 @@ function hasOwn<TObject extends object, TKey extends PropertyKey>(
 
 function getRequiredActiveUserId(activeUserId: string | null, action: string) {
   if (!activeUserId) {
-    throw new Error(`Cannot ${action} without an approved account`)
+    throw new Error(`Cannot ${action} without a signed-in account`)
   }
 
   return activeUserId
@@ -42,16 +36,12 @@ let sharedTodoMutations: ReturnType<typeof createTodoMutations> | null = null
 function createTodoMutations() {
   const todoData = useTodoData()
 
-  function getConfirmedTodo(todoId: string) {
-    return todoData.readModel.confirmedTodos.value.find((todo) => todo.id === todoId)
+  function getVisibleTodo(todoId: string) {
+    return todoData.readModel.todos.value.find((todo) => todo.id === todoId)
   }
 
-  function requireOnline(action: string) {
-    if (todoData.connectivity.isOnline.value) {
-      return
-    }
-
-    throw new Error(`Cannot ${action} while offline`)
+  function queueMutation(mutation: QueuedTodoMutation) {
+    todoData.sync.controller.queueMutation(mutation)
   }
 
   async function createTodo(label: string, weekNumber: number | null, id?: string) {
@@ -70,68 +60,79 @@ function createTodoMutations() {
       deletedAt: null,
     }
 
-    if (!todoData.connectivity.isOnline.value) {
-      todoData.sync.controller.queueCreate(nextTodo)
-      return nextTodo.id
-    }
+    queueMutation({
+      kind: 'create',
+      mutationId: crypto.randomUUID(),
+      optimisticTodo: nextTodo,
+      todoId: nextTodo.id,
+      values: {
+        archived: nextTodo.archived,
+        createdAt: nextTodo.createdAt,
+        deletedAt: nextTodo.deletedAt,
+        done: nextTodo.done,
+        label: nextTodo.label,
+        updatedAt: nextTodo.updatedAt,
+        weekNumber: nextTodo.weekNumber,
+      },
+    })
 
-    try {
-      await upsertRemoteTodo(
-        getSupabaseClient(),
-        buildRemoteTodoRow(nextTodo, activeUserId, getCurrentDeviceId()),
-      )
-      return nextTodo.id
-    } catch (error) {
-      if (error instanceof TodoRemoteWriteError && error.kind === 'retryable') {
-        todoData.sync.controller.queueCreate(nextTodo)
-        todoData.sync.controller.markRetryableError(error.message)
-        return nextTodo.id
-      }
-
-      if (error instanceof TodoRemoteWriteError && error.kind === 'auth') {
-        todoData.sync.controller.markRequiresReauth(error.message)
-      }
-
-      throw error
-    }
+    return nextTodo.id
   }
 
   async function updateTodo(id: string, updates: TodoUpdates) {
-    const existingTodo = getConfirmedTodo(id)
+    const existingTodo = getVisibleTodo(id)
 
     if (!existingTodo) {
-      throw new Error(`Cannot update todo ${id} because it does not exist in the remote read model`)
+      throw new Error(
+        `Cannot update todo ${id} because it does not exist in the current read model`,
+      )
     }
 
-    requireOnline('update a todo')
-    const activeUserId = getRequiredActiveUserId(todoData.auth.activeUserId.value, 'update a todo')
+    getRequiredActiveUserId(todoData.auth.activeUserId.value, 'update a todo')
     const optimisticTodo = buildOptimisticTodo(existingTodo, updates)
 
-    try {
-      await updateRemoteTodo(getSupabaseClient(), {
-        activeUserId,
-        todoId: id,
-        updates: {
-          ...(hasOwn(updates, 'archived') ? { archived: optimisticTodo.archived } : {}),
-          ...(hasOwn(updates, 'deletedAt') ? { deletedAt: optimisticTodo.deletedAt } : {}),
-          ...(hasOwn(updates, 'done') ? { done: optimisticTodo.done } : {}),
-          ...(hasOwn(updates, 'label') ? { label: optimisticTodo.label } : {}),
-          ...(hasOwn(updates, 'weekNumber') ? { weekNumber: optimisticTodo.weekNumber } : {}),
-          deviceId: getCurrentDeviceId(),
-          updatedAt: optimisticTodo.updatedAt,
-        },
-      })
-    } catch (error) {
-      if (error instanceof TodoRemoteWriteError && error.kind === 'auth') {
-        todoData.sync.controller.markRequiresReauth(error.message)
-      }
-
-      throw error
-    }
+    queueMutation({
+      kind: 'update',
+      mutationId: crypto.randomUUID(),
+      optimisticTodo,
+      todoId: id,
+      updates: {
+        ...(hasOwn(updates, 'archived') ? { archived: optimisticTodo.archived } : {}),
+        ...(hasOwn(updates, 'createdAt') ? { createdAt: optimisticTodo.createdAt } : {}),
+        ...(hasOwn(updates, 'deletedAt') ? { deletedAt: optimisticTodo.deletedAt } : {}),
+        ...(hasOwn(updates, 'done') ? { done: optimisticTodo.done } : {}),
+        ...(hasOwn(updates, 'label') ? { label: optimisticTodo.label } : {}),
+        ...(hasOwn(updates, 'weekNumber') ? { weekNumber: optimisticTodo.weekNumber } : {}),
+        updatedAt: optimisticTodo.updatedAt,
+      },
+    })
   }
 
   function deleteTodo(id: string) {
-    return updateTodo(id, { deletedAt: Date.now() })
+    const existingTodo = getVisibleTodo(id)
+
+    if (!existingTodo) {
+      throw new Error(
+        `Cannot delete todo ${id} because it does not exist in the current read model`,
+      )
+    }
+
+    getRequiredActiveUserId(todoData.auth.activeUserId.value, 'delete a todo')
+    const deletedAt = Date.now()
+    const optimisticTodo = buildOptimisticTodo(existingTodo, { deletedAt })
+
+    queueMutation({
+      kind: 'delete',
+      mutationId: crypto.randomUUID(),
+      optimisticTodo,
+      todoId: id,
+      updates: {
+        deletedAt,
+        updatedAt: optimisticTodo.updatedAt,
+      },
+    })
+
+    return Promise.resolve()
   }
 
   function restoreTodo(id: string) {

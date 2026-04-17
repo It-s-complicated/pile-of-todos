@@ -12,9 +12,9 @@ The runtime architecture is explicitly frontend-only:
 
 - Capture tasks into a backlog or assign them to upcoming week numbers.
 - Navigate focused list views: Backlog, Current Week, Future, Unfinished, Finished, and Archived.
-- For the approved signed-in account, keep working offline with queued mutations that sync later.
-- Import todo JSON into durable migration staging for review.
-- Sync the approved signed-in account against the shared cloud dataset when available.
+- Keep working offline with queued mutations that sync later.
+- Import todo JSON into the same durable queued-mutation flow used by normal todo creation.
+- Sync the signed-in account against the shared cloud dataset when available.
 
 ## Environment variables
 
@@ -22,13 +22,12 @@ Create `.env.local` for frontend runtime variables. The app does not use server-
 
 ### Frontend (Vite) variables
 
-| Variable                           | Required | Purpose                                                                 |
-| ---------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`                | Yes      | Supabase project URL used by the browser for auth and write operations. |
-| `VITE_SUPABASE_ANON_KEY`           | Yes      | Supabase publishable/anon key used by the browser client.               |
-| `VITE_ELECTRIC_SHAPE_URL`          | Yes      | Electric shape endpoint used directly by the browser for read sync.     |
-| `VITE_DEVICE_ID`                   | Yes      | Stable device identifier attached to client mutation intents.           |
-| `VITE_APPROVED_GITHUB_PROVIDER_ID` | Yes      | Approved GitHub `provider_id` used for allowlist diagnostics in the UI. |
+| Variable                  | Required | Purpose                                                                 |
+| ------------------------- | -------- | ----------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`       | Yes      | Supabase project URL used by the browser for auth and write operations. |
+| `VITE_SUPABASE_ANON_KEY`  | Yes      | Supabase publishable/anon key used by the browser client.               |
+| `VITE_ELECTRIC_SHAPE_URL` | Yes      | Electric shape endpoint used directly by the browser for read sync.     |
+| `VITE_DEVICE_ID`          | Yes      | Stable device identifier attached to client mutation intents.           |
 
 The frontend runtime contract intentionally does **not** include `VITE_API_BASE_URL`, `VITE_ELECTRIC_PROXY_URL`, `VITE_ELECTRIC_SOURCE_ID`, `VITE_ELECTRIC_SECRET`, or other env vars that imply an app-owned server, proxy, or `/api/*` route layer.
 
@@ -59,8 +58,8 @@ To integrate Supabase authentication correctly in this frontend-only app:
 5. Verify session behavior in the browser:
    - Sign in/out flows complete successfully.
    - Refreshing the page restores the user session.
-   - Approved signed-in sessions can queue mutations offline and sync them after connectivity returns.
-   - Signed-out runtime is migration-only: review staged tasks, then sign in with the approved account to keep them.
+   - Signed-in sessions can queue mutations offline and sync them after connectivity returns.
+   - Signed-out sessions cannot create or sync todos until authentication is restored.
 6. Keep using Supabase Auth in the frontend until a backend exists; do not add better-auth client/server packages at this stage.
 
 ## Sync architecture summary
@@ -73,12 +72,7 @@ To integrate Supabase authentication correctly in this frontend-only app:
 
 ## GitHub auth single-user sync
 
-The app keeps durable migration staging plus one account-local pending/confirmed dataset per approved user:
-
-- staged migration input in `ai-todo-app-todos-guest`
-- one account-local bucket per Supabase user id in `ai-todo-app-todos-user:<user-id>`
-
-Authenticated sync runs only for the approved GitHub account bucket. Signed-out sessions can review staged migration input, but creating or keeping todos requires the approved signed-in account.
+Authenticated sync runs only for the allowed GitHub-backed account. Browser runtime auth authority comes from the active Supabase session, while account admission remains enforced by the Supabase auth hook and database-side allowlist.
 
 ### Supabase setup
 
@@ -87,21 +81,12 @@ Authenticated sync runs only for the approved GitHub account bucket. Signed-out 
 3. Replace the placeholder `REPLACE_WITH_APPROVED_GITHUB_PROVIDER_ID` row in `public.github_auth_allowlist` with the single approved GitHub `provider_id`.
 4. Register the `before-user-created` hook with the Postgres function URI:
    `pg-functions://postgres/public/hook_allow_single_github_identity`
-5. Set `VITE_APPROVED_GITHUB_PROVIDER_ID` in `.env.local` so the UI can explain denials using the same provider id.
 
 ### How to obtain the approved GitHub provider_id
 
 - Complete one allowed GitHub sign-in in a safe environment, then inspect `auth.users.raw_app_meta_data`, `auth.identities`, or the hook payload for the GitHub identity.
 - Use the GitHub identity `provider_id` as the row stored in `public.github_auth_allowlist`.
-- The database allowlist is the source of truth; the frontend env var is diagnostic only.
-
-### Migration staging flow
-
-- Legacy local data and imported JSON are staged as migration input; import does not overwrite the active dataset.
-- While signed out, the app is migration-only: you can review staged tasks, but new todo creation is blocked.
-- After the approved user signs in, the app exposes **Keep staged tasks** and **Decline migration** actions.
-- Keeping staged tasks promotes them through the normal queued create flow and they appear in the merged view only after sync confirms them.
-- Declining migration leaves staged tasks quarantined outside the visible merged dataset.
+- The database allowlist is the source of truth for admission control.
 
 ## Scripts
 
@@ -131,7 +116,7 @@ Use Vite+ commands:
 
 - `useElectricTodos.ts`
   - Main todo state + mutation API for UI.
-  - Manages merged read state plus structured migration / degraded / sync statuses.
+  - Manages merged read state plus structured degraded / sync statuses.
   - Reconciles local optimistic state with the Electric-confirmed read baseline.
 - `useDataExport.ts`
   - Export/import JSON with validation.
@@ -159,7 +144,7 @@ Use Vite+ commands:
   - `/finished`
   - `/archived`
 - Each `src/views/*View.vue` provides section framing text and renders the shared `TodoList` component.
-- `App.vue` hosts global layout, new task form, navigation pills, sync status, and migration review controls.
+- `App.vue` hosts global layout, new task form, navigation pills, and sync status.
 
 ## Data import/export behavior
 
@@ -168,36 +153,31 @@ Use Vite+ commands:
   - `exportedAt`
   - `todos`
 - Export serializes the current visible merged todo set when invoked programmatically; export is not currently exposed in the visible UI.
-- Import validates the file structure and todo payload with Valibot before staging any changes.
-- **Import semantics:** import is non-destructive for the active dataset.
-  - Imported todos are staged as migration input.
-  - The active merged dataset is unchanged until the approved account explicitly keeps staged tasks and sync confirms them.
+- Import validates the file structure and todo payload with Valibot before queueing any changes.
+- **Import semantics:** imported todos are submitted through the same durable local mutation queue as manually created todos, so they appear immediately in the optimistic overlay and remain pending until Electric confirms them.
 
 ## Troubleshooting
 
 ### Offline mode expectations
 
-- Approved signed-in sessions remain usable offline because pending mutations are stored locally and retried later.
-- Signed-out sessions do not create active todos; they can only review migration staging.
+- Signed-in sessions remain usable offline because pending mutations are stored locally and retried later.
+- Signed-out sessions do not create or sync todos until authentication is restored.
 - While transport prerequisites are unavailable (for example offline or signed out), the sync indicator shows **Paused**.
 
 ### Sync status meanings
 
-- **Migration ready**: staged migration input is available to keep or decline.
-- **Migrating staged tasks**: staged tasks are being promoted and are waiting for sync confirmation.
-- **Migration declined**: staged tasks were declined and remain outside the visible merged dataset.
-- **Re-auth required**: queued work is blocked until the approved account refreshes its Supabase session.
+- **Re-auth required**: pending work is blocked until the signed-in account refreshes its Supabase session.
 - **Sync degraded**: an invariant or quarantine condition needs operator attention before normal sync can resume.
 - **Retry pending**: at least one queued mutation failed retryably; use **Retry sync** when available.
 - **Syncing...**: queued work is actively flushing.
+- **Awaiting confirmation**: Supabase accepted the mutation, but Electric has not confirmed the returned `txid` yet.
 - **Paused**: sync transport is unavailable or intentionally blocked, including offline, signed-out, or not-ready states.
-- **Synced**: no staged migration work, degraded state, or active sync delivery is pending.
+- **Synced**: no degraded state or active sync delivery is pending.
 
 ### Common fixes
 
 - If `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` is missing in `.env.local`, the app fails at startup with a configuration error instead of showing **Paused**.
-- Confirm you are signed in with the approved account before expecting create/keep actions or remote sync; the app no longer falls back to unauthenticated writes.
-- If staged tasks are present after import or legacy migration discovery, use **Keep staged tasks** to promote them or **Decline migration** to leave them quarantined.
+- Confirm you are signed in with the allowed account before expecting create or remote sync; the app no longer falls back to unauthenticated writes.
 - If GitHub sign-in redirects back with an auth error, verify the approved `provider_id` seed row and the registered auth hook function.
 - Confirm your Supabase table/schema matches expected `todos` columns.
 - If Drizzle tooling fails, set `DATABASE_URL` before running migration or studio commands.

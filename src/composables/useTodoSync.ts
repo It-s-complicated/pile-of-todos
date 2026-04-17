@@ -3,15 +3,17 @@ import type { ComputedRef, Ref } from 'vue'
 
 import { useTodoData } from './useTodoData.ts'
 
-type TodoSyncStatus = 'paused' | 'queued-offline' | 'syncing' | 'synced'
-type TodoDegradedStatus = 'none' | 'retryable-error' | 'requires-reauth'
+type TodoSyncStatus = 'awaiting-confirmation' | 'paused' | 'queued-offline' | 'syncing' | 'synced'
+type TodoDegradedStatus = 'none' | 'quarantined' | 'requires-reauth' | 'retryable-error'
 
 type TodoSyncState = {
+  acceptedMutationCount: ComputedRef<number>
   canRetrySync: ComputedRef<boolean>
   degradedStatus: ComputedRef<TodoDegradedStatus>
   hasPendingMutations: ComputedRef<boolean>
   isSyncing: Readonly<Ref<boolean>>
-  queuedCreateCount: ComputedRef<number>
+  pendingMutationCount: ComputedRef<number>
+  queuedMutationCount: ComputedRef<number>
   syncStatus: ComputedRef<TodoSyncStatus>
   syncTodos: () => Promise<boolean>
 }
@@ -24,30 +26,36 @@ export function useTodoSync(): TodoSyncState {
   }
 
   const todoData = useTodoData()
-  const queuedCreateCount = computed(() => todoData.sync.controller.queuedCreateCount.value)
-  const hasPendingMutations = computed(() => queuedCreateCount.value > 0)
+  const queuedMutationCount = computed(() => todoData.sync.controller.queuedMutationCount.value)
+  const acceptedMutationCount = computed(() => todoData.sync.controller.acceptedMutationCount.value)
+  const pendingMutationCount = computed(() => todoData.sync.controller.pendingMutationCount.value)
+  const hasPendingMutations = computed(() => pendingMutationCount.value > 0)
   const degradedStatus = computed<TodoDegradedStatus>(() => {
     if (todoData.sync.controller.transportState.value.requiresReauth) {
       return 'requires-reauth'
     }
 
-    if (queuedCreateCount.value > 0 && todoData.sync.controller.lastError.value) {
+    if (todoData.sync.controller.lastErrorKind.value === 'quarantined') {
+      return 'quarantined'
+    }
+
+    if (todoData.sync.controller.lastErrorKind.value === 'retryable') {
       return 'retryable-error'
     }
 
     return 'none'
   })
   const syncStatus = computed<TodoSyncStatus>(() => {
-    if (queuedCreateCount.value > 0 && !todoData.connectivity.isOnline.value) {
+    if (queuedMutationCount.value > 0 && !todoData.connectivity.isOnline.value) {
       return 'queued-offline'
     }
 
-    if (
-      queuedCreateCount.value > 0 &&
-      todoData.sync.controller.transportState.value.canFlush &&
-      degradedStatus.value === 'none'
-    ) {
+    if (todoData.sync.controller.isFlushing.value) {
       return 'syncing'
+    }
+
+    if (acceptedMutationCount.value > 0 && degradedStatus.value === 'none') {
+      return 'awaiting-confirmation'
     }
 
     if (
@@ -63,7 +71,7 @@ export function useTodoSync(): TodoSyncState {
   const canRetrySync = computed(
     () =>
       todoData.sync.controller.transportState.value.canFlush &&
-      queuedCreateCount.value > 0 &&
+      pendingMutationCount.value > 0 &&
       !todoData.sync.controller.isFlushing.value,
   )
 
@@ -75,15 +83,17 @@ export function useTodoSync(): TodoSyncState {
       return false
     }
 
-    return todoData.sync.controller.flushQueuedCreates()
+    return todoData.sync.controller.flushPendingMutations()
   }
 
   sharedTodoSync = {
+    acceptedMutationCount,
     canRetrySync,
     degradedStatus,
     hasPendingMutations,
     isSyncing: todoData.sync.controller.isFlushing,
-    queuedCreateCount,
+    pendingMutationCount,
+    queuedMutationCount,
     syncStatus,
     syncTodos,
   }

@@ -3,7 +3,7 @@ import type { ComputedRef } from 'vue'
 
 import { useAuth } from './useAuth'
 import { useNetworkStatus } from './useNetworkStatus'
-import { useTodoCreateQueueController } from './useTodoCreateQueueController'
+import { useTodoMutationQueueController } from './useTodoCreateQueueController'
 import { useTodoReadModel } from './useTodoReadModel'
 
 type TodoDataState = {
@@ -19,7 +19,7 @@ type TodoDataState = {
   }
   readModel: ReturnType<typeof useTodoReadModel>
   sync: {
-    controller: ReturnType<typeof useTodoCreateQueueController>
+    controller: ReturnType<typeof useTodoMutationQueueController>
   }
 }
 
@@ -32,9 +32,9 @@ export function useTodoData(): TodoDataState {
 
   const { isOnline } = useNetworkStatus()
   const { accessState, isAuthReady, isAuthenticated, userId } = useAuth()
-  const controller = useTodoCreateQueueController()
+  const controller = useTodoMutationQueueController()
   const readModel = useTodoReadModel()
-  const activeUserId = computed(() => (accessState.value === 'approved' ? userId.value : null))
+  const activeUserId = computed(() => (accessState.value === 'signed-in' ? userId.value : null))
 
   sharedTodoData = {
     auth: {

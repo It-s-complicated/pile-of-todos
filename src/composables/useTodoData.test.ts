@@ -1,11 +1,11 @@
 import { computed, ref } from 'vue'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
-const queuedCreateCount = ref(0)
+const pendingMutationCount = ref(0)
 
 vi.mock('./useAuth', () => ({
   useAuth: () => ({
-    accessState: computed(() => 'approved'),
+    accessState: computed(() => 'signed-in'),
     isAuthReady: computed(() => true),
     isAuthenticated: computed(() => true),
     session: computed(() => null),
@@ -28,20 +28,27 @@ vi.mock('./useTodoReadModel', () => ({
 }))
 
 vi.mock('./useTodoCreateQueueController', () => ({
-  useTodoCreateQueueController: () => ({
-    clearSyncError: vi.fn(),
-    flushQueuedCreates: vi.fn(async () => true),
+  useTodoMutationQueueController: () => ({
+    clearSyncError: vi.fn<() => void>(),
+    acceptedMutationCount: computed(() => 0),
+    flushPendingMutations: vi.fn<() => Promise<boolean>>(async () => true),
     isFlushing: ref(false),
     lastError: ref<string | null>(null),
-    markRequiresReauth: vi.fn(),
-    queuedCreateCount: computed(() => queuedCreateCount.value),
-    queuedCreates: computed(() => []),
-    queueCreate: vi.fn(),
-    reloadQueuedCreates: vi.fn(),
+    lastErrorKind: ref<'none'>('none'),
+    markRequiresReauth: vi.fn<(message: string) => void>(),
+    pendingMutationCount: computed(() => pendingMutationCount.value),
+    pendingMutations: computed(() => []),
+    queueMutation: vi.fn<(mutation: unknown) => void>(),
+    queuedMutationCount: computed(() => pendingMutationCount.value),
+    reloadPendingMutations: vi.fn<() => void>(),
     transportState: computed(() => ({
+      acceptedMutationCount: 0,
       canFlush: true,
+      hasAcceptedPending: false,
+      hasQueuedPending: pendingMutationCount.value > 0,
       isAuthReady: true,
       isOnline: true,
+      lastErrorKind: 'none',
       requiresReauth: false,
     })),
   }),
@@ -49,26 +56,26 @@ vi.mock('./useTodoCreateQueueController', () => ({
 
 beforeEach(() => {
   vi.resetModules()
-  queuedCreateCount.value = 0
+  pendingMutationCount.value = 0
 })
 
-test('useTodoData exposes approved auth state and the Electric read model', async () => {
+test('useTodoData exposes signed-in auth state and the Electric read model', async () => {
   const { useTodoData } = await import('./useTodoData')
 
   const todoData = useTodoData()
 
-  assert.equal(todoData.auth.accessState.value, 'approved')
+  assert.equal(todoData.auth.accessState.value, 'signed-in')
   assert.equal(todoData.auth.activeUserId.value, 'user-a')
   assert.equal(todoData.connectivity.isReady.value, true)
   assert.equal(todoData.readModel.todos.value.length, 0)
 })
 
-test('useTodoData exposes the shared offline create queue controller', async () => {
-  queuedCreateCount.value = 2
+test('useTodoData exposes the shared pending mutation queue controller', async () => {
+  pendingMutationCount.value = 2
 
   const { useTodoData } = await import('./useTodoData')
 
   const todoData = useTodoData()
 
-  assert.equal(todoData.sync.controller.queuedCreateCount.value, 2)
+  assert.equal(todoData.sync.controller.pendingMutationCount.value, 2)
 })

@@ -207,20 +207,26 @@ onBeforeUnmount(() => {
         <div
           class="rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-5 py-4 text-sm text-on-surface-variant shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
         >
-          <p v-if="offlineQueue.count > 0 && !isOnline">
-            {{ offlineQueue.count }} queued task{{ offlineQueue.count === 1 ? '' : 's' }}
-            will be created when the connection returns.
+          <p v-if="offlineQueue.queuedCount > 0 && !isOnline">
+            {{ offlineQueue.count }} pending change{{ offlineQueue.count === 1 ? '' : 's' }}
+            will sync when the connection returns.
           </p>
           <p v-else-if="offlineQueue.count > 0 && offlineQueue.isFlushing">
-            Queued tasks are being written and will appear when syncing catches up.
+            Pending changes are being written and confirmed against the live Electric stream.
+          </p>
+          <p v-else-if="offlineQueue.acceptedCount > 0">
+            {{ offlineQueue.acceptedCount }} accepted change{{
+              offlineQueue.acceptedCount === 1 ? '' : 's'
+            }}
+            awaiting Electric confirmation.
           </p>
           <p v-else-if="offlineQueue.count > 0">
-            Queued tasks are ready to sync and will appear as soon as syncing refreshes the live
-            view.
+            Queued changes are ready to sync and already appear through the local optimistic
+            overlay.
           </p>
           <p v-else>
-            Todo views come only from live queries. The app stores local data only for newly created
-            offline tasks until it can finally persist them.
+            Todo views merge the confirmed Electric baseline with a local pending overlay until each
+            accepted txid is confirmed.
           </p>
           <p v-if="offlineQueue.lastError" class="text-danger mt-2 text-xs">
             {{ offlineQueue.lastError }}

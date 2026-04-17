@@ -1,10 +1,39 @@
 import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-const mockCreateTodo = vi.fn().mockResolvedValue('new-id')
+const mockCreateTodo = vi
+  .fn<(label: string, weekNumber: number | null, id?: string) => Promise<string>>()
+  .mockResolvedValue('new-id')
 
 const mockIsAuthenticated = { value: true }
 
-const mockConfirmedTodos = { value: [] as any[] }
+const mockReadModelTodos = {
+  value: [
+    {
+      id: 'todo-visible',
+      label: 'Visible todo',
+      weekNumber: 12,
+      done: false,
+      archived: false,
+      createdAt: 10,
+      updatedAt: 20,
+      deviceId: 'device-1',
+      userId: 'user-a',
+      deletedAt: null,
+    },
+    {
+      id: 'todo-deleted',
+      label: 'Deleted todo',
+      weekNumber: null,
+      done: false,
+      archived: false,
+      createdAt: 11,
+      updatedAt: 21,
+      deviceId: 'device-1',
+      userId: 'user-a',
+      deletedAt: 21,
+    },
+  ] as any[],
+}
 
 vi.mock('@/composables/useAuth', () => ({
   useAuth: () => ({
@@ -21,35 +50,8 @@ vi.mock('@/composables/useTodoMutations', () => ({
 vi.mock('@/composables/useTodoData', () => ({
   useTodoData: () => ({
     readModel: {
-      confirmedTodos: mockConfirmedTodos,
-      todos: {
-        value: [
-          {
-            id: 'todo-visible',
-            label: 'Visible todo',
-            weekNumber: 12,
-            done: false,
-            archived: false,
-            createdAt: 10,
-            updatedAt: 20,
-            deviceId: 'device-1',
-            userId: 'user-a',
-            deletedAt: null,
-          },
-          {
-            id: 'todo-deleted',
-            label: 'Deleted todo',
-            weekNumber: null,
-            done: false,
-            archived: false,
-            createdAt: 11,
-            updatedAt: 21,
-            deviceId: 'device-1',
-            userId: 'user-a',
-            deletedAt: 21,
-          },
-        ],
-      },
+      confirmedTodos: mockReadModelTodos,
+      todos: mockReadModelTodos,
     },
   }),
 }))
@@ -59,7 +61,32 @@ beforeEach(() => {
   mockCreateTodo.mockReset()
   mockCreateTodo.mockResolvedValue('new-id')
   mockIsAuthenticated.value = true
-  mockConfirmedTodos.value = []
+  mockReadModelTodos.value = [
+    {
+      id: 'todo-visible',
+      label: 'Visible todo',
+      weekNumber: 12,
+      done: false,
+      archived: false,
+      createdAt: 10,
+      updatedAt: 20,
+      deviceId: 'device-1',
+      userId: 'user-a',
+      deletedAt: null,
+    },
+    {
+      id: 'todo-deleted',
+      label: 'Deleted todo',
+      weekNumber: null,
+      done: false,
+      archived: false,
+      createdAt: 11,
+      updatedAt: 21,
+      deviceId: 'device-1',
+      userId: 'user-a',
+      deletedAt: 21,
+    },
+  ]
 })
 
 describe('useDataExport exportTodos', () => {
@@ -295,8 +322,8 @@ describe('useDataExport importTodos', () => {
     expect(mockCreateTodo).not.toHaveBeenCalled()
   })
 
-  test('fails when imported ID already exists in confirmedTodos', async () => {
-    mockConfirmedTodos.value = [
+  test('fails when imported ID already exists in the merged read model', async () => {
+    mockReadModelTodos.value = [
       {
         id: 'existing-id',
         label: 'Already exists',

@@ -1,10 +1,9 @@
-import { nextTick, ref } from 'vue'
+import { ref } from 'vue'
 import type { Session } from '@supabase/supabase-js'
 import { afterEach, assert, test, vi } from 'vite-plus/test'
 
-const approvedGithubProviderId = 'github-user-42'
-const signInWithGithub = vi.fn()
-const signOut = vi.fn(async () => {})
+const signInWithGithub = vi.fn<() => Promise<void>>()
+const signOut = vi.fn<() => Promise<void>>(async () => {})
 const session = ref<Session | null>(null)
 const user = ref<Session['user'] | null>(null)
 const userId = ref<string | null>(null)
@@ -18,7 +17,6 @@ function setSession(nextSession: Session | null) {
 }
 
 vi.mock('@/lib/supabase', () => ({
-  getApprovedGithubProviderId: () => approvedGithubProviderId,
   signInWithGithub,
   signOut,
   useSupabaseAuthState: () => ({
@@ -38,20 +36,14 @@ afterEach(() => {
   vi.resetModules()
 })
 
-test('useAuth signs out denied authenticated users before they can stay on synced paths', async () => {
+test('useAuth treats a valid Supabase session as signed in', async () => {
   setSession({
-    access_token: 'token-denied',
+    access_token: 'token-signed-in',
     user: {
-      id: 'user-denied',
-      email: 'denied@example.com',
-      identities: [
-        {
-          provider: 'github',
-          provider_id: 'github-user-99',
-        },
-      ],
+      id: 'user-signed-in',
+      email: 'signed-in@example.com',
       user_metadata: {
-        user_name: 'Denied User',
+        user_name: 'Signed In User',
       },
     } as unknown as Session['user'],
   } as Session)
@@ -59,9 +51,17 @@ test('useAuth signs out denied authenticated users before they can stay on synce
   const { useAuth } = await import('./useAuth')
   const auth = useAuth()
 
-  assert.equal(auth.accessState.value, 'denied')
+  assert.equal(auth.accessState.value, 'signed-in')
+  assert.equal(auth.isAuthenticated.value, true)
+  assert.equal(auth.displayName.value, 'Signed In User')
+})
 
-  await nextTick()
+test('useAuth surfaces auth redirect errors from the Supabase auth state', async () => {
+  authError.value = 'Access denied by auth hook'
 
-  assert.equal(signOut.mock.calls.length, 1)
+  const { useAuth } = await import('./useAuth')
+  const auth = useAuth()
+
+  assert.equal(auth.accessState.value, 'signed-out')
+  assert.equal(auth.authError.value, 'Access denied by auth hook')
 })

@@ -106,10 +106,6 @@ export function getSupabaseClient() {
   return cachedClient
 }
 
-export function getApprovedGithubProviderId(): string {
-  return env.approvedGithubProviderId
-}
-
 export async function getSupabaseSession(): Promise<Session | null> {
   await ensureSupabaseAuthState()
   return currentSession.value

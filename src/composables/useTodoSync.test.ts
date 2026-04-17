@@ -1,14 +1,16 @@
 import { computed, ref } from 'vue'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
-const queuedCreateCount = ref(0)
+const acceptedMutationCount = ref(0)
 const isFlushing = ref(false)
 const isOnline = ref(true)
 const isReady = ref(true)
-const lastError = ref<string | null>(null)
+const lastErrorKind = ref<'none' | 'quarantined' | 'requires-reauth' | 'retryable'>('none')
+const pendingMutationCount = ref(0)
 const requiresReauth = ref(false)
+const queuedMutationCount = ref(0)
 
-const flushQueuedCreates = vi.fn(async () => true)
+const flushPendingMutations = vi.fn<() => Promise<boolean>>(async () => true)
 
 vi.mock('./useTodoData', () => ({
   useTodoData: () => ({
@@ -18,14 +20,21 @@ vi.mock('./useTodoData', () => ({
     },
     sync: {
       controller: {
-        flushQueuedCreates,
+        acceptedMutationCount: computed(() => acceptedMutationCount.value),
+        flushPendingMutations,
         isFlushing,
-        lastError,
-        queuedCreateCount: computed(() => queuedCreateCount.value),
+        lastError: computed(() => null),
+        lastErrorKind,
+        pendingMutationCount: computed(() => pendingMutationCount.value),
+        queuedMutationCount: computed(() => queuedMutationCount.value),
         transportState: computed(() => ({
+          acceptedMutationCount: acceptedMutationCount.value,
           canFlush: isOnline.value && !requiresReauth.value,
+          hasAcceptedPending: acceptedMutationCount.value > 0,
+          hasQueuedPending: queuedMutationCount.value > 0,
           isAuthReady: true,
           isOnline: isOnline.value,
+          lastErrorKind: lastErrorKind.value,
           requiresReauth: requiresReauth.value,
         })),
       },
@@ -35,18 +44,21 @@ vi.mock('./useTodoData', () => ({
 
 beforeEach(() => {
   vi.resetModules()
-  queuedCreateCount.value = 0
+  acceptedMutationCount.value = 0
   isFlushing.value = false
   isOnline.value = true
   isReady.value = true
-  lastError.value = null
+  lastErrorKind.value = 'none'
+  pendingMutationCount.value = 0
   requiresReauth.value = false
-  flushQueuedCreates.mockReset()
-  flushQueuedCreates.mockResolvedValue(true)
+  queuedMutationCount.value = 0
+  flushPendingMutations.mockReset()
+  flushPendingMutations.mockResolvedValue(true)
 })
 
-test('useTodoSync reports queued-offline when queued creates are waiting locally', async () => {
-  queuedCreateCount.value = 2
+test('useTodoSync reports queued-offline when queued mutations are waiting locally', async () => {
+  pendingMutationCount.value = 2
+  queuedMutationCount.value = 2
   isOnline.value = false
   const { useTodoSync } = await import('./useTodoSync')
 
@@ -57,8 +69,9 @@ test('useTodoSync reports queued-offline when queued creates are waiting locally
 })
 
 test('useTodoSync reports retryable queue errors', async () => {
-  queuedCreateCount.value = 1
-  lastError.value = 'network lost'
+  pendingMutationCount.value = 1
+  queuedMutationCount.value = 1
+  lastErrorKind.value = 'retryable'
   const { useTodoSync } = await import('./useTodoSync')
 
   const sync = useTodoSync()
@@ -68,7 +81,9 @@ test('useTodoSync reports retryable queue errors', async () => {
 })
 
 test('useTodoSync reports reauth before ordinary queue state', async () => {
-  queuedCreateCount.value = 1
+  pendingMutationCount.value = 1
+  queuedMutationCount.value = 1
+  lastErrorKind.value = 'requires-reauth'
   requiresReauth.value = true
   const { useTodoSync } = await import('./useTodoSync')
 
@@ -79,21 +94,45 @@ test('useTodoSync reports reauth before ordinary queue state', async () => {
 })
 
 test('useTodoSync delegates retry work to the queue controller', async () => {
-  queuedCreateCount.value = 1
+  pendingMutationCount.value = 1
+  queuedMutationCount.value = 1
   const { useTodoSync } = await import('./useTodoSync')
 
   const sync = useTodoSync()
   await sync.syncTodos()
 
-  assert.equal(flushQueuedCreates.mock.calls.length, 1)
+  assert.equal(flushPendingMutations.mock.calls.length, 1)
 })
 
-test('useTodoSync reports syncing while queued creates are being flushed', async () => {
-  queuedCreateCount.value = 1
+test('useTodoSync reports syncing while pending mutations are being flushed', async () => {
+  pendingMutationCount.value = 1
+  queuedMutationCount.value = 1
   isFlushing.value = true
   const { useTodoSync } = await import('./useTodoSync')
 
   const sync = useTodoSync()
 
   assert.equal(sync.syncStatus.value, 'syncing')
+})
+
+test('useTodoSync reports accepted mutations awaiting Electric confirmation', async () => {
+  acceptedMutationCount.value = 1
+  pendingMutationCount.value = 1
+  const { useTodoSync } = await import('./useTodoSync')
+
+  const sync = useTodoSync()
+
+  assert.equal(sync.syncStatus.value, 'awaiting-confirmation')
+  assert.equal(sync.acceptedMutationCount.value, 1)
+})
+
+test('useTodoSync surfaces accepted-but-unconfirmed failures as quarantined state', async () => {
+  acceptedMutationCount.value = 1
+  pendingMutationCount.value = 1
+  lastErrorKind.value = 'quarantined'
+  const { useTodoSync } = await import('./useTodoSync')
+
+  const sync = useTodoSync()
+
+  assert.equal(sync.degradedStatus.value, 'quarantined')
 })

@@ -7,22 +7,21 @@ import { useTodoSync } from './useTodoSync.ts'
 function getCreateTodoDisabledReason(
   accessState: ReturnType<typeof useTodoData>['auth']['accessState']['value'],
 ) {
-  if (accessState === 'approved') {
+  if (accessState === 'signed-in') {
     return null
   }
 
-  return 'Sign in with the approved account to create todos.'
+  return 'Sign in to create todos.'
 }
 
 function getMutateTodoDisabledReason(
   accessState: ReturnType<typeof useTodoData>['auth']['accessState']['value'],
-  isOnline: boolean,
 ) {
-  if (accessState === 'approved') {
-    return isOnline ? null : 'Reconnect to update todos.'
+  if (accessState === 'signed-in') {
+    return null
   }
 
-  return 'Sign in with the approved account to update todos.'
+  return 'Sign in to update todos.'
 }
 
 export function useElectricTodos() {
@@ -33,10 +32,7 @@ export function useElectricTodos() {
     getCreateTodoDisabledReason(todoData.auth.accessState.value),
   )
   const mutateTodoDisabledReason = computed(() =>
-    getMutateTodoDisabledReason(
-      todoData.auth.accessState.value,
-      todoData.connectivity.isOnline.value,
-    ),
+    getMutateTodoDisabledReason(todoData.auth.accessState.value),
   )
 
   return {
@@ -49,8 +45,10 @@ export function useElectricTodos() {
     isReady: todoData.connectivity.isReady,
     mutateTodoDisabledReason,
     offlineQueue: computed(() => ({
-      count: todoData.sync.controller.queuedCreateCount.value,
+      acceptedCount: todoData.sync.controller.acceptedMutationCount.value,
+      count: todoData.sync.controller.pendingMutationCount.value,
       isFlushing: todoData.sync.controller.isFlushing.value,
+      queuedCount: todoData.sync.controller.queuedMutationCount.value,
       lastError: todoData.sync.controller.lastError.value,
     })),
     restoreTodo: todoMutations.restoreTodo,

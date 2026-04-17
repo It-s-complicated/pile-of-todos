@@ -4,6 +4,9 @@ import { useLiveQuery } from '@tanstack/vue-db'
 
 import { getConfirmedTodosCollection } from '@/db/confirmed-todos'
 import type { Todo } from '@/db/collections'
+import { mergeTodoReadModel } from '@/lib/todo-read-model-overlay'
+
+import { useTodoMutationQueueController } from './useTodoCreateQueueController'
 
 type TodoReadModel = {
   confirmedTodos: ComputedRef<Todo[]>
@@ -21,17 +24,20 @@ function normalizeTodo(todo: Todo): Todo {
 
 export function useTodoReadModel(): TodoReadModel {
   const confirmedCollection = getConfirmedTodosCollection()
+  const mutationQueue = useTodoMutationQueueController()
   const { data: confirmedRows, isReady } = useLiveQuery((q) =>
     q.from({ todo: confirmedCollection }).select(({ todo }) => todo),
   )
 
   const confirmedTodos = computed(() =>
-    (confirmedRows.value ?? []).map((todo) => normalizeTodo(todo)),
+    (confirmedRows.value ?? []).map((todo) => normalizeTodo(todo as unknown as Todo)),
   )
 
   return {
     confirmedTodos,
     isReady,
-    todos: confirmedTodos,
+    todos: computed(() =>
+      mergeTodoReadModel(confirmedTodos.value, mutationQueue.pendingMutations.value),
+    ),
   }
 }

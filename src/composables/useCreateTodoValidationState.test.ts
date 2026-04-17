@@ -7,8 +7,8 @@ test('useCreateTodoValidationState clears stale gate errors when create becomes 
   const canCreateTodos = ref(false)
   const validation = useCreateTodoValidationState({ canCreateTodos })
 
-  validation.setGateError('Sign in with the approved account to create todos.')
-  assert.equal(validation.error.value, 'Sign in with the approved account to create todos.')
+  validation.setGateError('Sign in to create todos.')
+  assert.equal(validation.error.value, 'Sign in to create todos.')
 
   canCreateTodos.value = true
   await nextTick()
@@ -52,10 +52,10 @@ test('useCreateTodoValidationState does not clear a later gate error from an ear
   })
 
   validation.setValidationError('Label cannot be empty')
-  validation.setGateError('Sign in with the approved account to create todos.')
+  validation.setGateError('Sign in to create todos.')
   vi.advanceTimersByTime(5000)
 
-  assert.equal(validation.error.value, 'Sign in with the approved account to create todos.')
+  assert.equal(validation.error.value, 'Sign in to create todos.')
 
   vi.useRealTimers()
 })
@@ -65,7 +65,7 @@ test('useCreateTodoValidationState clears the current error after a successful c
     canCreateTodos: ref(true),
   })
 
-  validation.setGateError('Sign in with the approved account to create todos.')
+  validation.setGateError('Sign in to create todos.')
   validation.clearError()
 
   assert.equal(validation.error.value, '')

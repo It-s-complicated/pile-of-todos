@@ -2,22 +2,12 @@ import { computed, ref } from 'vue'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
 import type { Todo } from '@/db/collections'
+import type { QueuedTodoMutation } from '@/lib/offline-todo-mutation-queue'
 
 const activeUserId = ref<string | null>('user-a')
-const confirmedTodos = ref<Todo[]>([])
-const isOnline = ref(true)
+const todos = ref<Todo[]>([])
 
-const clearSyncError = vi.fn()
-const markRequiresReauth = vi.fn()
-const markRetryableError = vi.fn()
-const queueCreate = vi.fn()
-
-const buildRemoteTodoRow = vi.fn((todo: Todo) => ({
-  id: todo.id,
-  label: todo.label,
-}))
-const upsertRemoteTodo = vi.fn()
-const updateRemoteTodo = vi.fn()
+const queueMutation = vi.fn<(mutation: QueuedTodoMutation) => void>()
 
 vi.mock('./useTodoData', () => ({
   useTodoData: () => ({
@@ -25,36 +15,18 @@ vi.mock('./useTodoData', () => ({
       activeUserId: computed(() => activeUserId.value),
     },
     connectivity: {
-      isOnline,
+      isOnline: computed(() => true),
     },
     readModel: {
-      confirmedTodos: computed(() => confirmedTodos.value),
+      todos: computed(() => todos.value),
     },
     sync: {
       controller: {
-        clearSyncError,
-        markRequiresReauth,
-        markRetryableError,
-        queueCreate,
+        queueMutation,
       },
     },
   }),
 }))
-
-vi.mock('@/lib/supabase', () => ({
-  getSupabaseClient: () => ({ from: vi.fn() }),
-}))
-
-vi.mock('@/lib/todo-sync', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/todo-sync')>('@/lib/todo-sync')
-
-  return {
-    ...actual,
-    buildRemoteTodoRow,
-    updateRemoteTodo,
-    upsertRemoteTodo,
-  }
-})
 
 const confirmedTodo: Todo = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -72,94 +44,75 @@ const confirmedTodo: Todo = {
 beforeEach(() => {
   vi.resetModules()
   activeUserId.value = 'user-a'
-  confirmedTodos.value = [confirmedTodo]
-  isOnline.value = true
-  clearSyncError.mockReset()
-  markRequiresReauth.mockReset()
-  markRetryableError.mockReset()
-  queueCreate.mockReset()
-  buildRemoteTodoRow.mockClear()
-  upsertRemoteTodo.mockReset()
-  updateRemoteTodo.mockReset()
-  upsertRemoteTodo.mockResolvedValue(confirmedTodo)
-  updateRemoteTodo.mockResolvedValue(confirmedTodo)
+  todos.value = [confirmedTodo]
+  queueMutation.mockReset()
 })
 
-test('useTodoMutations queues creates locally while offline', async () => {
-  isOnline.value = false
+test('useTodoMutations queues creates immediately for optimistic replay', async () => {
   const { useTodoMutations } = await import('./useTodoMutations')
 
   const todoId = await useTodoMutations().createTodo('Queued todo', 12)
+  const mutation = queueMutation.mock.calls[0]?.[0]
 
-  assert.equal(queueCreate.mock.calls.length, 1)
-  assert.equal(upsertRemoteTodo.mock.calls.length, 0)
-  assert.equal(queueCreate.mock.calls[0]?.[0]?.label, 'Queued todo')
-  assert.equal(queueCreate.mock.calls[0]?.[0]?.id, todoId)
+  assert.equal(queueMutation.mock.calls.length, 1)
+  assert.equal(mutation?.kind, 'create')
+
+  if (!mutation || mutation.kind !== 'create') {
+    assert.fail('Expected a queued create mutation')
+  }
+
+  assert.equal(mutation.optimisticTodo.label, 'Queued todo')
+  assert.equal(mutation.optimisticTodo.id, todoId)
 })
 
-test('useTodoMutations writes creates directly to Supabase while online', async () => {
-  const { useTodoMutations } = await import('./useTodoMutations')
-
-  await useTodoMutations().createTodo('Remote todo', 12)
-
-  assert.equal(buildRemoteTodoRow.mock.calls.length, 1)
-  assert.equal(upsertRemoteTodo.mock.calls.length, 1)
-  assert.equal(clearSyncError.mock.calls.length, 0)
-  assert.equal(markRetryableError.mock.calls.length, 0)
-})
-
-test('useTodoMutations queues retryable create failures even while online', async () => {
-  const { TodoRemoteWriteError } = await import('@/lib/todo-sync')
-  upsertRemoteTodo.mockRejectedValueOnce(new TodoRemoteWriteError('Gateway timed out', 'retryable'))
-  const { useTodoMutations } = await import('./useTodoMutations')
-
-  const todoId = await useTodoMutations().createTodo('Retryable todo', 12)
-
-  assert.equal(todoId.length > 0, true)
-  assert.equal(queueCreate.mock.calls.length, 1)
-  assert.equal(queueCreate.mock.calls[0]?.[0]?.id, todoId)
-  assert.equal(markRetryableError.mock.calls.length, 1)
-  assert.equal(markRetryableError.mock.calls[0]?.[0], 'Gateway timed out')
-  assert.equal(upsertRemoteTodo.mock.calls.length, 1)
-  assert.equal(clearSyncError.mock.calls.length, 0)
-})
-
-test('useTodoMutations rejects updates while offline because only creates may queue', async () => {
-  isOnline.value = false
-  const { useTodoMutations } = await import('./useTodoMutations')
-
-  await assertOfflineUpdateError(useTodoMutations().updateTodo(confirmedTodo.id, { done: true }))
-  assert.equal(updateRemoteTodo.mock.calls.length, 0)
-})
-
-test('useTodoMutations writes updates directly to Supabase while online', async () => {
+test('useTodoMutations queues updates against the merged read model', async () => {
   const { useTodoMutations } = await import('./useTodoMutations')
 
   await useTodoMutations().updateTodo(confirmedTodo.id, {
     done: true,
     weekNumber: null,
   })
+  const mutation = queueMutation.mock.calls[0]?.[0]
 
-  assert.equal(updateRemoteTodo.mock.calls.length, 1)
-  assert.equal(updateRemoteTodo.mock.calls[0]?.[1]?.todoId, confirmedTodo.id)
-  assert.equal(updateRemoteTodo.mock.calls[0]?.[1]?.activeUserId, 'user-a')
-  assert.equal(updateRemoteTodo.mock.calls[0]?.[1]?.updates.done, true)
-  assert.equal(updateRemoteTodo.mock.calls[0]?.[1]?.updates.weekNumber, null)
-  assert.equal(clearSyncError.mock.calls.length, 0)
+  assert.equal(queueMutation.mock.calls.length, 1)
+  assert.equal(mutation?.kind, 'update')
+
+  if (!mutation || mutation.kind !== 'update') {
+    assert.fail('Expected a queued update mutation')
+  }
+
+  assert.equal(mutation.todoId, confirmedTodo.id)
+  assert.equal(mutation.updates.done, true)
+  assert.equal(mutation.updates.weekNumber, null)
 })
 
-test('useTodoMutations marks reauth when a remote auth failure occurs', async () => {
-  const { TodoRemoteWriteError } = await import('@/lib/todo-sync')
-  upsertRemoteTodo.mockRejectedValueOnce(new TodoRemoteWriteError('JWT expired', 'auth'))
+test('useTodoMutations queues deletes as durable pending mutations', async () => {
   const { useTodoMutations } = await import('./useTodoMutations')
 
-  await assertRejectedWithMessage(useTodoMutations().createTodo('Remote todo', 12), /JWT expired/)
-  assert.deepEqual(markRequiresReauth.mock.calls[0], ['JWT expired'])
+  await useTodoMutations().deleteTodo(confirmedTodo.id)
+  const mutation = queueMutation.mock.calls[0]?.[0]
+
+  assert.equal(queueMutation.mock.calls.length, 1)
+  assert.equal(mutation?.kind, 'delete')
+
+  if (!mutation || mutation.kind !== 'delete') {
+    assert.fail('Expected a queued delete mutation')
+  }
+
+  assert.equal(mutation.todoId, confirmedTodo.id)
+  assert.equal(typeof mutation.updates.deletedAt, 'number')
 })
 
-async function assertOfflineUpdateError(promise: Promise<unknown>) {
-  await assertRejectedWithMessage(promise, /while offline/)
-}
+test('useTodoMutations rejects writes when there is no signed-in account', async () => {
+  activeUserId.value = null
+  const { useTodoMutations } = await import('./useTodoMutations')
+
+  await assertRejectedWithMessage(
+    useTodoMutations().createTodo('Should fail', null),
+    /without a signed-in account/,
+  )
+  assert.equal(queueMutation.mock.calls.length, 0)
+})
 
 async function assertRejectedWithMessage(promise: Promise<unknown>, pattern: RegExp) {
   try {

@@ -1,14 +1,17 @@
 import { computed, ref } from 'vue'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
-const accessState = ref<'approved' | 'signed-out' | 'denied'>('approved')
+const accessState = ref<'signed-in' | 'signed-out'>('signed-in')
 const isOnline = ref(true)
-const queuedCreateCount = ref(0)
+const acceptedMutationCount = ref(0)
+const pendingMutationCount = ref(0)
+const queuedMutationCount = ref(0)
 
-const createTodo = vi.fn()
-const deleteTodo = vi.fn()
-const restoreTodo = vi.fn()
-const updateTodo = vi.fn()
+const createTodo =
+  vi.fn<(label: string, weekNumber: number | null, id?: string) => Promise<string>>()
+const deleteTodo = vi.fn<(id: string) => Promise<void>>()
+const restoreTodo = vi.fn<(id: string) => Promise<void>>()
+const updateTodo = vi.fn<(id: string, updates: Record<string, unknown>) => Promise<void>>()
 
 vi.mock('./useTodoData', () => ({
   useTodoData: () => ({
@@ -24,9 +27,11 @@ vi.mock('./useTodoData', () => ({
     },
     sync: {
       controller: {
+        acceptedMutationCount: computed(() => acceptedMutationCount.value),
         isFlushing: computed(() => false),
         lastError: computed(() => null),
-        queuedCreateCount: computed(() => queuedCreateCount.value),
+        pendingMutationCount: computed(() => pendingMutationCount.value),
+        queuedMutationCount: computed(() => queuedMutationCount.value),
       },
     },
   }),
@@ -50,16 +55,18 @@ vi.mock('./useTodoSync', () => ({
 
 beforeEach(() => {
   vi.resetModules()
-  accessState.value = 'approved'
+  accessState.value = 'signed-in'
   isOnline.value = true
-  queuedCreateCount.value = 0
+  acceptedMutationCount.value = 0
+  pendingMutationCount.value = 0
+  queuedMutationCount.value = 0
   createTodo.mockReset()
   deleteTodo.mockReset()
   restoreTodo.mockReset()
   updateTodo.mockReset()
 })
 
-test('useElectricTodos allows creates for the approved account even while offline', async () => {
+test('useElectricTodos allows creates for signed-in users even while offline', async () => {
   isOnline.value = false
   const { useElectricTodos } = await import('./useElectricTodos')
 
@@ -69,7 +76,7 @@ test('useElectricTodos allows creates for the approved account even while offlin
   assert.equal(todos.createTodoDisabledReason.value, null)
 })
 
-test('useElectricTodos blocks all writes when the approved account is missing', async () => {
+test('useElectricTodos blocks all writes when there is no signed-in session', async () => {
   accessState.value = 'signed-out'
   const { useElectricTodos } = await import('./useElectricTodos')
 
@@ -77,24 +84,22 @@ test('useElectricTodos blocks all writes when the approved account is missing', 
 
   assert.equal(todos.canCreateTodos.value, false)
   assert.equal(todos.canMutateTodos.value, false)
-  assert.equal(
-    todos.createTodoDisabledReason.value,
-    'Sign in with the approved account to create todos.',
-  )
-  assert.equal(
-    todos.mutateTodoDisabledReason.value,
-    'Sign in with the approved account to update todos.',
-  )
+  assert.equal(todos.createTodoDisabledReason.value, 'Sign in to create todos.')
+  assert.equal(todos.mutateTodoDisabledReason.value, 'Sign in to update todos.')
 })
 
-test('useElectricTodos blocks non-create mutations while offline', async () => {
+test('useElectricTodos keeps mutations enabled offline and exposes pending queue state', async () => {
   isOnline.value = false
-  queuedCreateCount.value = 2
+  acceptedMutationCount.value = 1
+  pendingMutationCount.value = 2
+  queuedMutationCount.value = 1
   const { useElectricTodos } = await import('./useElectricTodos')
 
   const todos = useElectricTodos()
 
-  assert.equal(todos.canMutateTodos.value, false)
-  assert.equal(todos.mutateTodoDisabledReason.value, 'Reconnect to update todos.')
+  assert.equal(todos.canMutateTodos.value, true)
+  assert.equal(todos.mutateTodoDisabledReason.value, null)
   assert.equal(todos.offlineQueue.value.count, 2)
+  assert.equal(todos.offlineQueue.value.acceptedCount, 1)
+  assert.equal(todos.offlineQueue.value.queuedCount, 1)
 })

@@ -60,7 +60,7 @@ export function useDataExport() {
       const importedPayload = JSON.parse(await file.text()) as unknown
       const rawTodos = parseImportedTodosPayload(importedPayload)
 
-      const existingIds = new Set(todoData.readModel.confirmedTodos.value.map((todo) => todo.id))
+      const existingIds = new Set(todoData.readModel.todos.value.map((todo) => todo.id))
       const importedIds = new Set<string>()
 
       for (const rawTodo of rawTodos) {

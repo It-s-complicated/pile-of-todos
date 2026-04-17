@@ -6,8 +6,8 @@ const authError = ref<string | null>(null)
 const displayName = ref<string | null>(null)
 const isAuthenticated = ref(false)
 const user = ref<{ email?: string | null } | null>(null)
-const signInWithGithub = vi.fn(async () => undefined)
-const signOut = vi.fn(async () => undefined)
+const signInWithGithub = vi.fn<() => Promise<void>>(async () => undefined)
+const signOut = vi.fn<() => Promise<void>>(async () => undefined)
 
 vi.mock('lucide-vue-next', () => {
   const icon = defineComponent({

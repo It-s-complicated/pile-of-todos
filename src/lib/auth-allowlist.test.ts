@@ -1,77 +1,32 @@
 import { assert, test } from 'vite-plus/test'
 
-import { getAuthAccessState, getAuthSyncAccess, getGithubProviderId } from './auth-allowlist.ts'
+import { getAuthAccessState, getAuthSyncAccess } from './auth-allowlist.ts'
 
-test('getGithubProviderId returns the GitHub provider identity when present', () => {
-  assert.equal(
-    getGithubProviderId([
-      {
-        provider: 'email',
-        identity_data: {
-          sub: 'email-user-1',
-        },
-      },
-      {
-        provider: 'github',
-        identity_data: {
-          sub: 'github-user-42',
-        },
-      },
-    ]),
-    'github-user-42',
-  )
-
-  assert.equal(
-    getGithubProviderId([
-      {
-        provider: 'github',
-        provider_id: 'github-provider-id-7',
-      },
-    ]),
-    'github-provider-id-7',
-  )
-})
-
-test('getAuthAccessState maps authenticated users with the wrong GitHub identity to denied', () => {
+test('getAuthAccessState treats the Supabase session as the only browser auth authority', () => {
   assert.equal(
     getAuthAccessState({
       isAuthenticated: true,
-      githubProviderId: 'github-user-99',
-      approvedGithubProviderId: 'github-user-42',
     }),
-    'denied',
-  )
-
-  assert.equal(
-    getAuthAccessState({
-      isAuthenticated: true,
-      githubProviderId: 'github-user-42',
-      approvedGithubProviderId: 'github-user-42',
-    }),
-    'approved',
+    'signed-in',
   )
 
   assert.equal(
     getAuthAccessState({
       isAuthenticated: false,
-      githubProviderId: null,
-      approvedGithubProviderId: 'github-user-42',
     }),
     'signed-out',
   )
 })
 
-test('getAuthSyncAccess strips synced credentials from denied authenticated users', () => {
+test('getAuthSyncAccess strips synced credentials only when the browser is signed out', () => {
   assert.deepEqual(
     getAuthSyncAccess({
-      isAuthenticated: true,
-      githubProviderId: 'github-user-99',
-      approvedGithubProviderId: 'github-user-42',
-      userId: 'user-denied',
-      accessToken: 'token-denied',
+      isAuthenticated: false,
+      userId: 'user-a',
+      accessToken: 'token-a',
     }),
     {
-      accessState: 'denied',
+      accessState: 'signed-out',
       userId: null,
       accessToken: null,
     },
@@ -80,15 +35,13 @@ test('getAuthSyncAccess strips synced credentials from denied authenticated user
   assert.deepEqual(
     getAuthSyncAccess({
       isAuthenticated: true,
-      githubProviderId: 'github-user-42',
-      approvedGithubProviderId: 'github-user-42',
-      userId: 'user-approved',
-      accessToken: 'token-approved',
+      userId: 'user-a',
+      accessToken: 'token-a',
     }),
     {
-      accessState: 'approved',
-      userId: 'user-approved',
-      accessToken: 'token-approved',
+      accessState: 'signed-in',
+      userId: 'user-a',
+      accessToken: 'token-a',
     },
   )
 })
