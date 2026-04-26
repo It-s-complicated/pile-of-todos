@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, reactive, useId } from 'vue'
+import { computed, reactive, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { safeParse } from 'valibot'
 
-import { useCreateTodoValidationState } from '@/composables/useCreateTodoValidationState'
 import { useElectricTodos } from '@/composables/useElectricTodos'
 import { todoLabelSchema } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+
+type CreateTodoValidationErrorKind = 'gate' | 'validation' | 'none'
 
 const { addTodo, canCreateTodos, createTodoDisabledReason } = useElectricTodos()
 const router = useRouter()
@@ -16,14 +17,37 @@ const formState = reactive<{ label: string; weekNumber: null | number }>({
   label: '',
   weekNumber: currentWeek,
 })
-const validation = useCreateTodoValidationState({ canCreateTodos })
-const validationError = validation.error
+const validationError = ref('')
+const validationErrorKind = ref<CreateTodoValidationErrorKind>('none')
 
 const showWeekOptions = computed(() => formState.label.trim().length > 0)
 
+function clearValidationError() {
+  validationError.value = ''
+  validationErrorKind.value = 'none'
+}
+
+function setGateError(message: string) {
+  validationError.value = message
+  validationErrorKind.value = 'gate'
+}
+
+function setValidationError(message: string) {
+  validationError.value = message
+  validationErrorKind.value = 'validation'
+}
+
+watch(canCreateTodos, (nextCanCreateTodos) => {
+  if (!nextCanCreateTodos || validationErrorKind.value !== 'gate') {
+    return
+  }
+
+  clearValidationError()
+})
+
 async function createTodo() {
   if (!canCreateTodos.value) {
-    validation.setGateError(createTodoDisabledReason.value ?? 'You cannot create todos right now.')
+    setGateError(createTodoDisabledReason.value ?? 'You cannot create todos right now.')
     return
   }
 
@@ -31,13 +55,13 @@ async function createTodo() {
   const result = safeParse(todoLabelSchema, trimmedLabel)
 
   if (!result.success) {
-    validation.setValidationError(result.issues[0].message)
+    setValidationError(result.issues[0].message)
     return
   }
 
   try {
     const todoId = await addTodo(trimmedLabel, formState.weekNumber)
-    validation.clearError()
+    clearValidationError()
     const path =
       formState.weekNumber === null
         ? `/backlog`
@@ -48,7 +72,7 @@ async function createTodo() {
     formState.label = ''
     formState.weekNumber = currentWeek
   } catch (error) {
-    validation.setGateError(error instanceof Error ? error.message : 'Unable to create todo.')
+    setGateError(error instanceof Error ? error.message : 'Unable to create todo.')
   }
 }
 </script>
