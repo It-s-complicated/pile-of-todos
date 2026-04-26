@@ -16,7 +16,7 @@ const filteredTodos = computed(() =>
 </script>
 
 <template>
-  <TodoList filter="current-week" :todos="filteredTodos">
+  <TodoList :todos="filteredTodos">
     <template #empty>
       <TodoListEmpty title="No tasks this week" subtitle="Add tasks for the current week." />
     </template>

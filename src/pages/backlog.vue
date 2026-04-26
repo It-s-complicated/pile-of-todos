@@ -14,7 +14,7 @@ const filteredTodos = computed(() =>
 </script>
 
 <template>
-  <TodoList filter="backlog" :todos="filteredTodos">
+  <TodoList :todos="filteredTodos">
     <template #empty>
       <TodoListEmpty title="Backlog is empty" subtitle="Add tasks without a week assigned." />
     </template>

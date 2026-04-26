@@ -12,7 +12,7 @@ const filteredTodos = computed(() =>
 </script>
 
 <template>
-  <TodoList filter="archived" :todos="filteredTodos">
+  <TodoList :todos="filteredTodos">
     <template #empty>
       <TodoListEmpty
         title="No archived tasks"

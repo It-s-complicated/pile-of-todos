@@ -20,7 +20,7 @@ const filteredTodos = computed(() =>
 </script>
 
 <template>
-  <TodoList filter="future" :todos="filteredTodos">
+  <TodoList :todos="filteredTodos">
     <template #empty>
       <TodoListEmpty
         title="No future tasks"
