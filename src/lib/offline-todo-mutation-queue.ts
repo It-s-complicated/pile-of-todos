@@ -67,52 +67,97 @@ type OfflineTodoMutationQueueOptions = {
   storage?: Storage | null
 }
 
+const nonEmptyStringSchema = v.pipe(
+  v.string(),
+  v.check((value) => value.trim().length > 0),
+)
+const storedNumberSchema = v.pipe(
+  v.number(),
+  v.check((value) => !Number.isNaN(value)),
+)
+const nullableNumberSchema = v.nullable(storedNumberSchema)
+const optionalNullableNumberSchema = v.optional(nullableNumberSchema, null)
+
+const createMutationValuesSchema = v.object({
+  archived: v.boolean(),
+  createdAt: storedNumberSchema,
+  deletedAt: nullableNumberSchema,
+  done: v.boolean(),
+  label: nonEmptyStringSchema,
+  updatedAt: storedNumberSchema,
+  weekNumber: optionalNullableNumberSchema,
+})
+
+const updateMutationValuesSchema = v.object({
+  archived: v.optional(v.boolean()),
+  createdAt: v.optional(storedNumberSchema),
+  deletedAt: v.optional(nullableNumberSchema),
+  done: v.optional(v.boolean()),
+  label: v.optional(nonEmptyStringSchema),
+  updatedAt: storedNumberSchema,
+  weekNumber: v.optional(nullableNumberSchema),
+})
+
+const deleteMutationValuesSchema = v.object({
+  deletedAt: storedNumberSchema,
+  updatedAt: storedNumberSchema,
+})
+
+const queuedTodoMutationSchema = v.variant('kind', [
+  v.object({
+    kind: v.literal('create'),
+    mutationId: nonEmptyStringSchema,
+    optimisticTodo: todoSchema,
+    todoId: nonEmptyStringSchema,
+    values: createMutationValuesSchema,
+  }),
+  v.object({
+    kind: v.literal('delete'),
+    mutationId: nonEmptyStringSchema,
+    optimisticTodo: todoSchema,
+    todoId: nonEmptyStringSchema,
+    updates: deleteMutationValuesSchema,
+  }),
+  v.object({
+    kind: v.literal('update'),
+    mutationId: nonEmptyStringSchema,
+    optimisticTodo: todoSchema,
+    todoId: nonEmptyStringSchema,
+    updates: updateMutationValuesSchema,
+  }),
+])
+
+const queuedTodoMutationEntrySchema = v.object({
+  acceptedAt: optionalNullableNumberSchema,
+  partitionKey: nonEmptyStringSchema,
+  mutation: queuedTodoMutationSchema,
+  queuedAt: storedNumberSchema,
+  state: v.picklist(['accepted', 'queued']),
+  txid: optionalNullableNumberSchema,
+  updatedAt: storedNumberSchema,
+})
+
+const queuedTodoMutationEntriesSchema = v.array(queuedTodoMutationEntrySchema)
+
+const legacyQueuedTodoCreateEntrySchema = v.object({
+  partitionKey: nonEmptyStringSchema,
+  queuedAt: storedNumberSchema,
+  todo: v.unknown(),
+  updatedAt: storedNumberSchema,
+})
+
+const legacyQueuedTodoCreateEntriesSchema = v.array(legacyQueuedTodoCreateEntrySchema)
+
 function getBrowserStorage() {
   return typeof window === 'undefined' ? null : window.localStorage
 }
 
-function assertObject(value: unknown, message: string): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new Error(message)
-  }
-
-  return value as Record<string, unknown>
-}
-
-function assertString(value: unknown, message: string): string {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new Error(message)
-  }
-
-  return value
-}
-
-function assertNumber(value: unknown, message: string): number {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    throw new Error(message)
-  }
-
-  return value
-}
-
-function assertNullableNumber(value: unknown, message: string): number | null {
-  if (value === null) {
-    return null
-  }
-
-  return assertNumber(value, message)
-}
-
-function assertBoolean(value: unknown, message: string): boolean {
-  if (typeof value !== 'boolean') {
-    throw new Error(message)
-  }
-
-  return value
-}
-
-function parseTodo(value: unknown, message: string): Todo {
-  const result = v.safeParse(todoSchema, value)
+function parseSchema<TSchema extends v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>>(
+  schema: TSchema,
+  input: unknown,
+  message: string,
+): v.InferOutput<TSchema> {
+  const result = v.safeParse(schema, input)
 
   if (!result.success) {
     throw new Error(message)
@@ -121,133 +166,8 @@ function parseTodo(value: unknown, message: string): Todo {
   return result.output
 }
 
-function parseCreateValues(input: unknown): TodoCreateMutation['values'] {
-  const value = assertObject(input, 'Queued create mutation values are invalid')
-
-  return {
-    archived: assertBoolean(value.archived, 'Queued create mutation archived flag is invalid'),
-    createdAt: assertNumber(value.createdAt, 'Queued create mutation createdAt is invalid'),
-    deletedAt: assertNullableNumber(value.deletedAt, 'Queued create mutation deletedAt is invalid'),
-    done: assertBoolean(value.done, 'Queued create mutation done flag is invalid'),
-    label: assertString(value.label, 'Queued create mutation label is invalid'),
-    updatedAt: assertNumber(value.updatedAt, 'Queued create mutation updatedAt is invalid'),
-    weekNumber:
-      value.weekNumber === undefined
-        ? null
-        : assertNullableNumber(value.weekNumber, 'Queued create mutation weekNumber is invalid'),
-  }
-}
-
-function parseUpdateValues(input: unknown, messagePrefix: string): TodoMutationValues {
-  const value = assertObject(input, `${messagePrefix} values are invalid`)
-  const updates: TodoMutationValues = {
-    updatedAt: assertNumber(value.updatedAt, `${messagePrefix} updatedAt is invalid`),
-  }
-
-  if (Object.prototype.hasOwnProperty.call(value, 'archived')) {
-    updates.archived = assertBoolean(value.archived, `${messagePrefix} archived flag is invalid`)
-  }
-
-  if (Object.prototype.hasOwnProperty.call(value, 'createdAt')) {
-    updates.createdAt = assertNumber(value.createdAt, `${messagePrefix} createdAt is invalid`)
-  }
-
-  if (Object.prototype.hasOwnProperty.call(value, 'deletedAt')) {
-    updates.deletedAt = assertNullableNumber(
-      value.deletedAt,
-      `${messagePrefix} deletedAt is invalid`,
-    )
-  }
-
-  if (Object.prototype.hasOwnProperty.call(value, 'done')) {
-    updates.done = assertBoolean(value.done, `${messagePrefix} done flag is invalid`)
-  }
-
-  if (Object.prototype.hasOwnProperty.call(value, 'label')) {
-    updates.label = assertString(value.label, `${messagePrefix} label is invalid`)
-  }
-
-  if (Object.prototype.hasOwnProperty.call(value, 'weekNumber')) {
-    updates.weekNumber = assertNullableNumber(
-      value.weekNumber,
-      `${messagePrefix} weekNumber is invalid`,
-    )
-  }
-
-  return updates
-}
-
-function parseQueuedTodoMutation(input: unknown): QueuedTodoMutation {
-  const value = assertObject(input, 'Queued todo mutation is invalid')
-  const base = {
-    mutationId: assertString(value.mutationId, 'Queued todo mutation is missing mutationId'),
-    optimisticTodo: parseTodo(
-      value.optimisticTodo,
-      'Queued todo mutation optimistic todo is invalid',
-    ),
-    todoId: assertString(value.todoId, 'Queued todo mutation is missing todoId'),
-  }
-  const kind = assertString(value.kind, 'Queued todo mutation kind is invalid')
-
-  if (kind === 'create') {
-    return {
-      ...base,
-      kind,
-      values: parseCreateValues(value.values),
-    }
-  }
-
-  if (kind === 'delete') {
-    const updates = parseUpdateValues(value.updates, 'Queued delete mutation')
-
-    if (typeof updates.deletedAt !== 'number') {
-      throw new Error('Queued delete mutation deletedAt is invalid')
-    }
-
-    return {
-      ...base,
-      kind,
-      updates: {
-        deletedAt: updates.deletedAt,
-        updatedAt: updates.updatedAt,
-      },
-    }
-  }
-
-  if (kind === 'update') {
-    return {
-      ...base,
-      kind,
-      updates: parseUpdateValues(value.updates, 'Queued update mutation'),
-    }
-  }
-
-  throw new Error('Queued todo mutation kind is invalid')
-}
-
-function parseQueuedTodoMutationEntry(input: unknown): QueuedTodoMutationEntry {
-  const value = assertObject(input, 'Queued todo mutation entry is invalid')
-  const stateValue = assertString(value.state, 'Queued todo mutation state is invalid')
-
-  if (stateValue !== 'accepted' && stateValue !== 'queued') {
-    throw new Error('Queued todo mutation state is invalid')
-  }
-
-  return {
-    acceptedAt:
-      value.acceptedAt === undefined || value.acceptedAt === null
-        ? null
-        : assertNumber(value.acceptedAt, 'Queued todo mutation acceptedAt is invalid'),
-    partitionKey: assertString(value.partitionKey, 'Queued todo mutation partition is invalid'),
-    mutation: parseQueuedTodoMutation(value.mutation),
-    queuedAt: assertNumber(value.queuedAt, 'Queued todo mutation queuedAt is invalid'),
-    state: stateValue,
-    txid:
-      value.txid === undefined || value.txid === null
-        ? null
-        : assertNumber(value.txid, 'Queued todo mutation txid is invalid'),
-    updatedAt: assertNumber(value.updatedAt, 'Queued todo mutation updatedAt is invalid'),
-  }
+function parseTodo(value: unknown, message: string): Todo {
+  return parseSchema(todoSchema, value, message)
 }
 
 function parseStoredEntries(input: unknown): QueuedTodoMutationEntry[] {
@@ -261,11 +181,11 @@ function parseStoredEntries(input: unknown): QueuedTodoMutationEntry[] {
 
   const parsed = JSON.parse(input) as unknown
 
-  if (!Array.isArray(parsed)) {
-    throw new Error('Offline todo mutation queue storage must contain an array')
-  }
-
-  return parsed.map((entry) => parseQueuedTodoMutationEntry(entry))
+  return parseSchema(
+    queuedTodoMutationEntriesSchema,
+    parsed,
+    'Offline todo mutation queue storage must contain valid entries',
+  ) as QueuedTodoMutationEntry[]
 }
 
 function parseLegacyCreates(input: unknown): LegacyQueuedTodoCreateEntry[] {
@@ -279,20 +199,11 @@ function parseLegacyCreates(input: unknown): LegacyQueuedTodoCreateEntry[] {
 
   const parsed = JSON.parse(input) as unknown
 
-  if (!Array.isArray(parsed)) {
-    throw new Error('Legacy offline todo create queue storage must contain an array')
-  }
-
-  return parsed.map((entry) => {
-    const value = assertObject(entry, 'Legacy queued todo entry is invalid')
-
-    return {
-      partitionKey: assertString(value.partitionKey, 'Legacy queued todo partition is invalid'),
-      queuedAt: assertNumber(value.queuedAt, 'Legacy queued todo queuedAt is invalid'),
-      todo: value.todo,
-      updatedAt: assertNumber(value.updatedAt, 'Legacy queued todo updatedAt is invalid'),
-    }
-  })
+  return parseSchema(
+    legacyQueuedTodoCreateEntriesSchema,
+    parsed,
+    'Legacy offline todo create queue storage must contain valid entries',
+  ) as LegacyQueuedTodoCreateEntry[]
 }
 
 function sortEntries(entries: QueuedTodoMutationEntry[]) {

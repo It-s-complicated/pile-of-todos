@@ -1,3 +1,5 @@
+import * as v from 'valibot'
+
 export type SyncTodo = {
   id: string
   label: string
@@ -61,7 +63,7 @@ type TodoMutationRpcError = {
 
 type TodoMutationRpcResponse = {
   data: unknown
-  error: TodoMutationRpcError | null
+  error: unknown
 }
 
 type TodoMutationRpcClient = {
@@ -82,6 +84,29 @@ export class TodoRemoteWriteError extends Error {
     this.kind = kind
   }
 }
+
+const todoMutationRpcErrorSchema = v.object({
+  code: v.optional(v.string()),
+  details: v.optional(v.nullable(v.string())),
+  hint: v.optional(v.nullable(v.string())),
+  message: v.pipe(v.string(), v.trim(), v.nonEmpty()),
+})
+
+const txidSchema = v.union([
+  v.pipe(v.number(), v.integer(), v.minValue(0)),
+  v.pipe(
+    v.string(),
+    v.trim(),
+    v.regex(/^\d+$/),
+    v.transform((value) => Number.parseInt(value, 10)),
+  ),
+])
+
+const acceptedTodoMutationRpcSchema = v.object({
+  mutationId: v.optional(v.string()),
+  todoId: v.optional(v.string()),
+  txid: txidSchema,
+})
 
 function getNormalizedPostgrestText(error: TodoMutationRpcError) {
   return [error.code, error.message, error.details, error.hint]
@@ -127,6 +152,18 @@ function createTodoWriteError(error: TodoMutationRpcError) {
   return new TodoRemoteWriteError(error.message, 'retryable')
 }
 
+function parseTodoMutationRpcError(error: unknown): TodoMutationRpcError {
+  const result = v.safeParse(todoMutationRpcErrorSchema, error)
+
+  if (result.success) {
+    return result.output
+  }
+
+  return {
+    message: 'Todo mutation RPC failed with an invalid error payload',
+  }
+}
+
 function buildTodoMutationIntent(
   kind: TodoMutationKind,
   todoId: string,
@@ -145,32 +182,18 @@ function buildTodoMutationIntent(
   }
 }
 
-function parseTxid(input: unknown): number {
-  if (typeof input === 'number' && Number.isInteger(input) && input >= 0) {
-    return input
-  }
-
-  if (typeof input === 'string' && input.trim().length > 0) {
-    const txid = Number.parseInt(input, 10)
-
-    if (Number.isInteger(txid) && txid >= 0) {
-      return txid
-    }
-  }
-
-  throw new Error('Todo mutation RPC response did not include a valid txid')
-}
-
 function parseAcceptedTodoMutation(
   data: unknown,
   fallback: Pick<AcceptedTodoMutation, 'mutationId' | 'todoId'>,
 ): AcceptedTodoMutation {
-  if (typeof data !== 'object' || data === null) {
+  const result = v.safeParse(acceptedTodoMutationRpcSchema, data)
+
+  if (!result.success) {
     throw new Error('Todo mutation RPC response was missing accepted mutation data')
   }
 
-  const mutationIdValue = (data as { mutationId?: unknown }).mutationId
-  const todoIdValue = (data as { todoId?: unknown }).todoId
+  const mutationIdValue = result.output.mutationId
+  const todoIdValue = result.output.todoId
   const mutationId =
     typeof mutationIdValue === 'string' && mutationIdValue.trim().length > 0
       ? mutationIdValue
@@ -181,7 +204,7 @@ function parseAcceptedTodoMutation(
   return {
     mutationId,
     todoId,
-    txid: parseTxid((data as { txid?: unknown }).txid),
+    txid: result.output.txid,
   }
 }
 
@@ -192,7 +215,7 @@ async function applyRemoteTodoMutation(
   const { data, error } = await supabase.rpc('apply_todo_mutation', { intent })
 
   if (error) {
-    throw createTodoWriteError(error)
+    throw createTodoWriteError(parseTodoMutationRpcError(error))
   }
 
   return parseAcceptedTodoMutation(data, {

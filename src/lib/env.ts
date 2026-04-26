@@ -1,26 +1,24 @@
-type RequiredEnvKey =
-  | 'VITE_ELECTRIC_SHAPE_URL'
-  | 'VITE_ELECTRIC_SOURCE_ID'
-  | 'VITE_ELECTRIC_SECRET'
-  | 'VITE_DEVICE_ID'
-  | 'VITE_SUPABASE_URL'
-  | 'VITE_SUPABASE_ANON_KEY'
+import * as v from 'valibot'
 
-function requireEnvValue(key: RequiredEnvKey): string {
-  const value = import.meta.env[key]?.trim()
+const requiredEnvValue = v.pipe(v.string(), v.trim(), v.nonEmpty())
+const requiredEnvUrl = v.pipe(requiredEnvValue, v.url())
 
-  if (value) {
-    return value
-  }
+const appEnvSchema = v.object({
+  VITE_ELECTRIC_SHAPE_URL: requiredEnvUrl,
+  VITE_ELECTRIC_SOURCE_ID: requiredEnvValue,
+  VITE_ELECTRIC_SECRET: requiredEnvValue,
+  VITE_DEVICE_ID: requiredEnvValue,
+  VITE_SUPABASE_URL: requiredEnvUrl,
+  VITE_SUPABASE_ANON_KEY: requiredEnvValue,
+})
 
-  throw new Error(`Missing required environment variable: ${key}`)
-}
+const parsedEnv = v.parse(appEnvSchema, import.meta.env)
 
 export const env = {
-  electricShapeUrl: requireEnvValue('VITE_ELECTRIC_SHAPE_URL'),
-  electricSourceId: requireEnvValue('VITE_ELECTRIC_SOURCE_ID'),
-  electricSecret: requireEnvValue('VITE_ELECTRIC_SECRET'),
-  deviceId: requireEnvValue('VITE_DEVICE_ID'),
-  supabaseUrl: requireEnvValue('VITE_SUPABASE_URL'),
-  supabaseAnonKey: requireEnvValue('VITE_SUPABASE_ANON_KEY'),
+  electricShapeUrl: parsedEnv.VITE_ELECTRIC_SHAPE_URL,
+  electricSourceId: parsedEnv.VITE_ELECTRIC_SOURCE_ID,
+  electricSecret: parsedEnv.VITE_ELECTRIC_SECRET,
+  deviceId: parsedEnv.VITE_DEVICE_ID,
+  supabaseUrl: parsedEnv.VITE_SUPABASE_URL,
+  supabaseAnonKey: parsedEnv.VITE_SUPABASE_ANON_KEY,
 } as const
