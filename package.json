@@ -21,9 +21,9 @@
   },
   "dependencies": {
     "@electric-sql/client": "^1.5.15",
-    "@supabase/supabase-js": "^2.104.0",
+    "@supabase/supabase-js": "^2.104.1",
     "@tanstack/electric-db-collection": "^0.3.3",
-    "@tanstack/vue-db": "^0.0.115",
+    "@tanstack/vue-db": "^0.0.116",
     "drizzle-orm": "^0.45.2",
     "drizzle-valibot": "^0.4.2",
     "lucide-vue-next": "^1.0.0",
