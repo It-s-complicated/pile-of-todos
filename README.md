@@ -2,11 +2,11 @@
 
 A weekly planning todo app built with Vue 3, TanStack DB, and Tailwind CSS.
 
-The runtime architecture is explicitly frontend-only:
+The runtime architecture is explicitly browser-driven:
 
 - Supabase handles browser auth and browser write calls.
 - Electric handles browser read sync / confirmed baseline reads.
-- This app does **not** require an app-owned server runtime, proxy, or `/api/*` routes.
+- This app does **not** include an app-owned server runtime, proxy, or `/api/*` routes.
 
 ## What it does
 
@@ -18,7 +18,7 @@ The runtime architecture is explicitly frontend-only:
 
 ## Environment variables
 
-Create `.env.local` for frontend runtime variables. The app does not use server-only runtime env vars or an `API_BASE_URL` for app-owned `/api/*` routes. If you use Drizzle migration/push tooling, also provide `DATABASE_URL` in your shell environment or `.env.local`.
+Create `.env.local` for browser runtime variables. The app does not use an `API_BASE_URL` for app-owned `/api/*` routes. If you use Drizzle migration/push tooling, also provide `DATABASE_URL` in your shell environment or `.env.local`.
 
 ### Frontend (Vite) variables
 
@@ -27,9 +27,11 @@ Create `.env.local` for frontend runtime variables. The app does not use server-
 | `VITE_SUPABASE_URL`       | Yes      | Supabase project URL used by the browser for auth and write operations. |
 | `VITE_SUPABASE_ANON_KEY`  | Yes      | Supabase publishable/anon key used by the browser client.               |
 | `VITE_ELECTRIC_SHAPE_URL` | Yes      | Electric shape endpoint used directly by the browser for read sync.     |
+| `VITE_ELECTRIC_SOURCE_ID` | Yes      | Electric source identifier appended to the shape request.               |
+| `VITE_ELECTRIC_SECRET`    | Yes      | Electric secret appended to the shape request.                          |
 | `VITE_DEVICE_ID`          | Yes      | Stable device identifier attached to client mutation intents.           |
 
-The frontend runtime contract intentionally does **not** include `VITE_API_BASE_URL`, `VITE_ELECTRIC_PROXY_URL`, `VITE_ELECTRIC_SOURCE_ID`, `VITE_ELECTRIC_SECRET`, or other env vars that imply an app-owned server, proxy, or `/api/*` route layer.
+The frontend runtime contract intentionally does **not** include `VITE_API_BASE_URL`, `VITE_ELECTRIC_PROXY_URL`, or other env vars that imply an app-owned server, proxy, or `/api/*` route layer. The Electric source id and secret are currently part of the browser configuration used to build the direct shape URL.
 
 ### Backend/tooling variable
 
@@ -41,7 +43,7 @@ The frontend runtime contract intentionally does **not** include `VITE_API_BASE_
 
 - Current app is frontend-only; Supabase Auth handles authentication and Supabase database functions/tables handle browser writes.
 - Electric is read transport only; it supplies confirmed, auth-scoped todo reads to the browser.
-- No app-owned server runtime, proxy, or `/api/*` routes are required by this app.
+- No app-owned server runtime, proxy, or `/api/*` routes are present in this app.
 - If migrating to better-auth later, add a backend service first.
 - If/when a backend is introduced, re-evaluate replacing Supabase auth flows with better-auth in that backend layer.
 
@@ -103,10 +105,13 @@ Use Vite+ commands:
 ### `src/db`
 
 - `collections.ts`
-  - Defines the todo schema and collection models.
-  - Uses LocalStorage-backed client state for cached baseline data, optimistic state, and offline behavior; confirmed reads come from Electric and writes go through Supabase.
-  - Includes Electric read wiring and Supabase-backed client mutation handlers.
-  - Exposes helpers like `isElectricConfigured()`, `getActiveCollection()`, and device-id helpers.
+  - Defines the Valibot todo schema and todo type.
+  - Exposes the device-id helper used by queued mutation intents.
+- `confirmed-todos.ts`
+  - Creates the Electric-backed TanStack DB collection for confirmed todo reads.
+  - Adds auth headers, user-scoped shape params, column mapping, and `txid` confirmation helpers.
+- `electric-read-config.ts` and `electric-user-scope.ts`
+  - Build the Electric shape URL and user-specific read filter.
 - `schema.ts`
   - Drizzle Postgres table definition and validation schemas for `todos`.
 - `connection.ts`
@@ -115,15 +120,24 @@ Use Vite+ commands:
 ### `src/composables`
 
 - `useElectricTodos.ts`
-  - Main todo state + mutation API for UI.
-  - Manages merged read state plus structured degraded / sync statuses.
-  - Reconciles local optimistic state with the Electric-confirmed read baseline.
+  - Main public todo API used by the UI.
+  - Combines read state, mutation methods, connectivity, queue counts, and sync/degraded statuses.
+- `useTodoData.ts`
+  - Shared singleton wiring for auth state, network state, read model readiness, and the mutation queue controller.
+- `useTodoReadModel.ts`
+  - Reads confirmed todos from Electric and overlays pending queued mutations for optimistic UI.
+- `useTodoMutations.ts`
+  - Builds optimistic create/update/delete mutation intents and puts them on the durable queue.
+- `useTodoSync.ts`
+  - Derives user-facing sync/degraded status from the mutation queue controller.
+- `useTodoCreateQueueController.ts`
+  - Durable local mutation queue controller.
+  - Persists queued mutations, flushes them to the Supabase RPC, and waits for Electric `txid` confirmation.
 - `useDataExport.ts`
-  - Export/import JSON with validation.
+  - Programmatic export/import JSON helper.
+  - Import validates individual todos before queueing create mutations.
 - `useNetworkStatus.ts`
   - Reactive online/offline browser connectivity tracking.
-- `useWeekNumber.ts`
-  - Week-number utility logic for planning buckets.
 
 ### `src/components`
 
@@ -134,26 +148,25 @@ Use Vite+ commands:
 - `SyncStatus.vue`
   - Header indicator for connectivity/sync state and retry affordance on sync errors.
 
-### Routing and views
+### Routing and pages
 
-- `src/router/index.ts` defines route-based list categories:
+- `src/router/index.ts` uses `vue-router/auto-routes` to load page routes from `src/pages`.
+- `src/pages/index.vue` redirects to `/backlog`.
+- The page files define route-based list categories:
   - `/backlog`
-  - `/current-week`
+  - `/current`
   - `/future`
   - `/unfinished`
   - `/finished`
   - `/archived`
-- Each `src/views/*View.vue` provides section framing text and renders the shared `TodoList` component.
+- Each `src/pages/*.vue` page filters the shared todo read model and renders `TodoList` with its empty state.
 - `App.vue` hosts global layout, new task form, navigation pills, and sync status.
 
 ## Data import/export behavior
 
-- Export creates a JSON payload containing:
-  - `version`
-  - `exportedAt`
-  - `todos`
+- Export creates a JSON payload containing `todos`.
 - Export serializes the current visible merged todo set when invoked programmatically; export is not currently exposed in the visible UI.
-- Import validates the file structure and todo payload with Valibot before queueing any changes.
+- Import accepts either a top-level todo array or an object with a `todos` array, then validates each todo with Valibot before queueing any changes.
 - **Import semantics:** imported todos are submitted through the same durable local mutation queue as manually created todos, so they appear immediately in the optimistic overlay and remain pending until Electric confirms them.
 
 ## Troubleshooting
