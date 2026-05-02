@@ -16,7 +16,7 @@ const filteredTodos = computed(() =>
     <template #empty>
       <TodoListEmpty
         title="No archived tasks"
-        subtitle="Archive tasks to hide them from active views."
+        subtitle="Archived tasks are hidden from active planning lanes and collected here."
       />
     </template>
   </TodoList>

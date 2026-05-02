@@ -23,7 +23,10 @@ const filteredTodos = computed(() =>
 <template>
   <TodoList :todos="filteredTodos">
     <template #empty>
-      <TodoListEmpty title="No unfinished tasks" subtitle="All past tasks are complete!" />
+      <TodoListEmpty
+        title="No unfinished tasks"
+        subtitle="Incomplete tasks from past weeks appear here for review and rescheduling."
+      />
     </template>
   </TodoList>
 </template>

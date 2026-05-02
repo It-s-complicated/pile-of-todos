@@ -150,7 +150,9 @@ async function createTodo() {
                 <option :value="currentWeek + 2">Week {{ currentWeek + 2 }}</option>
               </select>
             </div>
-            <p class="pb-3 text-xs text-on-surface-variant">Backlog by default.</p>
+            <p class="pb-3 text-xs text-on-surface-variant">
+              New tasks go to this week unless you choose another lane.
+            </p>
           </div>
         </div>
       </Transition>

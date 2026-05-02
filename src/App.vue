@@ -10,7 +10,7 @@ import { useElectricTodos } from './composables/useElectricTodos'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
 type WorkspaceCopy = {
-  subtitle?: string
+  subtitle: string
   title: string
 }
 
@@ -34,21 +34,29 @@ const headerMenuPanelId = 'more-views-panel'
 const workspaceCopy: Record<string, WorkspaceCopy> = {
   '/backlog': {
     title: 'The Backlog',
+    subtitle:
+      'Capture work that does not have a week yet. Use this lane when you are still triaging.',
   },
   '/current': {
     title: `Current Week · ${currentWeek}`,
+    subtitle: `The work you intend to finish in week ${currentWeek}. Keep this lane focused on real commitments.`,
   },
   '/future': {
-    title: 'Future Week',
+    title: 'Future Weeks',
+    subtitle: 'Scheduled work beyond this week. Use this lane to park commitments for later weeks.',
   },
   '/unfinished': {
     title: 'Unfinished',
+    subtitle:
+      'Past-week tasks that still need a decision. Finish, reschedule, or move them back to backlog.',
   },
   '/finished': {
     title: 'Completed',
+    subtitle: 'Finished tasks stay here until you archive them.',
   },
   '/archived': {
     title: 'Archives',
+    subtitle: 'Closed tasks you want out of active planning.',
   },
 }
 
@@ -169,7 +177,7 @@ onBeforeUnmount(() => {
                   More views
                 </p>
                 <p class="text-sm text-on-surface-variant">
-                  Completed and archived lists live here.
+                  Completed and archived lanes are quieter history views.
                 </p>
                 <nav class="grid gap-2 sm:grid-cols-2 md:grid-cols-1" aria-label="More views">
                   <RouterLink
@@ -214,6 +222,9 @@ onBeforeUnmount(() => {
         >
           {{ activeWorkspace.title }}
         </h1>
+        <p class="mt-3 max-w-prose text-sm text-on-surface-variant">
+          {{ activeWorkspace.subtitle }}
+        </p>
       </section>
 
       <RouterView />

@@ -14,7 +14,10 @@ const filteredTodos = computed(() =>
 <template>
   <TodoList :todos="filteredTodos">
     <template #empty>
-      <TodoListEmpty title="No completed tasks" subtitle="Mark tasks as done to see them here." />
+      <TodoListEmpty
+        title="No completed tasks"
+        subtitle="Tasks you mark done appear here before you archive them."
+      />
     </template>
   </TodoList>
 </template>

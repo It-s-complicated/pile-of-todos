@@ -16,7 +16,10 @@ const filteredTodos = computed(() =>
 <template>
   <TodoList :todos="filteredTodos">
     <template #empty>
-      <TodoListEmpty title="Backlog is empty" subtitle="Add tasks without a week assigned." />
+      <TodoListEmpty
+        title="Backlog is empty"
+        subtitle="Use this lane for tasks you want to keep, but have not scheduled yet."
+      />
     </template>
   </TodoList>
 </template>
