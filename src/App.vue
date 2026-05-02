@@ -88,41 +88,39 @@ onBeforeUnmount(() => {
       class="sticky top-0 z-40 border-b border-outline-variant/10 bg-surface/80 backdrop-blur-2xl"
     >
       <div
-        class="mx-auto flex max-w-screen-2xl flex-col gap-3 px-4 py-4 sm:px-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:px-8"
+        class="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:px-5 lg:flex-nowrap lg:px-6"
       >
-        <div class="flex items-center justify-between gap-3 md:contents">
-          <div class="font-headline leading-none md:col-start-1 md:row-start-1">
-            <p
-              class="mb-1.5 text-4xl font-extrabold tracking-tight text-primary trim-both-cap-alphabetic"
-            >
-              Pile
-            </p>
-            <p
-              class="flex items-baseline justify-center gap-1 text-[0.55rem] font-semibold tracking-loose text-on-surface-variant"
-            >
-              <span class="trim-both-cap-alphabetic">of</span>
-              <span class="text-[0.72rem] tracking-[0.14em] text-primary trim-both-cap-alphabetic"
-                >Todos</span
-              >
-            </p>
-          </div>
-
-          <button
-            type="button"
-            class="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 text-on-surface shadow-[0_10px_24px_rgba(0,0,0,0.12)] transition-colors duration-200 hover:bg-surface-container-highest md:col-start-3 md:row-start-1 md:justify-self-end"
-            :aria-controls="headerMenuPanelId"
-            :aria-expanded="isHeaderMenuOpen"
-            :aria-label="headerMenuToggleLabel"
-            @click="toggleHeaderMenu"
+        <div class="shrink-0 font-headline leading-none">
+          <p
+            class="mb-1 text-3xl font-extrabold tracking-tight text-primary trim-both-cap-alphabetic"
           >
-            <span class="text-sm font-semibold">More views</span>
-            <Menu v-if="!isHeaderMenuOpen" class="size-4.5" stroke-width="2.2" />
-            <X v-else class="size-4.5" stroke-width="2.2" />
-          </button>
+            Pile
+          </p>
+          <p
+            class="flex items-baseline justify-center gap-1 text-[0.48rem] font-semibold tracking-loose text-on-surface-variant"
+          >
+            <span class="trim-both-cap-alphabetic">of</span>
+            <span class="text-[0.62rem] tracking-[0.14em] text-primary trim-both-cap-alphabetic"
+              >Todos</span
+            >
+          </p>
         </div>
 
+        <button
+          type="button"
+          class="order-2 ml-auto inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-2.5 text-on-surface shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-colors duration-200 hover:bg-surface-container-highest sm:order-3"
+          :aria-controls="headerMenuPanelId"
+          :aria-expanded="isHeaderMenuOpen"
+          :aria-label="headerMenuToggleLabel"
+          @click="toggleHeaderMenu"
+        >
+          <span class="hidden text-sm font-semibold sm:inline">More views</span>
+          <Menu v-if="!isHeaderMenuOpen" class="size-4.5" stroke-width="2.2" />
+          <X v-else class="size-4.5" stroke-width="2.2" />
+        </button>
+
         <nav
-          class="grid min-w-0 grid-cols-4 items-center gap-1 rounded-2xl border border-outline-variant/10 bg-surface-container-low/70 p-1 md:col-start-2 md:row-start-1 md:mx-auto md:flex md:justify-center md:rounded-full md:bg-transparent md:p-0 md:[-ms-overflow-style:none] md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden"
+          class="order-3 grid w-full min-w-0 grid-cols-4 items-center gap-1 rounded-full border border-outline-variant/10 bg-surface-container-low/70 p-1 sm:order-2 sm:w-auto sm:flex-1 sm:justify-center sm:bg-transparent sm:p-0 sm:[-ms-overflow-style:none] sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden"
           aria-label="Weekly planning views"
         >
           <RouterLink
@@ -130,18 +128,18 @@ onBeforeUnmount(() => {
             :key="item.path"
             :to="item.path"
             :class="{
-              'bg-primary/10 font-semibold text-primary md:bg-transparent':
+              'bg-primary/10 font-semibold text-primary sm:bg-transparent':
                 route.path === item.path,
               'text-on-surface-variant hover:text-primary': route.path !== item.path,
             }"
             :aria-current="route.path === item.path ? 'page' : undefined"
-            class="relative rounded-xl px-2 py-2 text-center text-sm font-medium transition-colors duration-200 hover:bg-surface-container md:shrink-0 md:rounded-lg md:px-3"
+            class="relative rounded-full px-2 py-1.5 text-center text-sm font-medium transition-colors duration-200 hover:bg-surface-container sm:shrink-0 sm:rounded-lg sm:px-3"
           >
             <span>{{ item.label }}</span>
             <span
               v-if="route.path === item.path"
               aria-hidden="true"
-              class="absolute inset-x-3 bottom-1 hidden h-px bg-primary md:block"
+              class="absolute inset-x-3 bottom-0 hidden h-px bg-primary sm:block"
             />
           </RouterLink>
         </nav>
@@ -209,10 +207,10 @@ onBeforeUnmount(() => {
       @click="closeHeaderMenu"
     />
 
-    <main class="mx-auto max-w-4xl px-6 pt-12 pb-72 lg:px-8">
-      <section class="mb-14 sm:mb-16">
+    <main class="mx-auto max-w-3xl px-4 pt-7 pb-72 sm:px-6 sm:pt-8 lg:px-0">
+      <section class="mb-6 sm:mb-7">
         <h1
-          class="font-headline text-4xl font-extrabold tracking-tight text-on-surface trim-both-cap-alphabetic sm:text-5xl lg:text-6xl"
+          class="font-headline text-2xl font-extrabold tracking-tight text-on-surface trim-both-cap-alphabetic sm:text-3xl"
         >
           {{ activeWorkspace.title }}
         </h1>
