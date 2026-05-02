@@ -1,104 +1,94 @@
 {
   "version": 1,
   "skills": {
-    "caveman": {
-      "source": "juliusbrussee/caveman",
-      "sourceType": "github",
-      "computedHash": "a818cdc41dcfaa50dd891c5cb5e5705968338de02e7e37949ca56e8c30ad4176"
-    },
-    "caveman-commit": {
-      "source": "juliusbrussee/caveman",
-      "sourceType": "github",
-      "computedHash": "76994afc39b68f4dbe098df76262b68d9928a23ee0f6aaebb11ba0e0f55bfa13"
-    },
-    "caveman-compress": {
-      "source": "juliusbrussee/caveman",
-      "sourceType": "github",
-      "computedHash": "300fb8578258161e1752a2a4142a7e9ff178c960bcb83b84422e2987421f33bf"
-    },
-    "caveman-help": {
-      "source": "juliusbrussee/caveman",
-      "sourceType": "github",
-      "computedHash": "3cd5f7d3f88c8ef7b16a6555dc61f5a11b14151386697609ab6887ab8b5f059d"
-    },
-    "caveman-review": {
-      "source": "juliusbrussee/caveman",
-      "sourceType": "github",
-      "computedHash": "1dc59e7e896bc9dd449e43116c4c8b2e656b88c3370df91848330c17347af3d0"
-    },
-    "compress": {
-      "source": "juliusbrussee/caveman",
-      "sourceType": "github",
-      "computedHash": "05c97bc3120108acd0b80bdef7fb4fa7c224ba83c8d384ccbc97f92e8a065918"
-    },
     "designing-entities": {
       "source": "electric-sql/electric",
       "sourceType": "github",
-      "computedHash": "6714fb76cfcd046e93c37127f6c7d6c33640a05ab00618168183fe01895317ae"
+      "skillPath": "packages/agents-runtime/skills/designing-entities/SKILL.md",
+      "computedHash": "9d80fef33cf0f77e99128e283a01ca5b6a9d3eac22f1f6fb883c74ded614b0c5"
     },
     "electric-debugging": {
       "source": "electric-sql/electric",
       "sourceType": "github",
+      "skillPath": "packages/typescript-client/skills/electric-debugging/SKILL.md",
       "computedHash": "62be970938e66f99c5bfa5060e73f7b011985305bfc4ad9efd71e1ce651f214a"
     },
     "electric-deployment": {
       "source": "electric-sql/electric",
       "sourceType": "github",
+      "skillPath": "packages/typescript-client/skills/electric-deployment/SKILL.md",
       "computedHash": "9a41340974316b069c097dd848cc4fb8019d6dc075f4e4cb9721f092ee9847f8"
     },
     "electric-new-feature": {
       "source": "electric-sql/electric",
       "sourceType": "github",
+      "skillPath": "skills/electric-new-feature/SKILL.md",
       "computedHash": "d500c994be8e3f6335ed3b41892728e25047b45fa7c6ff724654be1de5b3fcbd"
     },
     "electric-orm": {
       "source": "electric-sql/electric",
       "sourceType": "github",
+      "skillPath": "packages/typescript-client/skills/electric-orm/SKILL.md",
       "computedHash": "55af40bc43f3ccb2273d7e6e1742deea4326c63cacb618bb902846f589276633"
     },
     "electric-postgres-security": {
       "source": "electric-sql/electric",
       "sourceType": "github",
+      "skillPath": "packages/typescript-client/skills/electric-postgres-security/SKILL.md",
       "computedHash": "073f7c0628cc2d61d8b54c3f9eb03fcaac8dac47791ebae56a8f777590825dd4"
     },
     "electric-proxy-auth": {
       "source": "electric-sql/electric",
       "sourceType": "github",
+      "skillPath": "packages/typescript-client/skills/electric-proxy-auth/SKILL.md",
       "computedHash": "0d7a511fdf9f397087de0ffb519d3628263d8b9b9ece93602f4d44e98082346f"
     },
     "electric-schema-shapes": {
       "source": "electric-sql/electric",
       "sourceType": "github",
+      "skillPath": "packages/typescript-client/skills/electric-schema-shapes/SKILL.md",
       "computedHash": "90927210d5f68e7c57997c1fe77da3dc3cb173df74a8fe5e4bc407ce4b752158"
     },
     "electric-shapes": {
       "source": "electric-sql/electric",
       "sourceType": "github",
+      "skillPath": "packages/typescript-client/skills/electric-shapes/SKILL.md",
       "computedHash": "84c9f269aa486fe684628bf9e37de1d914f24b3e6ea7ab7c283f3bb449f3ae83"
     },
     "entity-stream-queries": {
       "source": "electric-sql/electric",
       "sourceType": "github",
+      "skillPath": "packages/agents-runtime/skills/entity-stream-queries/SKILL.md",
       "computedHash": "13571b58c4eae773b85f9751e00ba2639118259ffe001287cd7ca57fecf1edea"
     },
     "formisch": {
       "source": "open-circle/agent-skills",
       "sourceType": "github",
+      "skillPath": "skills/formisch/SKILL.md",
       "computedHash": "3920325909e35e888d752fd756c31e9b26b2fc66ba0bdb456f67ad8101d87485"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "e320c6a95802882f0748be495150aaafccd2cce59a323d79cb50a3201c3bde75"
     },
     "supabase": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
-      "computedHash": "d836a3567233bc5367d3f5f78cf0d90289f2b2385e37d22f450886e435e15c73"
+      "skillPath": "skills/supabase/SKILL.md",
+      "computedHash": "45a3cdccc364a4bbd6cdf700fc069e9f24ebc0428098746cbfbf8b18a5e160d2"
     },
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
+      "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
       "computedHash": "d606a1146be6d54fb9e73f718b5320b9acac5ff2ba2d7230a555df4b5a923b4a"
     },
     "valibot": {
       "source": "open-circle/agent-skills",
       "sourceType": "github",
+      "skillPath": "skills/valibot/SKILL.md",
       "computedHash": "6798b923c1bbe9b07cb8c40470ada09c377d666045caefda90d95577e16e8744"
     }
   }
