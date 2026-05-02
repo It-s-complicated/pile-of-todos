@@ -22,14 +22,14 @@ const navItems = [
   { label: 'Completed', path: '/finished' },
   { label: 'Archived', path: '/archived' },
 ] as const
-const primaryNavItems = navItems.slice(0, 3)
-const secondaryNavItems = navItems.slice(3)
+const primaryNavItems = navItems.slice(0, 4)
+const moreNavItems = navItems.slice(4)
 
 const route = useRoute()
 const { isOnline, offlineQueue } = useElectricTodos()
 const currentWeek = getCurrentWeekNumber()
 const isHeaderMenuOpen = ref(false)
-const headerMenuPanelId = 'header-menu-panel'
+const headerMenuPanelId = 'more-views-panel'
 
 const workspaceCopy: Record<string, WorkspaceCopy> = {
   '/backlog': {
@@ -54,7 +54,7 @@ const workspaceCopy: Record<string, WorkspaceCopy> = {
 
 const activeWorkspace = computed(() => workspaceCopy[route.path] ?? workspaceCopy['/backlog'])
 const headerMenuToggleLabel = computed(() =>
-  isHeaderMenuOpen.value ? 'Close workspace menu' : 'Open workspace menu',
+  isHeaderMenuOpen.value ? 'Close more views' : 'Open more views',
 )
 
 function closeHeaderMenu() {
@@ -88,58 +88,63 @@ onBeforeUnmount(() => {
       class="sticky top-0 z-40 border-b border-outline-variant/10 bg-surface/80 backdrop-blur-2xl"
     >
       <div
-        class="mx-auto grid max-w-screen-2xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-6 py-4 lg:px-8"
+        class="mx-auto flex max-w-screen-2xl flex-col gap-3 px-4 py-4 sm:px-6 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:px-8"
       >
-        <div class="font-headline leading-none">
-          <p
-            class="mb-1.5 text-4xl font-extrabold tracking-tight text-primary trim-both-cap-alphabetic"
-          >
-            Pile
-          </p>
-          <p
-            class="flex items-baseline justify-center gap-1 text-[0.55rem] font-semibold tracking-loose text-on-surface-variant"
-          >
-            <span class="trim-both-cap-alphabetic">of</span>
-            <span class="text-[0.72rem] tracking-[0.14em] text-primary trim-both-cap-alphabetic"
-              >Todos</span
+        <div class="flex items-center justify-between gap-3 md:contents">
+          <div class="font-headline leading-none md:col-start-1 md:row-start-1">
+            <p
+              class="mb-1.5 text-4xl font-extrabold tracking-tight text-primary trim-both-cap-alphabetic"
             >
-          </p>
+              Pile
+            </p>
+            <p
+              class="flex items-baseline justify-center gap-1 text-[0.55rem] font-semibold tracking-loose text-on-surface-variant"
+            >
+              <span class="trim-both-cap-alphabetic">of</span>
+              <span class="text-[0.72rem] tracking-[0.14em] text-primary trim-both-cap-alphabetic"
+                >Todos</span
+              >
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 text-on-surface shadow-[0_10px_24px_rgba(0,0,0,0.12)] transition-colors duration-200 hover:bg-surface-container-highest md:col-start-3 md:row-start-1 md:justify-self-end"
+            :aria-controls="headerMenuPanelId"
+            :aria-expanded="isHeaderMenuOpen"
+            :aria-label="headerMenuToggleLabel"
+            @click="toggleHeaderMenu"
+          >
+            <span class="text-sm font-semibold">More views</span>
+            <Menu v-if="!isHeaderMenuOpen" class="size-4.5" stroke-width="2.2" />
+            <X v-else class="size-4.5" stroke-width="2.2" />
+          </button>
         </div>
 
         <nav
-          class="flex min-w-0 items-center justify-center gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-2 [&::-webkit-scrollbar]:hidden"
+          class="grid min-w-0 grid-cols-4 items-center gap-1 rounded-2xl border border-outline-variant/10 bg-surface-container-low/70 p-1 md:col-start-2 md:row-start-1 md:mx-auto md:flex md:justify-center md:rounded-full md:bg-transparent md:p-0 md:[-ms-overflow-style:none] md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden"
+          aria-label="Weekly planning views"
         >
           <RouterLink
             v-for="item in primaryNavItems"
             :key="item.path"
             :to="item.path"
             :class="{
-              'font-semibold text-primary': route.path === item.path,
+              'bg-primary/10 font-semibold text-primary md:bg-transparent':
+                route.path === item.path,
               'text-on-surface-variant hover:text-primary': route.path !== item.path,
             }"
             :aria-current="route.path === item.path ? 'page' : undefined"
-            class="relative shrink-0 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 hover:bg-surface-container md:rounded-lg"
+            class="relative rounded-xl px-2 py-2 text-center text-sm font-medium transition-colors duration-200 hover:bg-surface-container md:shrink-0 md:rounded-lg md:px-3"
           >
             <span>{{ item.label }}</span>
             <span
               v-if="route.path === item.path"
               aria-hidden="true"
-              class="absolute inset-x-3 bottom-1 block h-px bg-primary"
+              class="absolute inset-x-3 bottom-1 hidden h-px bg-primary md:block"
             />
           </RouterLink>
         </nav>
-
-        <button
-          type="button"
-          class="inline-flex size-11 items-center justify-center justify-self-end rounded-full border border-outline-variant/10 bg-surface-container/80 text-on-surface shadow-[0_10px_24px_rgba(0,0,0,0.12)] transition-colors duration-200 hover:bg-surface-container-highest"
-          :aria-controls="headerMenuPanelId"
-          :aria-expanded="isHeaderMenuOpen"
-          :aria-label="headerMenuToggleLabel"
-          @click="toggleHeaderMenu"
-        >
-          <Menu v-if="!isHeaderMenuOpen" class="size-4.5" stroke-width="2.2" />
-          <X v-else class="size-4.5" stroke-width="2.2" />
-        </button>
       </div>
 
       <Transition
@@ -163,11 +168,14 @@ onBeforeUnmount(() => {
                 <p
                   class="text-tiny font-semibold tracking-looser text-on-surface-variant uppercase"
                 >
-                  Saved Views
+                  More views
                 </p>
-                <nav class="grid gap-2 sm:grid-cols-3 md:grid-cols-1">
+                <p class="text-sm text-on-surface-variant">
+                  Completed and archived lists live here.
+                </p>
+                <nav class="grid gap-2 sm:grid-cols-2 md:grid-cols-1" aria-label="More views">
                   <RouterLink
-                    v-for="item in secondaryNavItems"
+                    v-for="item in moreNavItems"
                     :key="item.path"
                     :to="item.path"
                     :class="{

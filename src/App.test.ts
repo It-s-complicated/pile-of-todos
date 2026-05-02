@@ -159,21 +159,18 @@ test('App defaults to the merged-model sync explanation when nothing is queued',
   )
 })
 
-test('App renders the primary header links and collapsed menu trigger for secondary routes', async () => {
+test('App renders weekly planning links and a collapsed More views trigger', async () => {
   routePath = '/archived'
 
   const html = await renderApp()
 
-  assert.match(
-    html,
-    /Pile[\s\S]*Backlog[\s\S]*Current[\s\S]*Future[\s\S]*aria-controls="header-menu-panel"/,
-  )
-  assert.notMatch(html, /Unfinished/)
+  assert.match(html, /Pile[\s\S]*Backlog[\s\S]*Current[\s\S]*Future[\s\S]*Unfinished/)
+  assert.match(html, /aria-controls="more-views-panel"/)
+  assert.match(html, /More views/)
   assert.notMatch(html, /Completed/)
   assert.notMatch(html, /Archived/)
-  assert.notMatch(html, /Saved Views/)
   assert.match(html, /aria-expanded="false"/)
-  assert.match(html, /aria-label="Open workspace menu"/)
+  assert.match(html, /aria-label="Open more views"/)
 })
 
 test('App keeps the offline queue default copy unchanged in SSR output', async () => {
