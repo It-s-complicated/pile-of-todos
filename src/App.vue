@@ -116,7 +116,7 @@ onBeforeUnmount(() => {
 
         <button
           type="button"
-          class="order-2 ml-auto inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-2.5 text-on-surface shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-colors duration-200 hover:bg-surface-container-highest sm:order-3"
+          class="order-2 ml-auto inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 text-on-surface shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-all duration-200 hover:bg-surface-container-highest active:scale-[0.98] sm:order-3 sm:min-h-10"
           :aria-controls="headerMenuPanelId"
           :aria-expanded="isHeaderMenuOpen"
           :aria-label="headerMenuToggleLabel"
@@ -128,7 +128,7 @@ onBeforeUnmount(() => {
         </button>
 
         <nav
-          class="order-3 grid w-full min-w-0 grid-cols-4 items-center gap-1 rounded-full border border-outline-variant/10 bg-surface-container-low/70 p-1 sm:order-2 sm:w-auto sm:flex-1 sm:justify-center sm:bg-transparent sm:p-0 sm:[-ms-overflow-style:none] sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden"
+          class="order-3 grid w-full min-w-0 grid-cols-4 items-center gap-1 rounded-3xl border border-outline-variant/10 bg-surface-container-low/70 p-1 sm:order-2 sm:w-auto sm:flex-1 sm:justify-center sm:bg-transparent sm:p-0 sm:[-ms-overflow-style:none] sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden"
           aria-label="Weekly planning views"
         >
           <RouterLink
@@ -141,7 +141,7 @@ onBeforeUnmount(() => {
               'text-on-surface-variant hover:text-primary': route.path !== item.path,
             }"
             :aria-current="route.path === item.path ? 'page' : undefined"
-            class="relative rounded-full px-2 py-1.5 text-center text-sm font-medium transition-colors duration-200 hover:bg-surface-container sm:shrink-0 sm:rounded-lg sm:px-3"
+            class="relative flex min-h-10 items-center justify-center rounded-2xl px-2 text-center text-sm font-medium transition-all duration-200 hover:bg-surface-container active:scale-[0.98] sm:min-h-9 sm:shrink-0 sm:rounded-lg sm:px-3"
           >
             <span>{{ item.label }}</span>
             <span
@@ -166,7 +166,7 @@ onBeforeUnmount(() => {
           :id="headerMenuPanelId"
           class="absolute inset-x-0 top-full z-40"
         >
-          <div class="mx-auto flex max-w-screen-2xl justify-end px-6 pb-4 lg:px-8">
+          <div class="mx-auto flex max-w-screen-2xl justify-end px-3 pb-4 sm:px-5 lg:px-6">
             <div
               class="w-full space-y-4 rounded-3xl border border-outline-variant/10 bg-surface/95 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:max-w-md"
             >
@@ -190,7 +190,7 @@ onBeforeUnmount(() => {
                         route.path !== item.path,
                     }"
                     :aria-current="route.path === item.path ? 'page' : undefined"
-                    class="rounded-2xl border px-3 py-3 text-sm font-semibold transition-colors duration-200"
+                    class="flex min-h-11 items-center rounded-2xl border px-3 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.99]"
                     @click="closeHeaderMenu"
                   >
                     {{ item.label }}
@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
       @click="closeHeaderMenu"
     />
 
-    <main class="mx-auto max-w-3xl px-4 pt-7 pb-72 sm:px-6 sm:pt-8 lg:px-0">
+    <main class="mx-auto max-w-3xl px-4 pt-6 pb-80 sm:px-6 sm:pt-8 sm:pb-72 lg:px-0">
       <section class="mb-6 sm:mb-7">
         <h1
           class="font-headline text-2xl font-extrabold tracking-tight text-on-surface trim-both-cap-alphabetic sm:text-3xl"
@@ -257,7 +257,7 @@ onBeforeUnmount(() => {
             Todo views merge the confirmed Electric baseline with a local pending overlay until each
             accepted txid is confirmed.
           </p>
-          <p v-if="offlineQueue.lastError" class="text-danger mt-2 text-xs">
+          <p v-if="offlineQueue.lastError" class="mt-2 text-xs text-error">
             {{ offlineQueue.lastError }}
           </p>
         </div>

@@ -5,7 +5,7 @@ defineProps<{ title: string; subtitle: string }>()
 
 <template>
   <div
-    class="rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-6 py-16 text-center shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
+    class="rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-5 py-12 text-center shadow-[0_16px_40px_rgba(0,0,0,0.18)] sm:px-6 sm:py-16"
   >
     <div class="inline-flex flex-col items-center gap-4">
       <div
@@ -17,7 +17,7 @@ defineProps<{ title: string; subtitle: string }>()
         <p class="font-headline text-lg font-semibold tracking-tight text-on-surface">
           {{ title }}
         </p>
-        <p class="mt-2 text-sm text-on-surface-variant">
+        <p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-on-surface-variant">
           {{ subtitle }}
         </p>
       </div>

@@ -61,13 +61,21 @@ function confirmMove(weekNumber: number | null) {
   <div class="space-y-4">
     <div
       v-if="loading"
-      class="flex min-h-56 items-center justify-center rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-6 py-14 text-center"
+      class="space-y-3 rounded-3xl border border-outline-variant/10 bg-surface-container/70 p-4 sm:p-5"
+      aria-busy="true"
+      aria-live="polite"
     >
-      <div class="inline-flex items-center gap-3 text-on-surface-variant">
-        <div
-          class="size-5 animate-spin rounded-full border-2 border-outline-variant/20 border-t-primary"
-        />
-        <span class="text-sm font-medium">Loading tasks...</span>
+      <p class="sr-only">Loading tasks...</p>
+      <div
+        v-for="index in 3"
+        :key="index"
+        class="animate-pulse rounded-2xl border border-outline-variant/10 bg-surface-container-highest/70 p-4"
+      >
+        <div class="mb-4 h-4 w-3/4 rounded-full bg-surface-bright" />
+        <div class="flex gap-2">
+          <div class="h-5 w-20 rounded-full bg-surface-bright/70" />
+          <div class="h-5 w-16 rounded-full bg-surface-bright/70" />
+        </div>
       </div>
     </div>
 
@@ -93,7 +101,7 @@ function confirmMove(weekNumber: number | null) {
             :aria-label="todo.done ? 'Mark as incomplete' : 'Mark as complete'"
             :disabled="!canMutateTodos"
             :title="!canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined"
-            class="relative mt-0.5 size-6 shrink-0 rounded-full border border-outline-variant/70 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50"
+            class="relative mt-0.5 size-11 shrink-0 rounded-full border border-outline-variant/70 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
             :class="
               todo.done
                 ? 'border-primary bg-primary text-on-primary'
@@ -135,7 +143,7 @@ function confirmMove(weekNumber: number | null) {
             :key="action.label"
             :disabled="action.disabled"
             :title="action.title"
-            class="rounded-full p-2 text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest disabled:cursor-not-allowed disabled:opacity-50"
+            class="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-9"
             :class="action.class"
             @click="action.handler(todo)"
           >
@@ -146,7 +154,7 @@ function confirmMove(weekNumber: number | null) {
     </div>
 
     <Transition
-      enter-active-class="transition-all duration-200 ease-out"
+      enter-active-class="transition duration-200 ease-out"
       enter-from-class="opacity-0"
       enter-to-class="opacity-100"
       leave-active-class="transition-all duration-150 ease-in"
@@ -155,10 +163,10 @@ function confirmMove(weekNumber: number | null) {
     >
       <div
         v-if="showWeekSelector"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-surface/70 p-4 backdrop-blur-2xl"
+        class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-surface/70 p-3 backdrop-blur-2xl sm:p-4"
         @click="closeWeekSelector"
       >
-        <div @click.stop>
+        <div class="w-full max-w-md" @click.stop>
           <WeekSelector
             :current-week="currentWeek"
             :selected-week="selectedTodo?.weekNumber"

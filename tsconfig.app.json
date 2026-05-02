@@ -15,7 +15,7 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
-    "rewriteRelativeImportExtensions": true,
+    "rewriteRelativeImportExtensions": false,
     "forceConsistentCasingInFileNames": true
   },
   "vueCompilerOptions": {
