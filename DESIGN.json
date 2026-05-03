@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-03T00:00:00.000Z",
+  "title": "Design System: Pile of Todos",
+  "extensions": {
+    "colorMeta": {
+      "ink-black-surface": {
+        "role": "neutral",
+        "displayName": "Ink Black Surface",
+        "canonical": "#0c0e10",
+        "tonalRamp": [
+          "oklch(15% 0.01 210)",
+          "oklch(25% 0.01 210)",
+          "oklch(35% 0.01 210)",
+          "oklch(45% 0.01 210)",
+          "oklch(58% 0.008 210)",
+          "oklch(72% 0.006 210)",
+          "oklch(84% 0.005 210)",
+          "oklch(95% 0.004 210)"
+        ]
+      },
+      "charcoal-work-layer": {
+        "role": "neutral",
+        "displayName": "Charcoal Work Layer",
+        "canonical": "#171a1d",
+        "tonalRamp": [
+          "oklch(16% 0.01 210)",
+          "oklch(24% 0.01 210)",
+          "oklch(34% 0.01 210)",
+          "oklch(46% 0.008 210)",
+          "oklch(58% 0.008 210)",
+          "oklch(72% 0.006 210)",
+          "oklch(84% 0.005 210)",
+          "oklch(94% 0.004 210)"
+        ]
+      },
+      "sage-confirmation": {
+        "role": "primary",
+        "displayName": "Sage Confirmation",
+        "canonical": "#b8cbc1",
+        "tonalRamp": [
+          "oklch(15% 0.04 165)",
+          "oklch(25% 0.045 165)",
+          "oklch(35% 0.05 165)",
+          "oklch(48% 0.055 165)",
+          "oklch(60% 0.05 165)",
+          "oklch(72% 0.045 165)",
+          "oklch(84% 0.035 165)",
+          "oklch(95% 0.015 165)"
+        ]
+      },
+      "dusty-rose-queue": {
+        "role": "secondary",
+        "displayName": "Dusty Rose Queue",
+        "canonical": "#e2bec1",
+        "tonalRamp": [
+          "oklch(15% 0.04 20)",
+          "oklch(25% 0.05 20)",
+          "oklch(35% 0.055 20)",
+          "oklch(48% 0.06 20)",
+          "oklch(62% 0.055 20)",
+          "oklch(74% 0.045 20)",
+          "oklch(86% 0.03 20)",
+          "oklch(95% 0.015 20)"
+        ]
+      },
+      "pale-blue-future": {
+        "role": "tertiary",
+        "displayName": "Pale Blue Future",
+        "canonical": "#f3f6ff",
+        "tonalRamp": [
+          "oklch(15% 0.035 255)",
+          "oklch(25% 0.04 255)",
+          "oklch(36% 0.045 255)",
+          "oklch(50% 0.05 255)",
+          "oklch(65% 0.04 255)",
+          "oklch(78% 0.03 255)",
+          "oklch(88% 0.018 255)",
+          "oklch(97% 0.008 255)"
+        ]
+      },
+      "soft-red-error": {
+        "role": "error",
+        "displayName": "Soft Red Error",
+        "canonical": "#fa746f",
+        "tonalRamp": [
+          "oklch(15% 0.06 28)",
+          "oklch(25% 0.08 28)",
+          "oklch(35% 0.1 28)",
+          "oklch(48% 0.12 28)",
+          "oklch(62% 0.11 28)",
+          "oklch(74% 0.08 28)",
+          "oklch(86% 0.045 28)",
+          "oklch(95% 0.02 28)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Compact brand mark and largest workspace headers only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Workspace titles and dialog headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Empty-state titles and compact section titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Task labels, fields, and primary readable text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase metadata, badges, field labels, and sync states."
+      }
+    },
+    "shadows": [
+      {
+        "name": "status-lift",
+        "value": "0 10px 24px rgba(0, 0, 0, 0.16)",
+        "purpose": "Compact pills and small status surfaces."
+      },
+      {
+        "name": "card-rest",
+        "value": "0 10px 28px rgba(0, 0, 0, 0.16)",
+        "purpose": "Task cards at rest."
+      },
+      {
+        "name": "panel-lift",
+        "value": "0 16px 40px rgba(0, 0, 0, 0.18)",
+        "purpose": "Empty states and informational panels."
+      },
+      {
+        "name": "card-hover",
+        "value": "0 20px 40px rgba(0, 0, 0, 0.24)",
+        "purpose": "Task card hover response only."
+      },
+      {
+        "name": "floating-composer",
+        "value": "0 20px 40px rgba(0, 0, 0, 0.38)",
+        "purpose": "Fixed composer and week selector."
+      },
+      {
+        "name": "menu-overlay",
+        "value": "0 24px 60px rgba(0, 0, 0, 0.22)",
+        "purpose": "Dropdown panels attached to the sticky header."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-quart",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrances, task reveals, and checkmark feedback."
+      },
+      {
+        "name": "fast-state",
+        "value": "150ms",
+        "purpose": "Icon button, retry, and simple hover transitions."
+      },
+      {
+        "name": "standard-state",
+        "value": "200ms",
+        "purpose": "Buttons, inputs, navigation, and selected controls."
+      },
+      {
+        "name": "entrance",
+        "value": "320ms",
+        "purpose": "Task item fade-in-up animation."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action for adding or moving tasks.",
+      "html": "<button class=\"ds-btn-primary\">Add Task</button>",
+      "css": ".ds-btn-primary { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--radius-control, 16px); background: var(--color-primary, #b8cbc1); color: var(--color-on-primary, #33443c); padding: 14px 20px; font-family: var(--font-label, Inter, sans-serif); font-size: 14px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; transition: transform 200ms, background-color 200ms, box-shadow 200ms; } .ds-btn-primary:hover { transform: translateY(-2px); background: var(--color-primary-high, #c4d3ca); box-shadow: 0 10px 24px rgba(184, 203, 193, 0.18); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-primary, #b8cbc1); outline-offset: 2px; } .ds-btn-primary:active { transform: translateY(0); } .ds-btn-primary:disabled { cursor: not-allowed; opacity: 0.6; transform: none; box-shadow: none; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet cancel or sign-out action.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(68, 72, 77, 0.1); border-radius: var(--radius-control, 16px); background: var(--color-surface-container-highest, #22262a); color: var(--color-on-surface, #e2e6eb); padding: 12px 16px; font-family: var(--font-body, Inter, sans-serif); font-size: 14px; font-weight: 500; transition: background-color 200ms, transform 150ms; } .ds-btn-secondary:hover { background: var(--color-surface-bright, #282d31); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--color-primary, #b8cbc1); outline-offset: 2px; } .ds-btn-secondary:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Raised charcoal field for quick task entry and inline editing.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">New Task</span><input class=\"ds-input\" placeholder=\"What needs to be done?\" /></label>",
+      "css": ".ds-field { display: grid; gap: 6px; font-family: var(--font-body, Inter, sans-serif); } .ds-field-label { color: var(--color-on-surface-variant, #a8abb0); font-size: 10px; font-weight: 600; letter-spacing: 0.32em; line-height: 1; text-transform: uppercase; } .ds-input { min-height: 48px; width: 100%; border: 1px solid rgba(68, 72, 77, 0.1); border-radius: var(--radius-control, 16px); background: var(--color-surface-container-highest, #22262a); color: var(--color-on-surface, #e2e6eb); padding: 12px 16px; font-size: 16px; transition: border-color 200ms, box-shadow 200ms; } .ds-input::placeholder { color: rgba(168, 171, 176, 0.7); } .ds-input:hover { border-color: rgba(68, 72, 77, 0.2); } .ds-input:focus { border-color: rgba(184, 203, 193, 0.4); box-shadow: 0 0 0 2px rgba(184, 203, 193, 0.15); outline: none; }"
+    },
+    {
+      "name": "Task Card",
+      "kind": "card",
+      "refersTo": "task-card",
+      "description": "Default todo item surface with schedule badge, lifecycle badge, and hover lift.",
+      "html": "<article class=\"ds-task-card\"><button class=\"ds-check\" aria-label=\"Mark complete\"></button><div class=\"ds-task-main\"><p class=\"ds-task-title\">Review next week's commitments</p><div class=\"ds-task-meta\"><span class=\"ds-dot\"></span><span class=\"ds-chip ds-chip-primary\">Week 18 · Current</span><span class=\"ds-chip ds-chip-neutral\">Active</span></div></div></article>",
+      "css": ".ds-task-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 20px; border: 1px solid rgba(68, 72, 77, 0.1); border-radius: var(--radius-surface, 24px); background: var(--color-surface-container, #171a1d); color: var(--color-on-surface, #e2e6eb); padding: 24px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16); transition: transform 300ms, background-color 300ms, box-shadow 300ms, border-color 300ms; } .ds-task-card:hover { transform: translateY(-2px); background: var(--color-surface-container-high, #1c2023); border-color: rgba(184, 203, 193, 0.2); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.24); } .ds-check { width: 32px; height: 32px; border-radius: 9999px; border: 1px solid rgba(68, 72, 77, 0.7); background: transparent; transition: border-color 200ms, transform 200ms; } .ds-check:hover { border-color: rgba(184, 203, 193, 0.7); } .ds-check:focus-visible { outline: 2px solid rgba(184, 203, 193, 0.35); outline-offset: 2px; } .ds-check:active { transform: scale(0.95); } .ds-task-main { min-width: 0; display: grid; gap: 14px; } .ds-task-title { margin: 0; font-family: var(--font-body, Inter, sans-serif); font-size: 16px; line-height: 1.35; } .ds-task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .ds-dot { width: 10px; height: 10px; border-radius: 9999px; background: var(--color-primary, #b8cbc1); box-shadow: 0 0 0 2px var(--color-surface-container-high, #1c2023); } .ds-chip { border-radius: 9999px; padding: 6px 10px; font-family: var(--font-label, Inter, sans-serif); font-size: 10px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; } .ds-chip-primary { background: rgba(69, 86, 78, 0.35); color: var(--color-primary, #b8cbc1); } .ds-chip-neutral { background: var(--color-surface-container-highest, #22262a); color: var(--color-on-surface-variant, #a8abb0); }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "status-pill",
+      "description": "Inline sync state with a small semantic dot and optional retry action.",
+      "html": "<div class=\"ds-status-pill\"><span class=\"ds-status-dot\"></span><span>Synced</span></div>",
+      "css": ".ds-status-pill { min-height: 40px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(68, 72, 77, 0.1); border-radius: 9999px; background: rgba(23, 26, 29, 0.8); color: var(--color-primary, #b8cbc1); padding: 8px 12px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16); font-family: var(--font-label, Inter, sans-serif); font-size: 12px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; } .ds-status-dot { width: 8px; height: 8px; border-radius: 9999px; background: var(--color-primary, #b8cbc1); transition: background-color 200ms; }"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "refersTo": "navigation-item",
+      "description": "Compact route tab for weekly planning lanes.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Weekly planning views\"><a class=\"ds-nav-item ds-nav-active\" href=\"#\">Current</a><a class=\"ds-nav-item\" href=\"#\">Future</a></nav>",
+      "css": ".ds-nav { display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(68, 72, 77, 0.1); border-radius: 24px; background: rgba(17, 20, 22, 0.7); padding: 4px; font-family: var(--font-body, Inter, sans-serif); } .ds-nav-item { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 16px; padding: 0 12px; color: var(--color-on-surface-variant, #a8abb0); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 200ms, background-color 200ms, transform 200ms; } .ds-nav-item:hover { color: var(--color-primary, #b8cbc1); background: var(--color-surface-container, #171a1d); } .ds-nav-item:focus-visible { outline: 2px solid var(--color-primary, #b8cbc1); outline-offset: 2px; } .ds-nav-item:active { transform: scale(0.98); } .ds-nav-active { color: var(--color-primary, #b8cbc1); background: rgba(184, 203, 193, 0.1); font-weight: 600; }"
+    },
+    {
+      "name": "Floating Composer",
+      "kind": "custom",
+      "refersTo": "fixed-task-composer",
+      "description": "Bottom fixed capture surface that anchors the product gesture.",
+      "html": "<form class=\"ds-composer\"><label class=\"ds-field\"><span class=\"ds-field-label\">New Task</span><input class=\"ds-input\" placeholder=\"What needs to be done?\" /></label><button class=\"ds-btn-primary\">Add Task</button></form>",
+      "css": ".ds-composer { max-width: 48rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; border: 1px solid rgba(68, 72, 77, 0.1); border-radius: var(--radius-surface, 24px); background: rgba(23, 26, 29, 0.9); padding: 14px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.38); backdrop-filter: blur(40px); } .ds-field { display: grid; gap: 6px; font-family: var(--font-body, Inter, sans-serif); } .ds-field-label { color: var(--color-on-surface-variant, #a8abb0); font-size: 10px; font-weight: 600; letter-spacing: 0.32em; line-height: 1; text-transform: uppercase; } .ds-input { min-height: 48px; border: 1px solid rgba(68, 72, 77, 0.1); border-radius: var(--radius-control, 16px); background: var(--color-surface-container-highest, #22262a); color: var(--color-on-surface, #e2e6eb); padding: 12px 16px; font-size: 16px; transition: border-color 200ms, box-shadow 200ms; } .ds-input:focus { border-color: rgba(184, 203, 193, 0.4); box-shadow: 0 0 0 2px rgba(184, 203, 193, 0.15); outline: none; } .ds-btn-primary { min-height: 48px; border: 0; border-radius: var(--radius-control, 16px); background: var(--color-primary, #b8cbc1); color: var(--color-on-primary, #33443c); padding: 14px 20px; font-size: 14px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; transition: transform 200ms, background-color 200ms, box-shadow 200ms; } .ds-btn-primary:hover { transform: translateY(-2px); background: var(--color-primary-high, #c4d3ca); box-shadow: 0 10px 24px rgba(184, 203, 193, 0.18); } @media (max-width: 640px) { .ds-composer { grid-template-columns: 1fr; } }"
+    },
+    {
+      "name": "Empty State",
+      "kind": "card",
+      "refersTo": "empty-state",
+      "description": "Quiet instructional surface when a task lane has no items.",
+      "html": "<section class=\"ds-empty\"><div class=\"ds-empty-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M22 12h-6l-2 3h-4l-2-3H2\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></div><h2 class=\"ds-empty-title\">No tasks here</h2><p class=\"ds-empty-text\">Capture work below, or move tasks into this lane when they need attention.</p></section>",
+      "css": ".ds-empty { border: 1px solid rgba(68, 72, 77, 0.1); border-radius: var(--radius-surface, 24px); background: rgba(23, 26, 29, 0.7); color: var(--color-on-surface, #e2e6eb); padding: 48px 24px; text-align: center; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18); font-family: var(--font-body, Inter, sans-serif); } .ds-empty-icon { width: 64px; height: 64px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; background: var(--color-surface-container-highest, #22262a); color: var(--color-primary, #b8cbc1); } .ds-empty-icon svg { width: 32px; height: 32px; } .ds-empty-title { margin: 16px 0 0; font-family: var(--font-headline, Epilogue, sans-serif); font-size: 18px; font-weight: 600; letter-spacing: -0.025em; } .ds-empty-text { max-width: 24rem; margin: 8px auto 0; color: var(--color-on-surface-variant, #a8abb0); font-size: 14px; line-height: 1.625; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Workbench",
+    "overview": "Pile of Todos is a dim, focused working surface for one person's weekly planning rhythm. It should feel like a dependable desk at the end of a concentrated day: every control is visible, every task has a place, and the interface keeps its voice low while the user decides what matters.\n\nThe system is dark because the scene is personal planning in a focused work session, often near the edge of the day when glare feels intrusive and calm contrast helps sustained scanning. It is not a neon productivity toy. The visual language uses soft mechanical controls, quiet tonal layers, and small color signals that confirm state rather than decorate the page.\n\nThe product must reject overly bright palettes, loud gradients, massive animations, generic SaaS dashboard tropes, overly cute todo-app styling, marketing-demo polish, neon productivity styling, and generic notes-app cloning.",
+    "keyCharacteristics": [
+      "Compact, tactile surfaces with generous corner rounding and low-contrast borders.",
+      "Muted semantic color used for task state, sync confidence, and primary actions only.",
+      "A fixed bottom composer that treats capture as the main product gesture.",
+      "Dark tonal layering with soft shadows only when a surface floats above the workbench.",
+      "Short, practical copy that supports triage without narrating the obvious."
+    ],
+    "rules": [
+      {
+        "name": "The Quiet Signal Rule",
+        "body": "Sage is for confirmation, current selection, focus, and the primary add gesture. Do not use it as decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tinted Dark Rule",
+        "body": "The surface is dark but never pure black. Every neutral must carry a slight blue-green cast so the interface feels like a workbench, not a terminal.",
+        "section": "colors"
+      },
+      {
+        "name": "The Semantic Pastel Rule",
+        "body": "Rose, blue, and red are state colors. They explain schedule, sync, or error status. They are forbidden as ornamental accents.",
+        "section": "colors"
+      },
+      {
+        "name": "The Working Sans Rule",
+        "body": "UI labels, buttons, badges, and data use Inter. Epilogue is for names and headings only.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tight Scale Rule",
+        "body": "This is a product interface. Keep hierarchy tight and fixed. Do not use fluid display sizes or dramatic type jumps.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tonal First Rule",
+        "body": "If a surface can be distinguished with color, border opacity, and spacing, do not add a new shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Floating Surface Rule",
+        "body": "Heavy shadow is reserved for fixed, sticky, or overlay surfaces. A normal card never gets the composer shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use the existing dark token stack for all surfaces. The workbench depends on tonal separation, not random grays.",
+      "Do reserve sage for primary actions, current selection, focus, synced states, and completed work.",
+      "Do keep task capture prominent with the fixed composer. It is the core product gesture.",
+      "Do use skeleton states in the existing charcoal layers instead of center-screen spinners.",
+      "Do keep motion between `150ms` and `320ms`, using state feedback only.",
+      "Do preserve visible focus states on every control, especially task checkboxes, nav items, fields, and week radio options.",
+      "Do keep copy short and practical: labels should help capture, triage, move, sync, or archive."
+    ],
+    "donts": [
+      "Don't use overly bright palettes.",
+      "Don't use loud gradients.",
+      "Don't use massive animations.",
+      "Don't use generic SaaS dashboard tropes.",
+      "Don't use overly cute todo-app styling.",
+      "Don't make the UI feel like a marketing demo, a neon productivity toy, or a clone of a generic notes app.",
+      "Don't use pure black or pure white. Use the tinted neutral system.",
+      "Don't use a colored `border-left` or `border-right` stripe greater than `1px` on cards, list items, callouts, or alerts.",
+      "Don't use gradient text.",
+      "Don't add decorative glassmorphism. Existing blur belongs to sticky and floating surfaces only.",
+      "Don't create identical marketing-style card grids. This is a task surface.",
+      "Don't introduce modals before inline or progressive controls. The current week selector is the exception because it changes a task destination.",
+      "Don't use display fonts in UI labels, buttons, badges, or data.",
+      "Don't add full-saturation accents to inactive states."
+    ]
+  }
+}
