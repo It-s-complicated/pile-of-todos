@@ -176,7 +176,7 @@ function cancelEdit() {
         @dblclick="startEdit"
       >
         <p
-          class="row-start-1 text-base leading-snug break-words text-on-surface transition-all duration-200 trim-both-cap-alphabetic"
+          class="row-start-1 text-base leading-snug wrap-break-word text-on-surface transition-all duration-200 trim-both-cap-alphabetic"
           :class="{
             'text-on-surface-variant line-through': todo.done,
             'text-on-surface': !todo.done,
