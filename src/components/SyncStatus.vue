@@ -83,7 +83,7 @@ const statusConfig = computed(() => {
 
 <template>
   <div
-    class="flex min-h-10 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 py-2 text-xs shadow-[0_10px_24px_rgba(0,0,0,0.16)]"
+    class="flex min-h-10 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 py-2 text-caption shadow-[0_10px_24px_rgba(0,0,0,0.16)]"
   >
     <div
       class="size-2 rounded-full transition-colors duration-200"

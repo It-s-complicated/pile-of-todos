@@ -14,7 +14,7 @@ defineProps<{ title: string; subtitle: string }>()
         <Inbox class="size-8" stroke-width="1.5" aria-hidden />
       </div>
       <div>
-        <p class="font-headline text-lg font-semibold tracking-tight text-on-surface">
+        <p class="font-headline text-title font-semibold tracking-tight text-on-surface">
           {{ title }}
         </p>
         <p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-on-surface-variant">

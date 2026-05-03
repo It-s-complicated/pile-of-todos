@@ -47,7 +47,7 @@ export default defineConfig({
         families: [
           {
             name: 'Epilogue',
-            styles: 'wght@400..700',
+            styles: 'wght@400..800',
           },
           {
             name: 'Inter',

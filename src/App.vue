@@ -98,7 +98,11 @@ onBeforeUnmount(() => {
       <div
         class="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:px-5 lg:flex-nowrap lg:px-6"
       >
-        <div class="shrink-0 font-headline leading-none">
+        <div
+          class="shrink-0 font-headline leading-none"
+          role="img"
+          aria-label='The logo for "Pile of Todos"'
+        >
           <p
             class="mb-1 text-3xl font-extrabold tracking-tight text-primary trim-both-cap-alphabetic"
           >
@@ -218,7 +222,7 @@ onBeforeUnmount(() => {
     <main class="mx-auto max-w-3xl px-4 pt-6 pb-80 sm:px-6 sm:pt-8 sm:pb-72 lg:px-0">
       <section class="mb-6 sm:mb-7">
         <h1
-          class="font-headline text-2xl font-extrabold tracking-tight text-on-surface trim-both-cap-alphabetic sm:text-3xl"
+          class="font-headline text-headline font-extrabold tracking-tight text-on-surface trim-both-cap-alphabetic sm:text-display"
         >
           {{ activeWorkspace.title }}
         </h1>
@@ -230,7 +234,7 @@ onBeforeUnmount(() => {
       <RouterView />
 
       <section class="mt-16 border-t border-outline-variant/10 pt-10">
-        <h2 class="mb-4 text-xs font-medium tracking-looser text-on-surface-variant uppercase">
+        <h2 class="mb-4 text-tiny font-semibold tracking-loosest text-on-surface-variant uppercase">
           Sync Model
         </h2>
         <div
@@ -257,7 +261,7 @@ onBeforeUnmount(() => {
             Todo views merge the confirmed Electric baseline with a local pending overlay until each
             accepted txid is confirmed.
           </p>
-          <p v-if="offlineQueue.lastError" class="mt-2 text-xs text-error">
+          <p v-if="offlineQueue.lastError" class="mt-2 text-caption text-error">
             {{ offlineQueue.lastError }}
           </p>
         </div>

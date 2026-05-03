@@ -67,7 +67,7 @@ async function handleSignOut() {
       <button
         v-if="!isAuthenticated"
         type="button"
-        class="ml-auto inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+        class="ml-auto inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-4 py-2 text-caption font-semibold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
         :disabled="isWorking"
         @click="handleSignIn"
       >
@@ -78,7 +78,7 @@ async function handleSignOut() {
       <button
         v-else
         type="button"
-        class="ml-auto inline-flex min-h-10 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container-highest px-4 py-2 text-xs font-semibold text-on-surface transition-all duration-200 hover:bg-surface-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+        class="ml-auto inline-flex min-h-10 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container-highest px-4 py-2 text-caption font-semibold text-on-surface transition-all duration-200 hover:bg-surface-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
         :disabled="isWorking"
         @click="handleSignOut"
       >
@@ -89,7 +89,7 @@ async function handleSignOut() {
 
     <p
       v-if="authError"
-      class="rounded-2xl border border-error/20 bg-error-container/20 px-3 py-2 text-xs text-on-error-container"
+      class="rounded-2xl border border-error/20 bg-error-container/20 px-3 py-2 text-caption leading-5 text-on-error-container"
     >
       {{ authError }}
     </p>

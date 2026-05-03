@@ -64,11 +64,13 @@ const weekOptions = [
       <div>
         <h3
           :id="`${id}-title`"
-          class="font-headline text-2xl font-extrabold tracking-tight text-on-surface"
+          class="font-headline text-headline font-extrabold tracking-tight text-on-surface"
         >
           Move to Week
         </h3>
-        <p class="mt-1 text-sm text-on-surface-variant">Select a destination for this task</p>
+        <p class="mt-1 text-sm leading-6 text-on-surface-variant">
+          Select a destination for this task.
+        </p>
       </div>
       <button
         type="button"
@@ -119,7 +121,7 @@ const weekOptions = [
               <span class="block font-label text-sm font-semibold text-on-surface">
                 {{ option.label }}
               </span>
-              <span class="block text-xs text-on-surface-variant">
+              <span class="block text-caption leading-5 text-on-surface-variant">
                 {{ option.description }}
               </span>
             </span>

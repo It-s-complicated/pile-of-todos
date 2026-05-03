@@ -150,7 +150,7 @@ async function createTodo() {
                 <option :value="currentWeek + 2">Week {{ currentWeek + 2 }}</option>
               </select>
             </div>
-            <p class="pb-3 text-xs leading-relaxed text-on-surface-variant sm:max-w-72">
+            <p class="pb-3 text-caption leading-5 text-on-surface-variant sm:max-w-72">
               New tasks go to this week unless you choose another lane.
             </p>
           </div>
