@@ -48,7 +48,11 @@
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-label: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-floating: 0 20px 40px rgba(0, 0, 0, 0.3);
+  --shadow-surface-rest: 0 10px 28px rgb(0 0 0 / 0.16);
+  --shadow-surface-hover: 0 20px 40px rgb(0 0 0 / 0.24);
+  --shadow-floating: 0 20px 40px rgb(0 0 0 / 0.38);
+  --shadow-overlay: 0 24px 60px rgb(0 0 0 / 0.22);
+  --shadow-primary-lift: 0 10px 24px rgb(184 203 193 / 0.18);
 
   --text-tiny: 0.625rem;
   --text-tiny--line-height: 1rem;

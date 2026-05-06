@@ -119,7 +119,7 @@ const weekOptions = [
     aria-modal="true"
     :aria-labelledby="`${id}-title`"
     tabindex="-1"
-    class="animate-fade-in-up max-h-[calc(100vh-1.5rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-outline-variant/10 bg-surface-container/95 p-4 text-on-surface shadow-[0_20px_40px_rgba(0,0,0,0.38)] backdrop-blur-2xl sm:max-h-[calc(100vh-2rem)] sm:p-5"
+    class="animate-fade-in-up max-h-[calc(100vh-1.5rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-outline-variant/10 bg-surface-container/95 p-4 text-on-surface shadow-floating backdrop-blur-2xl sm:max-h-[calc(100vh-2rem)] sm:p-5"
     @keydown="handleKeydown"
   >
     <div class="mb-6 flex items-start justify-between gap-4">
@@ -195,7 +195,7 @@ const weekOptions = [
     <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
       <button
         type="button"
-        class="min-h-12 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold tracking-loose text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)] active:translate-y-0"
+        class="min-h-12 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold tracking-loose text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:shadow-primary-lift active:translate-y-0"
         @click="confirm"
       >
         Move Task

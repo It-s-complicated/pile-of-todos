@@ -147,7 +147,7 @@ function cancelEdit() {
 
 <template>
   <div
-    class="group grid grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_auto] gap-x-3 gap-y-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-[0_20px_40px_rgba(0,0,0,0.24)] sm:gap-x-5 sm:p-6"
+    class="group grid grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_auto] gap-x-3 gap-y-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 shadow-surface-rest transition-all duration-300 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-surface-hover sm:gap-x-5 sm:p-6"
     :class="[statusTone.borderClass, { 'opacity-90': !canMutate }]"
   >
     <div

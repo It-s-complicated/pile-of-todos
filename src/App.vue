@@ -120,7 +120,7 @@ onBeforeUnmount(() => {
 
         <button
           type="button"
-          class="order-2 ml-auto inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 text-on-surface shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-all duration-200 hover:bg-surface-container-highest active:scale-[0.98] sm:order-3 sm:min-h-10"
+          class="order-2 ml-auto inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 text-on-surface shadow-surface-rest transition-all duration-200 hover:bg-surface-container-highest active:scale-[0.98] sm:order-3 sm:min-h-10"
           :aria-controls="headerMenuPanelId"
           :aria-expanded="isHeaderMenuOpen"
           :aria-label="headerMenuToggleLabel"
@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
         >
           <div class="mx-auto flex max-w-screen-2xl justify-end px-3 pb-4 sm:px-5 lg:px-6">
             <div
-              class="w-full space-y-4 rounded-3xl border border-outline-variant/10 bg-surface/95 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:max-w-md"
+              class="w-full space-y-4 rounded-3xl border border-outline-variant/10 bg-surface/95 p-4 shadow-overlay md:max-w-md"
             >
               <div class="space-y-2">
                 <p
@@ -238,7 +238,7 @@ onBeforeUnmount(() => {
           Sync Model
         </h2>
         <div
-          class="rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-5 py-4 text-sm text-on-surface-variant shadow-[0_16px_40px_rgba(0,0,0,0.18)]"
+          class="rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-5 py-4 text-sm text-on-surface-variant shadow-surface-rest"
         >
           <p v-if="offlineQueue.queuedCount > 0 && !isOnline">
             {{ offlineQueue.count }} pending change{{ offlineQueue.count === 1 ? '' : 's' }}

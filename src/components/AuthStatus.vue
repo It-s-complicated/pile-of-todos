@@ -46,7 +46,7 @@ async function handleSignOut() {
 <template>
   <div class="flex flex-col gap-2">
     <div
-      class="flex items-center gap-3 rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-4 py-3 text-left shadow-[0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl"
+      class="flex items-center gap-3 rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-4 py-3 text-left shadow-surface-rest backdrop-blur-xl"
     >
       <div
         class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-container-highest text-primary"
@@ -67,7 +67,7 @@ async function handleSignOut() {
       <button
         v-if="!isAuthenticated"
         type="button"
-        class="ml-auto inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-4 py-2 text-caption font-semibold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(184,203,193,0.18)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+        class="ml-auto inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-4 py-2 text-caption font-semibold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-primary-lift active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
         :disabled="isWorking"
         @click="handleSignIn"
       >

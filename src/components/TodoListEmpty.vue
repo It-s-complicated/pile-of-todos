@@ -5,7 +5,7 @@ defineProps<{ title: string; subtitle: string }>()
 
 <template>
   <div
-    class="rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-5 py-12 text-center shadow-[0_16px_40px_rgba(0,0,0,0.18)] sm:px-6 sm:py-16"
+    class="rounded-3xl border border-outline-variant/10 bg-surface-container/70 px-5 py-12 text-center shadow-surface-rest sm:px-6 sm:py-16"
   >
     <div class="inline-flex flex-col items-center gap-4">
       <div
