@@ -110,7 +110,9 @@ function confirmMove(weekNumber: number | null) {
               type="button"
               role="checkbox"
               :aria-checked="todo.done"
-              :aria-label="todo.done ? 'Mark as incomplete' : 'Mark as complete'"
+              :aria-label="
+                todo.done ? `Mark incomplete: ${todo.label}` : `Mark complete: ${todo.label}`
+              "
               :disabled="!canMutateTodos"
               :title="!canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined"
               class="relative mt-0.5 size-11 shrink-0 rounded-full border border-outline-variant/70 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
@@ -134,7 +136,7 @@ function confirmMove(weekNumber: number | null) {
               v-for="action in [
                 {
                   icon: Calendar,
-                  label: 'Move to different week',
+                  label: `Move to different week: ${todo.label}`,
                   handler: handleMove,
                   disabled: !canMutateTodos,
                   class: 'hover:text-tertiary',
@@ -144,7 +146,7 @@ function confirmMove(weekNumber: number | null) {
                 },
                 {
                   icon: todo.archived ? ArchiveRestore : Archive,
-                  label: todo.archived ? 'Unarchive' : 'Archive',
+                  label: todo.archived ? `Unarchive: ${todo.label}` : `Archive: ${todo.label}`,
                   handler: handleArchive,
                   disabled: !canMutateTodos,
                   class: 'hover:text-secondary',
@@ -158,6 +160,7 @@ function confirmMove(weekNumber: number | null) {
               type="button"
               :key="action.label"
               :disabled="action.disabled"
+              :aria-label="action.label"
               :title="action.title"
               class="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-9"
               :class="action.class"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, useId } from 'vue'
 
 import type { Todo } from '../db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
@@ -29,6 +29,9 @@ const currentWeek = getCurrentWeekNumber()
 
 const isEditing = ref(false)
 const editLabel = ref(props.todo.label)
+const editInput = ref<HTMLInputElement | null>(null)
+const editInputId = useId()
+const editHelpId = `${editInputId}-help`
 const statusTone = computed(() => {
   if (props.todo.weekNumber === null) {
     return {
@@ -116,7 +119,12 @@ function startEdit() {
     return
   }
 
+  editLabel.value = props.todo.label
   isEditing.value = true
+  void nextTick(() => {
+    editInput.value?.focus()
+    editInput.value?.select()
+  })
 }
 
 function saveEdit() {
@@ -156,27 +164,29 @@ function cancelEdit() {
         'col-span-2 col-start-1': !slots.primaryAction,
       }"
     >
-      <input
-        v-if="isEditing"
-        v-model="editLabel"
-        :disabled="!canMutate"
-        :title="!canMutate ? (mutateDisabledReason ?? undefined) : undefined"
-        class="row-span-2 min-h-11 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-3 py-2 text-base text-on-surface transition-all duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-        @blur="saveEdit"
-        @keyup.enter="saveEdit"
-        @keyup.esc="cancelEdit"
-      />
+      <div v-if="isEditing" class="row-span-2 space-y-2">
+        <label :for="editInputId" class="sr-only">Edit task label</label>
+        <input
+          :id="editInputId"
+          ref="editInput"
+          v-model="editLabel"
+          :disabled="!canMutate"
+          :title="!canMutate ? (mutateDisabledReason ?? undefined) : undefined"
+          :aria-describedby="editHelpId"
+          class="min-h-11 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-3 py-2 text-base text-on-surface transition-colors duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          @blur="saveEdit"
+          @keyup.enter="saveEdit"
+          @keyup.esc="cancelEdit"
+        />
+        <p :id="editHelpId" class="sr-only">Press Enter to save or Escape to cancel.</p>
+      </div>
       <div
         v-else
-        class="row-span-2 grid grid-rows-subgrid pt-2 select-none"
-        :class="{
-          'cursor-pointer': canMutate && !todo.done,
-          'cursor-default': !canMutate || todo.done,
-        }"
+        class="row-span-2 grid grid-rows-subgrid gap-x-3 pt-2 select-none sm:grid-cols-[minmax(0,1fr)_auto]"
         @dblclick="startEdit"
       >
         <p
-          class="row-start-1 text-base leading-6 wrap-break-word text-on-surface transition-all duration-200"
+          class="row-start-1 min-w-0 text-base leading-6 wrap-break-word text-on-surface transition-colors duration-200"
           :class="{
             'text-on-surface-variant line-through': todo.done,
             'text-on-surface': !todo.done,
@@ -185,7 +195,17 @@ function cancelEdit() {
           {{ todo.label }}
         </p>
 
-        <div class="row-start-2 flex flex-wrap items-center gap-2 self-start">
+        <button
+          v-if="canMutate && !todo.done"
+          type="button"
+          class="row-start-1 mt-0.5 inline-flex h-8 items-center rounded-full px-3 text-tiny font-semibold tracking-looser text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
+          :aria-label="`Edit task label: ${todo.label}`"
+          @click="startEdit"
+        >
+          Edit
+        </button>
+
+        <div class="row-start-2 flex flex-wrap items-center gap-2 self-start sm:col-span-2">
           <span
             aria-hidden="true"
             class="size-2.5 rounded-full ring-2 ring-surface-container-high"
