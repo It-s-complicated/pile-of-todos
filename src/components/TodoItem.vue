@@ -198,7 +198,7 @@ function cancelEdit() {
         <button
           v-if="canMutate && !todo.done"
           type="button"
-          class="row-start-1 mt-0.5 inline-flex h-8 items-center rounded-full px-3 text-tiny font-semibold tracking-looser text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
+          class="row-start-1 mt-0.5 inline-flex min-h-11 items-center rounded-full px-3 text-tiny font-semibold tracking-looser text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:min-h-8 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:[@media(pointer:coarse)]:opacity-100"
           :aria-label="`Edit task label: ${todo.label}`"
           @click="startEdit"
         >
@@ -225,7 +225,7 @@ function cancelEdit() {
 
     <div
       v-if="slots.actions"
-      class="col-span-full row-start-3 flex items-center gap-1 self-end justify-self-end opacity-100 transition-opacity duration-200 sm:col-span-1 sm:col-start-3 sm:row-span-full sm:self-center sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
+      class="col-span-full row-start-3 flex items-center gap-1 self-end justify-self-end opacity-100 transition-opacity duration-200 sm:col-span-1 sm:col-start-3 sm:row-span-full sm:self-center sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:[@media(pointer:coarse)]:opacity-100"
     >
       <slot name="actions" />
     </div>

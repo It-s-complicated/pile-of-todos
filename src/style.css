@@ -216,6 +216,26 @@ body::before {
   outline-offset: 2px;
 }
 
+@media (pointer: coarse) {
+  button,
+  input,
+  select,
+  textarea,
+  a[href],
+  [role='button'],
+  [role='checkbox'],
+  [role='radio'] {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    min-block-size: 24px;
+    min-inline-size: 24px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
