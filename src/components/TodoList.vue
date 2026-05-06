@@ -140,9 +140,7 @@ function confirmMove(weekNumber: number | null) {
                   handler: handleMove,
                   disabled: !canMutateTodos,
                   class: 'hover:text-tertiary',
-                  title: canMutateTodos
-                    ? 'Move to different week'
-                    : (mutateTodoDisabledReason ?? undefined),
+                  title: !canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined,
                 },
                 {
                   icon: todo.archived ? ArchiveRestore : Archive,
@@ -150,11 +148,7 @@ function confirmMove(weekNumber: number | null) {
                   handler: handleArchive,
                   disabled: !canMutateTodos,
                   class: 'hover:text-secondary',
-                  title: canMutateTodos
-                    ? todo.archived
-                      ? 'Unarchive'
-                      : 'Archive'
-                    : (mutateTodoDisabledReason ?? undefined),
+                  title: !canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined,
                 },
               ]"
               type="button"
@@ -166,7 +160,8 @@ function confirmMove(weekNumber: number | null) {
               :class="action.class"
               @click="action.handler(todo, $event)"
             >
-              <component :is="action.icon" class="size-4" stroke-width="1.8" />
+              <component :is="action.icon" class="size-4" stroke-width="1.8" aria-hidden="true" />
+              <span class="sr-only">{{ action.label }}</span>
             </button>
           </template>
         </TodoItem>
