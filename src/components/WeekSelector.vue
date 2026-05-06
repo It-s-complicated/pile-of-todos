@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next'
-import { ref, useId } from 'vue'
+import { nextTick, onMounted, ref, useId } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -18,6 +18,7 @@ const emit = defineEmits<{
 
 const id = useId()
 const selectedWeek = ref<number | null>(props.selectedWeek)
+const dialog = ref<HTMLElement | null>(null)
 
 function confirm() {
   emit('confirm', selectedWeek.value)
@@ -26,6 +27,64 @@ function confirm() {
 function cancel() {
   emit('cancel')
 }
+
+function getFocusableElements() {
+  return Array.from(
+    dialog.value?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+    ) ?? [],
+  ).filter((element) => !element.hasAttribute('disabled') && element.tabIndex !== -1)
+}
+
+function focusInitialControl() {
+  const checkedRadio = dialog.value?.querySelector<HTMLInputElement>('input[type="radio"]:checked')
+  const firstRadio = dialog.value?.querySelector<HTMLInputElement>('input[type="radio"]')
+  const firstFocusable = getFocusableElements()[0]
+
+  ;(checkedRadio ?? firstRadio ?? firstFocusable ?? dialog.value)?.focus()
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.stopPropagation()
+    cancel()
+    return
+  }
+
+  if (event.key !== 'Tab') {
+    return
+  }
+
+  const focusableElements = getFocusableElements()
+
+  if (focusableElements.length === 0) {
+    event.preventDefault()
+    dialog.value?.focus()
+    return
+  }
+
+  const firstElement = focusableElements[0]
+  const lastElement = focusableElements.at(-1)
+
+  if (!lastElement) {
+    return
+  }
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault()
+    lastElement.focus()
+    return
+  }
+
+  if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault()
+    firstElement.focus()
+  }
+}
+
+onMounted(() => {
+  void nextTick(focusInitialControl)
+})
 
 const weekOptions = [
   { value: null, label: 'Backlog', description: 'No assigned week' },
@@ -55,10 +114,13 @@ const weekOptions = [
 
 <template>
   <div
+    ref="dialog"
     role="dialog"
     aria-modal="true"
     :aria-labelledby="`${id}-title`"
+    tabindex="-1"
     class="animate-fade-in-up max-h-[calc(100vh-1.5rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-outline-variant/10 bg-surface-container/95 p-4 text-on-surface shadow-[0_20px_40px_rgba(0,0,0,0.38)] backdrop-blur-2xl sm:max-h-[calc(100vh-2rem)] sm:p-5"
+    @keydown="handleKeydown"
   >
     <div class="mb-6 flex items-start justify-between gap-4">
       <div>
