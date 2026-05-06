@@ -165,7 +165,7 @@ function cancelEdit() {
       }"
     >
       <div v-if="isEditing" class="row-span-2 space-y-2">
-        <label :for="editInputId" class="sr-only">Edit task label</label>
+        <label :for="editInputId" class="sr-only">Edit task label: {{ todo.label }}</label>
         <input
           :id="editInputId"
           ref="editInput"
