@@ -151,12 +151,12 @@ function cancelEdit() {
 
 <template>
   <div
-    class="group grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 shadow-surface-rest transition-[background-color,border-color,box-shadow,opacity,transform] duration-200 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-surface-hover sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-4 sm:p-5"
+    class="group grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2.5 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 shadow-surface-rest transition-[background-color,border-color,box-shadow,opacity,transform] duration-200 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-surface-hover sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-4 sm:gap-y-3 sm:p-5"
     :class="[statusTone.borderClass, statusTone.checkboxRingClass, { 'opacity-90': !canMutate }]"
   >
     <div
       v-if="slots.primaryAction"
-      class="row-span-2 flex min-w-11 justify-center self-start pt-0.5 sm:min-w-9"
+      class="row-span-3 flex min-w-11 justify-center self-start pt-0.5 sm:row-span-2 sm:min-w-9"
     >
       <slot name="primaryAction" />
     </div>
@@ -186,31 +186,33 @@ function cancelEdit() {
       </div>
       <div
         v-else
-        class="grid gap-3 select-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
+        class="space-y-2 select-none sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-3 sm:space-y-0"
         @dblclick="startEdit"
       >
-        <p
-          class="min-w-0 pt-1 text-body wrap-break-word text-on-surface transition-colors duration-200"
-          :class="{
-            'text-on-surface-variant line-through': todo.done,
-            'text-on-surface': !todo.done,
-          }"
-        >
-          {{ todo.label }}
-        </p>
+        <div class="flex min-w-0 items-start justify-between gap-2">
+          <p
+            class="min-w-0 pt-0.5 text-body wrap-break-word text-on-surface transition-colors duration-200 sm:pt-1"
+            :class="{
+              'text-on-surface-variant line-through': todo.done,
+              'text-on-surface': !todo.done,
+            }"
+          >
+            {{ todo.label }}
+          </p>
 
-        <button
-          v-if="canMutate && !todo.done"
-          type="button"
-          class="inline-flex min-h-11 w-fit items-center rounded-full px-3 text-tiny font-semibold tracking-label-wide text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:min-h-8 sm:justify-self-end sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
-          :aria-label="`Edit task label: ${todo.label}`"
-          @click="startEdit"
-        >
-          Edit
-        </button>
+          <button
+            v-if="canMutate && !todo.done"
+            type="button"
+            class="inline-flex min-h-8 shrink-0 items-center rounded-full px-2.5 text-tiny font-semibold tracking-label-wide text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:min-h-8 sm:justify-self-end sm:px-3 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
+            :aria-label="`Edit task label: ${todo.label}`"
+            @click="startEdit"
+          >
+            Edit
+          </button>
+        </div>
 
         <div
-          class="flex flex-wrap items-center gap-1.5 self-start border-t border-outline-variant/8 pt-3 sm:col-span-2"
+          class="flex flex-wrap items-center gap-1.5 self-start sm:col-span-2 sm:border-t sm:border-outline-variant/8 sm:pt-3"
         >
           <span aria-hidden="true" class="mr-1 size-2 rounded-full" :class="statusTone.dotClass" />
           <span
@@ -227,7 +229,7 @@ function cancelEdit() {
 
     <div
       v-if="slots.actions"
-      class="col-span-full flex items-center gap-1 justify-self-end border-t border-outline-variant/8 pt-1 opacity-100 transition-opacity duration-150 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:self-start sm:border-t-0 sm:pt-0 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
+      class="col-start-2 flex min-w-0 items-center gap-1 justify-self-start border-t border-outline-variant/8 pt-2 opacity-100 transition-opacity duration-150 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:self-start sm:border-t-0 sm:pt-0 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
     >
       <slot name="actions" />
     </div>
