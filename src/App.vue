@@ -8,6 +8,7 @@ import NewTodoForm from './components/NewTodoForm.vue'
 import SyncStatus from './components/SyncStatus.vue'
 import { useElectricTodos } from './composables/useElectricTodos'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+import Logo from './components/Logo.vue'
 
 type WorkspaceCopy = {
   subtitle: string
@@ -96,31 +97,19 @@ onBeforeUnmount(() => {
       class="sticky top-0 z-40 border-b border-outline-variant/10 bg-surface/80 backdrop-blur-2xl"
     >
       <div
-        class="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:px-5 lg:flex-nowrap lg:px-6"
+        class="mx-auto flex max-w-screen-2xl flex-nowrap items-center gap-2 px-3 py-2 sm:gap-3 sm:px-5 lg:px-6"
       >
         <div
           class="shrink-0 font-headline leading-none"
           role="img"
           aria-label='The logo for "Pile of Todos"'
         >
-          <p
-            class="mb-1 text-3xl font-extrabold tracking-tight text-primary trim-both-cap-alphabetic"
-          >
-            Pile
-          </p>
-          <p
-            class="flex items-baseline justify-center gap-1 text-[0.48rem] font-semibold tracking-loose text-on-surface-variant"
-          >
-            <span class="trim-both-cap-alphabetic">of</span>
-            <span class="text-[0.62rem] tracking-[0.14em] text-primary trim-both-cap-alphabetic"
-              >Todos</span
-            >
-          </p>
+          <Logo />
         </div>
 
         <button
           type="button"
-          class="order-2 ml-auto inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 text-on-surface shadow-surface-rest transition-all duration-200 hover:bg-surface-container-highest active:scale-[0.98] sm:order-3 sm:min-h-10"
+          class="order-3 inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 text-on-surface shadow-surface-rest transition-all duration-200 hover:bg-surface-container-highest active:scale-[0.98]"
           :aria-controls="headerMenuPanelId"
           :aria-expanded="isHeaderMenuOpen"
           :aria-label="headerMenuToggleLabel"
@@ -132,7 +121,7 @@ onBeforeUnmount(() => {
         </button>
 
         <nav
-          class="order-3 grid w-full min-w-0 grid-cols-4 items-center gap-1 rounded-3xl border border-outline-variant/10 bg-surface-container-low/70 p-1 sm:order-2 sm:w-auto sm:flex-1 sm:justify-center sm:bg-transparent sm:p-0 sm:[-ms-overflow-style:none] sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden"
+          class="order-2 flex min-w-0 flex-1 scrollbar-none items-center gap-1 overflow-x-auto rounded-3xl border border-outline-variant/10 bg-surface-container-low/70 p-1 [-ms-overflow-style:none] sm:justify-center sm:bg-transparent sm:p-0 [&::-webkit-scrollbar]:hidden"
           aria-label="Weekly planning views"
         >
           <RouterLink
@@ -145,7 +134,7 @@ onBeforeUnmount(() => {
               'text-on-surface-variant hover:text-primary': route.path !== item.path,
             }"
             :aria-current="route.path === item.path ? 'page' : undefined"
-            class="relative flex min-h-10 items-center justify-center rounded-2xl px-2 text-center text-sm font-medium transition-all duration-200 hover:bg-surface-container active:scale-[0.98] sm:min-h-9 sm:shrink-0 sm:rounded-lg sm:px-3"
+            class="relative flex min-h-10 shrink-0 items-center justify-center rounded-2xl px-2 text-center text-xs font-medium transition-all duration-200 hover:bg-surface-container active:scale-[0.98] sm:min-h-9 sm:rounded-lg sm:px-3 sm:text-sm"
           >
             <span>{{ item.label }}</span>
             <span
