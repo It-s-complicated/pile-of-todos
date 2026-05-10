@@ -119,7 +119,7 @@ const selectedValue = computed({
 
   .week-select::picker(select) {
     min-inline-size: anchor-size(width);
-    margin-block-start: 0.35rem;
+    margin-block: 0.35rem;
     border: 1px solid color-mix(in srgb, var(--color-outline) 34%, transparent);
     border-radius: 0.875rem;
     background: linear-gradient(
