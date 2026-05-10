@@ -128,7 +128,7 @@ const selectedValue = computed({
       var(--color-surface-container-high) 100%
     );
     box-shadow: var(--shadow-overlay);
-    padding: 0.3rem;
+    padding: 0.45rem;
   }
 
   .week-select button {
@@ -145,10 +145,10 @@ const selectedValue = computed({
     display: grid;
     grid-template-columns: 1rem minmax(0, 1fr);
     align-items: center;
-    gap: 0.5rem;
-    min-block-size: 2.25rem;
+    gap: 0.625rem;
+    min-block-size: 2.55rem;
     border-radius: 0.625rem;
-    padding: 0.5rem 0.7rem;
+    padding: 0.625rem 0.8rem;
     background-color: transparent;
     color: var(--color-on-surface);
     font-size: 0.8125rem;
@@ -156,6 +156,10 @@ const selectedValue = computed({
     transition:
       background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
       color 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .week-select option + option {
+    margin-block-start: 0.2rem;
   }
 
   .week-select option::checkmark {
