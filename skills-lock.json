@@ -5,7 +5,7 @@
       "source": "electric-sql/electric",
       "sourceType": "github",
       "skillPath": "packages/agents-runtime/skills/designing-entities/SKILL.md",
-      "computedHash": "9d80fef33cf0f77e99128e283a01ca5b6a9d3eac22f1f6fb883c74ded614b0c5"
+      "computedHash": "c6743364a9c44e72b3288e48c7b19fa5a6e5c9ed2cca1ed58cdd3b4c8360222f"
     },
     "electric-debugging": {
       "source": "electric-sql/electric",
@@ -71,7 +71,7 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "e320c6a95802882f0748be495150aaafccd2cce59a323d79cb50a3201c3bde75"
+      "computedHash": "15ca2efbf646ed89e85f56470d2a6bbe96268134b7e1e2ce9908ecf3d672119c"
     },
     "supabase": {
       "source": "supabase/agent-skills",
