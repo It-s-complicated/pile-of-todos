@@ -156,7 +156,7 @@ function cancelEdit() {
   >
     <div
       v-if="slots.primaryAction"
-      class="row-span-3 flex min-w-11 justify-center self-start pt-0.5 sm:row-span-2 sm:min-w-9"
+      class="row-span-3 flex min-w-11 justify-center self-start pt-0.5 sm:row-span-2 sm:min-h-10 sm:min-w-9 sm:items-center sm:pt-0"
     >
       <slot name="primaryAction" />
     </div>
@@ -189,7 +189,7 @@ function cancelEdit() {
         class="space-y-2 select-none sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:space-y-0"
         @dblclick="startEdit"
       >
-        <div class="flex min-w-0 items-start justify-between gap-2 sm:items-center">
+        <div class="flex min-w-0 items-start justify-between gap-2 sm:min-h-10 sm:items-center">
           <p
             class="min-w-0 pt-0.5 text-body wrap-break-word text-on-surface transition-colors duration-200 sm:pt-0"
             :class="{
