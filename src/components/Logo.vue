@@ -1,7 +1,5 @@
 <template>
-  <p class="mb-1 text-3xl font-extrabold tracking-tight text-primary trim-both-cap-alphabetic">
-    Pile
-  </p>
+  <p class="mb-1 text-3xl font-extrabold text-primary trim-both-cap-alphabetic">Pile</p>
   <p
     class="flex items-baseline justify-center gap-1 text-[0.48rem] font-semibold tracking-label text-on-surface-variant"
   >

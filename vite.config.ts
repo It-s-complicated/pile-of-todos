@@ -46,11 +46,11 @@ export default defineConfig({
       google: {
         families: [
           {
-            name: 'Epilogue',
-            styles: 'wght@400..800',
+            name: 'Fraunces',
+            styles: 'opsz,wght@9..144,600..800',
           },
           {
-            name: 'Inter',
+            name: 'Atkinson Hyperlegible Next',
             styles: 'wght@400..700',
           },
         ],
