@@ -130,7 +130,7 @@ const weekOptions = [
         >
           Move to Week
         </h3>
-        <p class="mt-1 text-sm leading-6 text-on-surface-variant">
+        <p class="mt-1 max-w-[42ch] text-supporting text-on-surface-variant">
           Select a destination for this task.
         </p>
       </div>
@@ -180,10 +180,10 @@ const weekOptions = [
               />
             </span>
             <span class="flex-1">
-              <span class="block font-label text-sm font-semibold text-on-surface">
+              <span class="block font-label text-control font-semibold text-on-surface">
                 {{ option.label }}
               </span>
-              <span class="block text-caption leading-5 text-on-surface-variant">
+              <span class="block text-caption text-on-surface-variant">
                 {{ option.description }}
               </span>
             </span>
@@ -195,14 +195,14 @@ const weekOptions = [
     <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
       <button
         type="button"
-        class="min-h-12 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold tracking-loose text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:shadow-primary-lift active:translate-y-0"
+        class="min-h-12 rounded-2xl bg-primary px-4 py-3 text-control font-semibold tracking-label text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:shadow-primary-lift active:translate-y-0"
         @click="confirm"
       >
         Move Task
       </button>
       <button
         type="button"
-        class="min-h-12 rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-sm font-medium text-on-surface transition-colors duration-200 hover:bg-surface-bright"
+        class="min-h-12 rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-control font-medium text-on-surface transition-colors duration-200 hover:bg-surface-bright"
         @click="cancel"
       >
         Cancel

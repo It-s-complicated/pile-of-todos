@@ -115,7 +115,7 @@ onBeforeUnmount(() => {
           :aria-label="headerMenuToggleLabel"
           @click="toggleHeaderMenu"
         >
-          <span class="hidden text-sm font-semibold sm:inline">More views</span>
+          <span class="hidden text-control font-semibold sm:inline">More views</span>
           <Menu v-if="!isHeaderMenuOpen" class="size-4.5" stroke-width="2.2" />
           <X v-else class="size-4.5" stroke-width="2.2" />
         </button>
@@ -134,7 +134,7 @@ onBeforeUnmount(() => {
               'text-on-surface-variant hover:text-primary': route.path !== item.path,
             }"
             :aria-current="route.path === item.path ? 'page' : undefined"
-            class="relative flex min-h-10 shrink-0 items-center justify-center rounded-2xl px-2 text-center text-xs font-medium transition-all duration-200 hover:bg-surface-container active:scale-[0.98] sm:min-h-9 sm:rounded-lg sm:px-3 sm:text-sm"
+            class="relative flex min-h-10 shrink-0 items-center justify-center rounded-2xl px-2 text-center text-caption font-medium transition-all duration-200 hover:bg-surface-container active:scale-[0.98] sm:min-h-9 sm:rounded-lg sm:px-3 sm:text-control"
           >
             <span>{{ item.label }}</span>
             <span
@@ -165,11 +165,11 @@ onBeforeUnmount(() => {
             >
               <div class="space-y-2">
                 <p
-                  class="text-tiny font-semibold tracking-looser text-on-surface-variant uppercase"
+                  class="text-tiny font-semibold tracking-label-wide text-on-surface-variant uppercase"
                 >
                   More views
                 </p>
-                <p class="text-sm text-on-surface-variant">
+                <p class="max-w-[46ch] text-supporting text-on-surface-variant">
                   Completed and archived lanes are quieter history views.
                 </p>
                 <nav class="grid gap-2 sm:grid-cols-2 md:grid-cols-1" aria-label="More views">
@@ -183,7 +183,7 @@ onBeforeUnmount(() => {
                         route.path !== item.path,
                     }"
                     :aria-current="route.path === item.path ? 'page' : undefined"
-                    class="flex min-h-11 items-center rounded-2xl border px-3 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.99]"
+                    class="flex min-h-11 items-center rounded-2xl border px-3 py-3 text-control font-semibold transition-all duration-200 active:scale-[0.99]"
                     @click="closeHeaderMenu"
                   >
                     {{ item.label }}
@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
         >
           {{ activeWorkspace.title }}
         </h1>
-        <p class="mt-3 max-w-prose text-sm text-on-surface-variant">
+        <p class="mt-3 max-w-[62ch] text-supporting text-on-surface-variant">
           {{ activeWorkspace.subtitle }}
         </p>
       </section>
@@ -223,11 +223,13 @@ onBeforeUnmount(() => {
       <RouterView />
 
       <section class="mt-16 border-t border-outline-variant/10 pt-10">
-        <h2 class="mb-4 text-tiny font-semibold tracking-loosest text-on-surface-variant uppercase">
+        <h2
+          class="mb-4 text-tiny font-semibold tracking-label-wider text-on-surface-variant uppercase"
+        >
           Sync Model
         </h2>
         <div
-          class="rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-5 py-4 text-sm text-on-surface-variant shadow-surface-rest"
+          class="max-w-[70ch] rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-5 py-4 text-supporting text-on-surface-variant shadow-surface-rest"
         >
           <p v-if="offlineQueue.queuedCount > 0 && !isOnline">
             {{ offlineQueue.count }} pending change{{ offlineQueue.count === 1 ? '' : 's' }}

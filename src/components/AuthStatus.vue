@@ -55,13 +55,13 @@ async function handleSignOut() {
       </div>
 
       <div :class="showDetailsOnMobile ? 'block min-w-0 sm:block' : 'hidden min-w-0 sm:block'">
-        <p class="text-tiny font-semibold tracking-loosest text-on-surface-variant uppercase">
+        <p class="text-tiny font-semibold tracking-label-wider text-on-surface-variant uppercase">
           Personal
         </p>
-        <p v-if="isAuthenticated" class="truncate text-sm text-on-surface">
+        <p v-if="isAuthenticated" class="truncate text-supporting text-on-surface">
           Signed in as <span class="text-primary">{{ signedInLabel }}</span>
         </p>
-        <p v-else class="text-sm text-on-surface">Sign in to start account sync</p>
+        <p v-else class="text-supporting text-on-surface">Sign in to start account sync</p>
       </div>
 
       <button
@@ -89,7 +89,7 @@ async function handleSignOut() {
 
     <p
       v-if="authError"
-      class="rounded-2xl border border-error/20 bg-error-container/20 px-3 py-2 text-caption leading-5 text-on-error-container"
+      class="rounded-2xl border border-error/20 bg-error-container/20 px-3 py-2 text-caption text-on-error-container"
     >
       {{ authError }}
     </p>

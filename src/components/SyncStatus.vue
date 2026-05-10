@@ -89,13 +89,13 @@ const statusConfig = computed(() => {
       class="size-2 rounded-full transition-colors duration-200"
       :class="statusConfig.dotClass"
     />
-    <span class="font-semibold tracking-looser uppercase" :class="statusConfig.textClass">
+    <span class="font-semibold tracking-label-wide uppercase" :class="statusConfig.textClass">
       {{ statusConfig.text }}
     </span>
     <button
       v-if="canRetrySync"
       type="button"
-      class="inline-flex min-h-8 items-center gap-1 rounded-full bg-surface-container-highest px-2.5 py-1 text-tiny font-semibold tracking-looser text-on-surface uppercase transition-all duration-150 hover:bg-surface-bright active:scale-[0.98]"
+      class="inline-flex min-h-8 items-center gap-1 rounded-full bg-surface-container-highest px-2.5 py-1 text-tiny font-semibold tracking-label-wide text-on-surface uppercase transition-all duration-150 hover:bg-surface-bright active:scale-[0.98]"
       @click="syncTodos"
     >
       <RefreshCcw class="size-3" stroke-width="2" aria-hidden />

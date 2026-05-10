@@ -177,7 +177,7 @@ function cancelEdit() {
           :disabled="!canMutate"
           :title="!canMutate ? (mutateDisabledReason ?? undefined) : undefined"
           :aria-describedby="editHelpId"
-          class="min-h-11 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-3 py-2 text-base text-on-surface transition-colors duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          class="min-h-11 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-3 py-2 text-body text-on-surface transition-colors duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           @blur="saveEdit"
           @keyup.enter="saveEdit"
           @keyup.esc="cancelEdit"
@@ -190,7 +190,7 @@ function cancelEdit() {
         @dblclick="startEdit"
       >
         <p
-          class="min-w-0 pt-1 text-base leading-6 wrap-break-word text-on-surface transition-colors duration-200"
+          class="min-w-0 pt-1 text-body wrap-break-word text-on-surface transition-colors duration-200"
           :class="{
             'text-on-surface-variant line-through': todo.done,
             'text-on-surface': !todo.done,
@@ -202,7 +202,7 @@ function cancelEdit() {
         <button
           v-if="canMutate && !todo.done"
           type="button"
-          class="inline-flex min-h-11 w-fit items-center rounded-full px-3 text-tiny font-semibold tracking-looser text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:min-h-8 sm:justify-self-end sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
+          class="inline-flex min-h-11 w-fit items-center rounded-full px-3 text-tiny font-semibold tracking-label-wide text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:min-h-8 sm:justify-self-end sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
           :aria-label="`Edit task label: ${todo.label}`"
           @click="startEdit"
         >
@@ -216,7 +216,7 @@ function cancelEdit() {
           <span
             v-for="badge in [scheduleBadge, lifecycleBadge]"
             :key="badge.label"
-            class="rounded-full px-2.5 py-1 text-tiny font-semibold tracking-looser uppercase trim-both-cap-alphabetic"
+            class="rounded-full px-2.5 py-1 text-tiny font-semibold tracking-label-wide uppercase trim-both-cap-alphabetic"
             :class="badge.className"
           >
             {{ badge.label }}

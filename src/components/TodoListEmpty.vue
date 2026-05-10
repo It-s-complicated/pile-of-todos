@@ -17,7 +17,7 @@ defineProps<{ title: string; subtitle: string }>()
         <p class="font-headline text-title font-semibold text-on-surface">
           {{ title }}
         </p>
-        <p class="mt-2 text-sm leading-6 text-on-surface-variant">
+        <p class="mt-2 text-supporting text-on-surface-variant">
           {{ subtitle }}
         </p>
       </div>
