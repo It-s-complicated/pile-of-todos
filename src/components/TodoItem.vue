@@ -186,12 +186,12 @@ function cancelEdit() {
       </div>
       <div
         v-else
-        class="space-y-2 select-none sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-3 sm:space-y-0"
+        class="space-y-2 select-none sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:space-y-0"
         @dblclick="startEdit"
       >
-        <div class="flex min-w-0 items-start justify-between gap-2">
+        <div class="flex min-w-0 items-start justify-between gap-2 sm:items-center">
           <p
-            class="min-w-0 pt-0.5 text-body wrap-break-word text-on-surface transition-colors duration-200 sm:pt-1"
+            class="min-w-0 pt-0.5 text-body wrap-break-word text-on-surface transition-colors duration-200 sm:pt-0"
             :class="{
               'text-on-surface-variant line-through': todo.done,
               'text-on-surface': !todo.done,
@@ -203,7 +203,7 @@ function cancelEdit() {
           <button
             v-if="canMutate && !todo.done"
             type="button"
-            class="inline-flex min-h-8 shrink-0 items-center rounded-full px-2.5 text-tiny font-semibold tracking-label-wide text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:min-h-8 sm:justify-self-end sm:px-3 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
+            class="inline-flex min-h-8 shrink-0 items-center rounded-full px-2.5 text-tiny font-semibold tracking-label-wide text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:min-h-10 sm:justify-self-end sm:px-3.5 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
             :aria-label="`Edit task label: ${todo.label}`"
             @click="startEdit"
           >

@@ -91,7 +91,7 @@ function handleMove(todo: Todo, weekNumber: number | null) {
               "
               :disabled="!canMutateTodos"
               :title="!canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined"
-              class="relative mt-0.5 size-11 shrink-0 rounded-full border border-outline-variant/60 transition-[background-color,border-color,color,transform] duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
+              class="relative mt-0.5 size-11 shrink-0 rounded-full border border-outline-variant/60 transition-[background-color,border-color,color,transform] duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0 sm:size-8"
               :class="
                 todo.done
                   ? 'border-primary bg-primary text-on-primary'
@@ -132,7 +132,7 @@ function handleMove(todo: Todo, weekNumber: number | null) {
               :disabled="action.disabled"
               :aria-label="action.label"
               :title="action.title"
-              class="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant transition-[background-color,color,transform] duration-150 hover:bg-surface-container-highest active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-9"
+              class="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant transition-[background-color,color,transform] duration-150 hover:bg-surface-container-highest active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-10"
               :class="action.class"
               @click="action.handler(todo)"
             >
