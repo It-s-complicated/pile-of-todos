@@ -6,6 +6,7 @@ import { safeParse } from 'valibot'
 import { useElectricTodos } from '@/composables/useElectricTodos'
 import { todoLabelSchema } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+import WeekSelect from './WeekSelect.vue'
 
 type CreateTodoValidationErrorKind = 'gate' | 'validation' | 'none'
 
@@ -109,18 +110,24 @@ async function createTodo() {
             placeholder="What needs to be done?"
             autocomplete="off"
             required
-            class="min-h-12 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-body text-on-surface transition-all duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
+            class="h-12 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-0 text-body text-on-surface transition-all duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
           />
         </div>
         <button
           type="submit"
           :disabled="!canCreateTodos"
           :title="createTodoDisabledReason ?? undefined"
-          class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 py-3.5 text-control font-semibold tracking-label whitespace-nowrap text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-high hover:shadow-primary-lift active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none sm:w-auto"
+          class="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 py-0 text-control font-semibold tracking-label whitespace-nowrap text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-high hover:shadow-primary-lift active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none sm:w-auto"
         >
           Add Task
         </button>
       </div>
+      <p
+        v-if="!canCreateTodos && createTodoDisabledReason"
+        class="mt-2 text-caption leading-5 text-on-surface-variant"
+      >
+        {{ createTodoDisabledReason }}
+      </p>
 
       <Transition
         enter-active-class="transition-all duration-300 ease-out"
@@ -132,27 +139,13 @@ async function createTodo() {
       >
         <div v-if="showWeekOptions" class="mt-3 overflow-hidden">
           <div class="flex flex-wrap items-end gap-3">
-            <div class="w-full max-w-56">
-              <label
-                :for="`${id}-week`"
-                class="mb-1.5 block text-tiny font-semibold tracking-label-wider text-on-surface-variant uppercase"
-              >
-                Week
-              </label>
-              <select
-                :id="`${id}-week`"
-                v-model="formState.weekNumber"
-                class="min-h-11 w-full cursor-pointer appearance-none rounded-2xl border border-outline-variant/10 bg-surface-container-highest bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a8abb0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-size-[1rem] bg-position-[right_0.75rem_center] bg-no-repeat px-4 py-3 pr-10 text-control text-on-surface transition-all duration-200 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
-              >
-                <option :value="null">Backlog</option>
-                <option :value="currentWeek">Week {{ currentWeek }} (current)</option>
-                <option :value="currentWeek + 1">Week {{ currentWeek + 1 }}</option>
-                <option :value="currentWeek + 2">Week {{ currentWeek + 2 }}</option>
-              </select>
-            </div>
-            <p class="max-w-[38ch] pb-3 text-caption text-on-surface-variant sm:max-w-72">
-              New tasks go to this week unless you choose another lane.
-            </p>
+            <WeekSelect
+              :id="`${id}-week`"
+              v-model="formState.weekNumber"
+              :current-week="currentWeek"
+              :disabled="!canCreateTodos"
+              show-helper
+            />
           </div>
         </div>
       </Transition>

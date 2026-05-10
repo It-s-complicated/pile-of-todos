@@ -1,23 +1,19 @@
 <script setup lang="ts">
 import type { Todo } from '@/db/collections'
-import { Archive, ArchiveRestore, Calendar, Check } from 'lucide-vue-next'
-import { computed, nextTick, ref } from 'vue'
+import { Archive, ArchiveRestore, Check } from 'lucide-vue-next'
+import { computed } from 'vue'
 
 import { useElectricTodos } from '@/composables/useElectricTodos'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
 import TodoItem from './TodoItem.vue'
-import WeekSelector from './WeekSelector.vue'
+import WeekSelect from './WeekSelect.vue'
 
 const { canMutateTodos, isReady, mutateTodoDisabledReason, updateTodo } = useElectricTodos()
 defineProps<{ todos: Todo[] }>()
 
 const loading = computed(() => !isReady.value)
 const currentWeek = getCurrentWeekNumber()
-
-const showWeekSelector = ref(false)
-const selectedTodo = ref<Todo | null>(null)
-const weekSelectorTrigger = ref<HTMLElement | null>(null)
 
 function handleUpdate(id: string, updates: Partial<Todo>) {
   if (!canMutateTodos.value) {
@@ -33,44 +29,14 @@ function handleArchive({ id, archived }: Todo, _event?: MouseEvent) {
   handleUpdate(id, { archived: !archived })
 }
 
-function handleMove(todo: Todo, event?: MouseEvent) {
-  if (!canMutateTodos.value) {
-    return
-  }
-
-  weekSelectorTrigger.value =
-    event?.currentTarget instanceof HTMLElement
-      ? event.currentTarget
-      : document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null
-  selectedTodo.value = todo
-  showWeekSelector.value = true
-}
-
-function closeWeekSelector() {
-  showWeekSelector.value = false
-  selectedTodo.value = null
-
-  const trigger = weekSelectorTrigger.value
-  weekSelectorTrigger.value = null
-  void nextTick(() => trigger?.focus())
-}
-
-function confirmMove(weekNumber: number | null) {
-  if (!selectedTodo.value) {
-    closeWeekSelector()
-    return
-  }
-
-  handleUpdate(selectedTodo.value.id, { weekNumber })
-  closeWeekSelector()
+function handleMove(todo: Todo, weekNumber: number | null) {
+  handleUpdate(todo.id, { weekNumber })
 }
 </script>
 
 <template>
   <div class="space-y-4">
-    <div :inert="showWeekSelector || undefined" class="space-y-4">
+    <div class="space-y-4">
       <div
         v-if="loading"
         class="rounded-3xl border border-outline-variant/10 bg-surface-container/55 p-3 shadow-surface-rest sm:p-4"
@@ -142,16 +108,16 @@ function confirmMove(weekNumber: number | null) {
             </button>
           </template>
           <template #actions>
+            <WeekSelect
+              :model-value="todo.weekNumber"
+              :current-week="currentWeek"
+              :disabled="!canMutateTodos"
+              :label="`Move task: ${todo.label}`"
+              variant="compact"
+              @update:model-value="handleMove(todo, $event)"
+            />
             <button
               v-for="action in [
-                {
-                  icon: Calendar,
-                  label: `Move to different week: ${todo.label}`,
-                  handler: handleMove,
-                  disabled: !canMutateTodos,
-                  class: 'hover:text-tertiary',
-                  title: !canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined,
-                },
                 {
                   icon: todo.archived ? ArchiveRestore : Archive,
                   label: todo.archived ? `Unarchive: ${todo.label}` : `Archive: ${todo.label}`,
@@ -168,7 +134,7 @@ function confirmMove(weekNumber: number | null) {
               :title="action.title"
               class="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant transition-[background-color,color,transform] duration-150 hover:bg-surface-container-highest active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-9"
               :class="action.class"
-              @click="action.handler(todo, $event)"
+              @click="action.handler(todo)"
             >
               <component :is="action.icon" class="size-4" stroke-width="1.8" aria-hidden="true" />
               <span class="sr-only">{{ action.label }}</span>
@@ -177,29 +143,5 @@ function confirmMove(weekNumber: number | null) {
         </TodoItem>
       </div>
     </div>
-
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-all duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="showWeekSelector"
-        class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-surface/70 p-3 backdrop-blur-2xl sm:p-4"
-        @click="closeWeekSelector"
-      >
-        <div class="w-full max-w-md" @click.stop>
-          <WeekSelector
-            :current-week="currentWeek"
-            :selected-week="selectedTodo?.weekNumber"
-            @confirm="confirmMove"
-            @cancel="closeWeekSelector"
-          />
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>

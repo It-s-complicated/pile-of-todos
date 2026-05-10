@@ -5,7 +5,7 @@ defineProps<{ title: string; subtitle: string }>()
 
 <template>
   <div
-    class="rounded-3xl border border-outline-variant/10 bg-surface-container/60 px-5 py-10 text-center shadow-surface-rest sm:px-6 sm:py-14"
+    class="rounded-3xl border border-outline-variant/10 bg-surface-container/60 px-5 py-8 text-center shadow-surface-rest sm:px-6 sm:py-10"
   >
     <div class="mx-auto flex max-w-sm flex-col items-center gap-4">
       <div
@@ -19,6 +19,9 @@ defineProps<{ title: string; subtitle: string }>()
         </p>
         <p class="mt-2 text-supporting text-on-surface-variant">
           {{ subtitle }}
+        </p>
+        <p class="mt-3 text-caption leading-5 text-on-surface-variant">
+          Add a task from the composer below, then choose a week when it needs a home.
         </p>
       </div>
     </div>
