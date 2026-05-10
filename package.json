@@ -53,5 +53,5 @@
     "vue-tsc": "^3.2.8",
     "workbox-window": "^7.4.1"
   },
-  "packageManager": "pnpm@11.0.6"
+  "packageManager": "pnpm@10.33.0"
 }
