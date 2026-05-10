@@ -73,20 +73,30 @@ function confirmMove(weekNumber: number | null) {
     <div :inert="showWeekSelector || undefined" class="space-y-4">
       <div
         v-if="loading"
-        class="space-y-3 rounded-3xl border border-outline-variant/10 bg-surface-container/70 p-4 sm:p-5"
+        class="rounded-3xl border border-outline-variant/10 bg-surface-container/55 p-3 shadow-surface-rest sm:p-4"
         aria-busy="true"
         aria-live="polite"
       >
         <p class="sr-only">Loading tasks...</p>
-        <div
-          v-for="index in 3"
-          :key="index"
-          class="animate-pulse rounded-2xl border border-outline-variant/10 bg-surface-container-highest/70 p-4"
-        >
-          <div class="mb-4 h-4 w-3/4 rounded-full bg-surface-bright" />
-          <div class="flex gap-2">
-            <div class="h-5 w-20 rounded-full bg-surface-bright/70" />
-            <div class="h-5 w-16 rounded-full bg-surface-bright/70" />
+        <div class="space-y-3">
+          <div
+            v-for="index in 3"
+            :key="index"
+            class="grid animate-pulse grid-cols-[auto_minmax(0,1fr)] gap-x-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-4 sm:p-5"
+          >
+            <div class="size-11 rounded-full border border-outline-variant/20 sm:size-8" />
+            <div class="min-w-0 space-y-3 pt-1">
+              <div class="h-4 w-9/12 rounded-full bg-surface-bright/75" />
+              <div class="flex items-center gap-2 border-t border-outline-variant/8 pt-3">
+                <div class="size-2 rounded-full bg-surface-bright/80" />
+                <div class="h-5 w-24 rounded-full bg-surface-bright/55" />
+                <div class="h-5 w-16 rounded-full bg-surface-bright/45" />
+              </div>
+            </div>
+            <div class="hidden gap-1 sm:flex">
+              <div class="size-9 rounded-full bg-surface-bright/35" />
+              <div class="size-9 rounded-full bg-surface-bright/35" />
+            </div>
           </div>
         </div>
       </div>
@@ -115,11 +125,11 @@ function confirmMove(weekNumber: number | null) {
               "
               :disabled="!canMutateTodos"
               :title="!canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined"
-              class="relative mt-0.5 size-11 shrink-0 rounded-full border border-outline-variant/70 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
+              class="relative mt-0.5 size-11 shrink-0 rounded-full border border-outline-variant/60 transition-[background-color,border-color,color,transform] duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
               :class="
                 todo.done
                   ? 'border-primary bg-primary text-on-primary'
-                  : 'bg-transparent hover:border-primary/70'
+                  : 'bg-surface-container-low hover:border-primary/70 hover:bg-surface-container-highest'
               "
               @click="handleUpdate(todo.id, { done: !todo.done })"
             >
@@ -156,7 +166,7 @@ function confirmMove(weekNumber: number | null) {
               :disabled="action.disabled"
               :aria-label="action.label"
               :title="action.title"
-              class="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant transition-all duration-150 hover:bg-surface-container-highest active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-9"
+              class="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant transition-[background-color,color,transform] duration-150 hover:bg-surface-container-highest active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-9"
               :class="action.class"
               @click="action.handler(todo, $event)"
             >

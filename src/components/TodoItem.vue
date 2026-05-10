@@ -35,28 +35,32 @@ const editHelpId = `${editInputId}-help`
 const statusTone = computed(() => {
   if (props.todo.weekNumber === null) {
     return {
-      borderClass: 'hover:border-secondary/20',
-      dotClass: 'bg-secondary',
+      borderClass: 'hover:border-secondary/25',
+      checkboxRingClass: 'group-has-[[role=checkbox]:hover]:border-secondary/20',
+      dotClass: 'bg-secondary shadow-[0_0_0_3px_rgb(226_190_193_/_0.08)]',
     }
   }
 
   if (props.todo.weekNumber === currentWeek) {
     return {
-      borderClass: 'hover:border-primary/20',
-      dotClass: 'bg-primary',
+      borderClass: 'hover:border-primary/25',
+      checkboxRingClass: 'group-has-[[role=checkbox]:hover]:border-primary/20',
+      dotClass: 'bg-primary shadow-[0_0_0_3px_rgb(184_203_193_/_0.08)]',
     }
   }
 
   if (props.todo.weekNumber > currentWeek) {
     return {
-      borderClass: 'hover:border-tertiary/20',
-      dotClass: 'bg-tertiary',
+      borderClass: 'hover:border-tertiary/25',
+      checkboxRingClass: 'group-has-[[role=checkbox]:hover]:border-tertiary/20',
+      dotClass: 'bg-tertiary shadow-[0_0_0_3px_rgb(243_246_255_/_0.08)]',
     }
   }
 
   return {
-    borderClass: 'hover:border-error/25',
-    dotClass: 'bg-error',
+    borderClass: 'hover:border-error/30',
+    checkboxRingClass: 'group-has-[[role=checkbox]:hover]:border-error/20',
+    dotClass: 'bg-error shadow-[0_0_0_3px_rgb(250_116_111_/_0.08)]',
   }
 })
 
@@ -147,21 +151,21 @@ function cancelEdit() {
 
 <template>
   <div
-    class="group grid grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_auto] gap-x-3 gap-y-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 shadow-surface-rest transition-all duration-300 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-surface-hover sm:gap-x-5 sm:p-6"
-    :class="[statusTone.borderClass, { 'opacity-90': !canMutate }]"
+    class="group grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 shadow-surface-rest transition-[background-color,border-color,box-shadow,opacity,transform] duration-200 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-surface-hover sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-4 sm:p-5"
+    :class="[statusTone.borderClass, statusTone.checkboxRingClass, { 'opacity-90': !canMutate }]"
   >
     <div
       v-if="slots.primaryAction"
-      class="row-span-2 flex min-w-11 justify-center self-start sm:min-w-10"
+      class="row-span-2 flex min-w-11 justify-center self-start pt-0.5 sm:min-w-9"
     >
       <slot name="primaryAction" />
     </div>
 
     <div
-      class="row-span-2 grid min-w-0 grid-rows-subgrid"
+      class="min-w-0"
       :class="{
         'col-start-2': slots.primaryAction,
-        'col-span-2 col-start-1': !slots.primaryAction,
+        'col-span-full col-start-1': !slots.primaryAction,
       }"
     >
       <div v-if="isEditing" class="row-span-2 space-y-2">
@@ -182,11 +186,11 @@ function cancelEdit() {
       </div>
       <div
         v-else
-        class="row-span-2 grid grid-rows-subgrid gap-x-3 pt-2 select-none sm:grid-cols-[minmax(0,1fr)_auto]"
+        class="grid gap-3 select-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
         @dblclick="startEdit"
       >
         <p
-          class="row-start-1 min-w-0 text-base leading-6 wrap-break-word text-on-surface transition-colors duration-200"
+          class="min-w-0 pt-1 text-base leading-6 wrap-break-word text-on-surface transition-colors duration-200"
           :class="{
             'text-on-surface-variant line-through': todo.done,
             'text-on-surface': !todo.done,
@@ -198,23 +202,21 @@ function cancelEdit() {
         <button
           v-if="canMutate && !todo.done"
           type="button"
-          class="row-start-1 mt-0.5 inline-flex min-h-11 items-center rounded-full px-3 text-tiny font-semibold tracking-looser text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:min-h-8 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
+          class="inline-flex min-h-11 w-fit items-center rounded-full px-3 text-tiny font-semibold tracking-looser text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:min-h-8 sm:justify-self-end sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
           :aria-label="`Edit task label: ${todo.label}`"
           @click="startEdit"
         >
           Edit
         </button>
 
-        <div class="row-start-2 flex flex-wrap items-center gap-2 self-start sm:col-span-2">
-          <span
-            aria-hidden="true"
-            class="size-2.5 rounded-full ring-2 ring-surface-container-high"
-            :class="statusTone.dotClass"
-          />
+        <div
+          class="flex flex-wrap items-center gap-1.5 self-start border-t border-outline-variant/8 pt-3 sm:col-span-2"
+        >
+          <span aria-hidden="true" class="mr-1 size-2 rounded-full" :class="statusTone.dotClass" />
           <span
             v-for="badge in [scheduleBadge, lifecycleBadge]"
             :key="badge.label"
-            class="rounded-full px-2.5 py-1.5 text-tiny font-semibold tracking-looser uppercase trim-both-cap-alphabetic"
+            class="rounded-full px-2.5 py-1 text-tiny font-semibold tracking-looser uppercase trim-both-cap-alphabetic"
             :class="badge.className"
           >
             {{ badge.label }}
@@ -225,7 +227,7 @@ function cancelEdit() {
 
     <div
       v-if="slots.actions"
-      class="col-span-full row-start-3 flex items-center gap-1 self-end justify-self-end opacity-100 transition-opacity duration-200 sm:col-span-1 sm:col-start-3 sm:row-span-full sm:self-center sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
+      class="col-span-full flex items-center gap-1 justify-self-end border-t border-outline-variant/8 pt-1 opacity-100 transition-opacity duration-150 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:self-start sm:border-t-0 sm:pt-0 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
     >
       <slot name="actions" />
     </div>
