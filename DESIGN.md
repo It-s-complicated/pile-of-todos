@@ -33,37 +33,37 @@ colors:
   red-error-container-text: '#ff9993'
 typography:
   display:
-    fontFamily: 'Epilogue, ui-sans-serif, system-ui, sans-serif'
+    fontFamily: 'Fraunces, ui-serif, Georgia, serif'
     fontSize: '1.875rem'
     fontWeight: 800
     lineHeight: 1
     letterSpacing: '-0.025em'
   headline:
-    fontFamily: 'Epilogue, ui-sans-serif, system-ui, sans-serif'
+    fontFamily: 'Fraunces, ui-serif, Georgia, serif'
     fontSize: '1.5rem'
     fontWeight: 800
     lineHeight: 1.1
     letterSpacing: '-0.025em'
   title:
-    fontFamily: 'Epilogue, ui-sans-serif, system-ui, sans-serif'
+    fontFamily: 'Fraunces, ui-serif, Georgia, serif'
     fontSize: '1.125rem'
     fontWeight: 600
     lineHeight: 1.25
     letterSpacing: '-0.025em'
   body:
-    fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif'
+    fontFamily: 'Atkinson Hyperlegible Next, ui-sans-serif, system-ui, sans-serif'
     fontSize: '1rem'
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: 'normal'
   supporting:
-    fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif'
+    fontFamily: 'Atkinson Hyperlegible Next, ui-sans-serif, system-ui, sans-serif'
     fontSize: '0.875rem'
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: 'normal'
   label:
-    fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif'
+    fontFamily: 'Atkinson Hyperlegible Next, ui-sans-serif, system-ui, sans-serif'
     fontSize: '0.625rem'
     fontWeight: 600
     lineHeight: 1
@@ -184,11 +184,11 @@ The palette is a restrained dark neutral system with sage as the primary confirm
 
 ## 3. Typography
 
-**Display Font:** Epilogue, with ui-sans-serif, system-ui, sans-serif fallback  
-**Body Font:** Inter, with ui-sans-serif, system-ui, sans-serif fallback  
-**Label/Mono Font:** Inter, with ui-sans-serif, system-ui, sans-serif fallback
+**Display Font:** Fraunces, with ui-serif, Georgia, serif fallback  
+**Body Font:** Atkinson Hyperlegible Next, with ui-sans-serif, system-ui, sans-serif fallback  
+**Label/Mono Font:** Atkinson Hyperlegible Next, with ui-sans-serif, system-ui, sans-serif fallback
 
-**Character:** Epilogue gives the product its compact personal identity in headings and the Pile of Todos mark. Inter carries the working interface because task labels, controls, and sync states must remain familiar, legible, and fast to scan.
+**Character:** Fraunces gives the product its compact personal identity in headings and the Pile of Todos mark. Atkinson Hyperlegible Next carries the working interface because task labels, controls, and sync states must remain familiar, legible, and fast to scan.
 
 ### Hierarchy
 
@@ -201,7 +201,7 @@ The palette is a restrained dark neutral system with sage as the primary confirm
 
 ### Named Rules
 
-**The Working Sans Rule.** UI labels, buttons, badges, and data use Inter. Epilogue is for names and headings only.
+**The Working Sans Rule.** UI labels, buttons, badges, and data use Atkinson Hyperlegible Next. Fraunces is for names and headings only.
 
 **The Tight Scale Rule.** This is a product interface. Keep hierarchy tight and fixed. Do not use fluid display sizes or dramatic type jumps.
 
@@ -232,7 +232,7 @@ The system uses tonal layering first and shadows second. Resting surfaces are se
 Soft mechanical controls that move slightly on contact.
 
 - **Shape:** Gently rounded controls (`16px`) for main actions, full pills (`9999px`) for compact auth, sync, and icon actions.
-- **Primary:** Sage fill with sage-ink text, uppercase Inter label, medium or semibold weight, and a minimum height of `48px` for task creation and confirmation.
+- **Primary:** Sage fill with sage-ink text, uppercase Atkinson Hyperlegible Next label, medium or semibold weight, and a minimum height of `48px` for task creation and confirmation.
 - **Hover / Focus:** Primary hover brightens to the high sage token, translates up by `2px`, and may gain a small sage-tinted shadow. Focus uses a visible sage ring.
 - **Secondary / Ghost:** Secondary controls use raised charcoal fill or a low-opacity outline. Icon actions stay circular and quiet until hover.
 - **Disabled:** Disabled buttons keep the same shape, drop to reduced opacity, remove hover lift, and use `cursor-not-allowed`.
@@ -259,7 +259,7 @@ Task surfaces are tactile but not ornamental.
 
 Inputs should feel embedded in the work surface and ready for quick capture.
 
-- **Style:** Raised charcoal background, `16px` radius, low-opacity outline, `16px` horizontal padding, and Inter body text.
+- **Style:** Raised charcoal background, `16px` radius, low-opacity outline, `16px` horizontal padding, and Atkinson Hyperlegible Next body text.
 - **Focus:** Border shifts toward sage with a soft sage ring. The global focus outline must remain visible.
 - **Error / Disabled:** Error messages use red container tint with a full border and compact copy. Disabled fields reduce opacity and keep their position.
 
