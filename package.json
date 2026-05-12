@@ -20,7 +20,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/client": "^1.5.16",
+    "@electric-sql/client": "^1.5.17",
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/electric-db-collection": "^0.3.3",
     "@tanstack/vue-db": "^0.0.116",
@@ -33,10 +33,10 @@
     "vue-router": "^5.0.6"
   },
   "devDependencies": {
-    "@netlify/vite-plugin": "^2.12.1",
+    "@netlify/vite-plugin": "^2.12.3",
     "@tailwindcss/vite": "^4.3.0",
     "@tsconfig/node24": "^24.0.4",
-    "@types/node": "^24.12.3",
+    "@types/node": "^24.12.4",
     "@types/pg": "^8.20.0",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vue/tsconfig": "^0.9.1",
