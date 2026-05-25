@@ -3,9 +3,10 @@
   "skills": {
     "designing-entities": {
       "source": "electric-sql/electric",
+
       "sourceType": "github",
       "skillPath": "packages/agents-runtime/skills/designing-entities/SKILL.md",
-      "computedHash": "c6743364a9c44e72b3288e48c7b19fa5a6e5c9ed2cca1ed58cdd3b4c8360222f"
+      "computedHash": "d94c8b2250bcd2eb8d6b906529469a957672bd0b2746a4549da4497995fad280"
     },
     "electric-debugging": {
       "source": "electric-sql/electric",
@@ -17,7 +18,7 @@
       "source": "electric-sql/electric",
       "sourceType": "github",
       "skillPath": "packages/typescript-client/skills/electric-deployment/SKILL.md",
-      "computedHash": "9a41340974316b069c097dd848cc4fb8019d6dc075f4e4cb9721f092ee9847f8"
+      "computedHash": "21fb7c0f58574dfc87eeafe22fbb83fb1e791cce6de5d36a33a7fc4262059279"
     },
     "electric-new-feature": {
       "source": "electric-sql/electric",
@@ -41,7 +42,7 @@
       "source": "electric-sql/electric",
       "sourceType": "github",
       "skillPath": "packages/typescript-client/skills/electric-proxy-auth/SKILL.md",
-      "computedHash": "0d7a511fdf9f397087de0ffb519d3628263d8b9b9ece93602f4d44e98082346f"
+      "computedHash": "7d8bb3206a1832e5d895311b97ee299a5cfb593542ce426696a5bc883062e9ee"
     },
     "electric-schema-shapes": {
       "source": "electric-sql/electric",
@@ -71,19 +72,19 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "15ca2efbf646ed89e85f56470d2a6bbe96268134b7e1e2ce9908ecf3d672119c"
+      "computedHash": "aac6a8636095cc169ec2841b5b72704bc9414e4b44374dce6e860979ee883800"
     },
     "supabase": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/supabase/SKILL.md",
-      "computedHash": "45a3cdccc364a4bbd6cdf700fc069e9f24ebc0428098746cbfbf8b18a5e160d2"
+      "computedHash": "1bb189e255c0e91161f14c618dce0eccf68174ceb963664cef7761b2f90cb466"
     },
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
-      "computedHash": "d606a1146be6d54fb9e73f718b5320b9acac5ff2ba2d7230a555df4b5a923b4a"
+      "computedHash": "292c93e5a86e2429204bc37abe26b3c9023c4760eb02418462887f2082f118ce"
     },
     "valibot": {
       "source": "open-circle/agent-skills",
