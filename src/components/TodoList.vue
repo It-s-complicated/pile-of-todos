@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Todo } from '@/db/collections'
-import { Archive, ArchiveRestore, Check } from 'lucide-vue-next'
+import { Archive, ArchiveRestore, Check } from '@lucide/vue'
 import { computed } from 'vue'
 
 import { useElectricTodos } from '@/composables/useElectricTodos'

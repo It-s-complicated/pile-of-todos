@@ -14,7 +14,7 @@ const queuedCount = ref(0)
 const queueError = ref<string | null>(null)
 const isFlushing = ref(false)
 
-vi.mock('lucide-vue-next', () => {
+vi.mock('@lucide/vue', () => {
   const icon = defineComponent({
     name: 'IconStub',
     setup() {

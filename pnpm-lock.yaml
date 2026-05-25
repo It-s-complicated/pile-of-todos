@@ -28,6 +28,9 @@ importers:
       '@electric-sql/client':
         specifier: ^1.5.18
         version: 1.5.18
+      '@lucide/vue':
+        specifier: ^1.16.0
+        version: 1.16.0(vue@3.6.0-beta.12(typescript@6.0.3))
       '@supabase/supabase-js':
         specifier: ^2.106.2
         version: 2.106.2
@@ -43,9 +46,6 @@ importers:
       drizzle-valibot:
         specifier: ^0.4.2
         version: 0.4.2(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.0)(@types/pg@8.20.0)(pg@8.21.0))(valibot@1.4.1(typescript@6.0.3))
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.6.0-beta.12(typescript@6.0.3))
       pg:
         specifier: ^8.21.0
         version: 8.21.0
@@ -108,7 +108,7 @@ importers:
         specifier: latest
         version: 0.1.22(@opentelemetry/api@1.9.0)(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.3)(typescript@6.0.3)(vite@7.3.1(@types/node@25.9.1)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.48.0)(tsx@4.22.3)(yaml@2.9.0))(yaml@2.9.0)
       vitest:
-        specifier: npm:@voidzero-dev/vite-plus-test@^0.1.22
+        specifier: npm:@voidzero-dev/vite-plus-test@latest
         version: '@voidzero-dev/vite-plus-test@0.1.22(@opentelemetry/api@1.9.0)(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.3)(typescript@6.0.3)(vite@7.3.1(@types/node@25.9.1)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.48.0)(tsx@4.22.3)(yaml@2.9.0))(yaml@2.9.0)'
       vue-tsc:
         specifier: ^3.3.2
@@ -1521,6 +1521,11 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@lucide/vue@1.16.0':
+    resolution: {integrity: sha512-kiHx0fe49DMjQuvNaEOu9Jou6u9FwdqQ8xbZIKlD47sXrOI8g59kIeeQL42NBLI4AvO+UJsbaPX0hEK/4rHSBQ==}
+    peerDependencies:
+      vue: '>=3.0.1'
 
   '@mapbox/node-pre-gyp@2.0.3':
     resolution: {integrity: sha512-uwPAhccfFJlsfCxMYTwOdVfOz3xqyj8xYL3zJj8f0pb30tLohnnFPhLuqp4/qoEz8sNxe4SESZedcBojRefIzg==}
@@ -4304,12 +4309,6 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-vue-next@1.0.0:
-    resolution: {integrity: sha512-V6SPvx1IHTj/UY+FrIYWV5faISsPSb8BnWSFDxAtezWKvWc9ZZ40PDrdu1/Qb5vg4lHWr1hs1BAMGVGm6V1Xdg==}
-    deprecated: Package deprecated. Please use @lucide/vue instead.
-    peerDependencies:
-      vue: '>=3.0.1'
-
   luxon@3.7.2:
     resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
     engines: {node: '>=12'}
@@ -6968,6 +6967,10 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@lucide/vue@1.16.0(vue@3.6.0-beta.12(typescript@6.0.3))':
+    dependencies:
+      vue: 3.6.0-beta.12(typescript@6.0.3)
 
   '@mapbox/node-pre-gyp@2.0.3':
     dependencies:
@@ -9787,10 +9790,6 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
-
-  lucide-vue-next@1.0.0(vue@3.6.0-beta.12(typescript@6.0.3)):
-    dependencies:
-      vue: 3.6.0-beta.12(typescript@6.0.3)
 
   luxon@3.7.2: {}
 

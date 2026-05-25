@@ -9,7 +9,7 @@ const user = ref<{ email?: string | null } | null>(null)
 const signInWithGithub = vi.fn<() => Promise<void>>(async () => undefined)
 const signOut = vi.fn<() => Promise<void>>(async () => undefined)
 
-vi.mock('lucide-vue-next', () => {
+vi.mock('@lucide/vue', () => {
   const icon = defineComponent({
     name: 'IconStub',
     setup() {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Menu, X } from 'lucide-vue-next'
+import { Menu, X } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 

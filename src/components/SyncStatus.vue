@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RefreshCcw } from 'lucide-vue-next'
+import { RefreshCcw } from '@lucide/vue'
 import { computed } from 'vue'
 
 import { useElectricTodos } from '@/composables/useElectricTodos'

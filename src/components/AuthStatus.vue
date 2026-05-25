@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleUserRound, Github, LogOut } from 'lucide-vue-next'
+import { CircleUserRound, LogOut } from '@lucide/vue'
 import { computed, ref } from 'vue'
 
 import { useAuth } from '@/composables/useAuth'
@@ -71,7 +71,7 @@ async function handleSignOut() {
         :disabled="isWorking"
         @click="handleSignIn"
       >
-        <Github class="size-3.5" stroke-width="2" aria-hidden />
+        <img src="/github.svg" class="size-3.5" aria-hidden />
         <span>{{ isWorking ? 'Redirecting...' : 'Sign in' }}</span>
       </button>
 
