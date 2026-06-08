@@ -48,20 +48,24 @@ function handleMove(todo: Todo, weekNumber: number | null) {
           <div
             v-for="index in 3"
             :key="index"
-            class="grid animate-pulse grid-cols-[auto_minmax(0,1fr)] gap-x-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-4 sm:p-5"
+            class="grid animate-pulse grid-cols-[auto_minmax(0,1fr)] gap-x-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 sm:gap-x-4 sm:p-5"
           >
             <div class="size-11 rounded-full border border-outline-variant/20 sm:size-8" />
             <div class="min-w-0 space-y-3 pt-1">
-              <div class="h-4 w-9/12 rounded-full bg-surface-bright/75" />
-              <div class="flex items-center gap-2 border-t border-outline-variant/8 pt-3">
-                <div class="size-2 rounded-full bg-surface-bright/80" />
-                <div class="h-5 w-24 rounded-full bg-surface-bright/55" />
-                <div class="h-5 w-16 rounded-full bg-surface-bright/45" />
+              <div class="h-4 w-10/12 rounded-full bg-surface-bright/75" />
+              <div
+                class="flex flex-col gap-3 border-t border-outline-variant/8 pt-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div class="flex items-center gap-2">
+                  <div class="size-2 rounded-full bg-surface-bright/80" />
+                  <div class="h-5 w-24 rounded-full bg-surface-bright/55" />
+                  <div class="h-5 w-16 rounded-full bg-surface-bright/45" />
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="h-10 w-36 rounded-2xl bg-surface-bright/35" />
+                  <div class="size-10 rounded-full bg-surface-bright/35" />
+                </div>
               </div>
-            </div>
-            <div class="hidden gap-1 sm:flex">
-              <div class="size-9 rounded-full bg-surface-bright/35" />
-              <div class="size-9 rounded-full bg-surface-bright/35" />
             </div>
           </div>
         </div>
@@ -91,7 +95,7 @@ function handleMove(todo: Todo, weekNumber: number | null) {
               "
               :disabled="!canMutateTodos"
               :title="!canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined"
-              class="relative mt-0.5 size-11 shrink-0 rounded-full border border-outline-variant/60 transition-[background-color,border-color,color,transform] duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0 sm:size-8"
+              class="relative size-11 shrink-0 rounded-full border border-outline-variant/60 transition-[background-color,border-color,color,transform] duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
               :class="
                 todo.done
                   ? 'border-primary bg-primary text-on-primary'
@@ -114,6 +118,7 @@ function handleMove(todo: Todo, weekNumber: number | null) {
               :disabled="!canMutateTodos"
               :label="`Move task: ${todo.label}`"
               variant="compact"
+              class="min-w-0 flex-1 sm:flex-none"
               @update:model-value="handleMove(todo, $event)"
             />
             <button
