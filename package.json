@@ -20,10 +20,10 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/client": "^1.5.19",
+    "@electric-sql/client": "^1.5.20",
     "@lucide/vue": "^1.17.0",
-    "@supabase/supabase-js": "^2.106.2",
-    "@tanstack/electric-db-collection": "^0.3.5",
+    "@supabase/supabase-js": "^2.108.0",
+    "@tanstack/electric-db-collection": "^0.3.6",
     "@tanstack/vue-db": "^0.0.118",
     "drizzle-orm": "^0.45.2",
     "drizzle-valibot": "^0.4.2",
@@ -33,10 +33,10 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
-    "@netlify/vite-plugin": "^2.12.6",
+    "@netlify/vite-plugin": "^2.12.7",
     "@tailwindcss/vite": "^4.3.0",
     "@tsconfig/node24": "^24.0.4",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "@types/pg": "^8.20.0",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/tsconfig": "^0.9.1",
@@ -50,7 +50,7 @@
     "vite-plugin-vue-devtools": "^8.1.2",
     "vite-plus": "latest",
     "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.22",
-    "vue-tsc": "^3.3.2",
+    "vue-tsc": "^3.3.4",
     "workbox-window": "^7.4.1"
   },
   "packageManager": "pnpm@10.33.0"
