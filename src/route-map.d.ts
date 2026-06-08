@@ -20,9 +20,9 @@ import type {
 
 declare module 'vue-router' {
   interface TypesConfig {
-    ParamParsers:
-      | never
+    _ParamParsers: {}
     RouteNamedMap: import('vue-router/auto-routes').RouteNamedMap
+    _RouteFileInfoMap: import('vue-router/auto-routes')._RouteFileInfoMap
   }
 }
 
@@ -98,11 +98,15 @@ declare module 'vue-router/auto-routes' {
         | '/'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/archived.vue': {
       routes:
         | '/archived'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/backlog.vue': {
@@ -110,11 +114,15 @@ declare module 'vue-router/auto-routes' {
         | '/backlog'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/current.vue': {
       routes:
         | '/current'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/finished.vue': {
@@ -122,17 +130,23 @@ declare module 'vue-router/auto-routes' {
         | '/finished'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/future.vue': {
       routes:
         | '/future'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/unfinished.vue': {
       routes:
         | '/unfinished'
       views:
+        | never
+      pathParamNames:
         | never
     }
   }
