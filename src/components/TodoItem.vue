@@ -186,7 +186,7 @@ function cancelEdit() {
       </div>
       <div
         v-else
-        class="space-y-2 select-none sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:space-y-0"
+        class="select-none sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3"
         @dblclick="startEdit"
       >
         <div class="flex min-w-0 items-start justify-between gap-2 sm:min-h-10 sm:items-center">
