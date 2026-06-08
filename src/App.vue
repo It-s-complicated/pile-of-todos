@@ -27,7 +27,7 @@ const primaryNavItems = navItems.slice(0, 4)
 const moreNavItems = navItems.slice(4)
 
 const route = useRoute()
-const { isOnline, offlineQueue } = useElectricTodos()
+const { offlineQueue } = useElectricTodos()
 const currentWeek = getCurrentWeekNumber()
 const isHeaderMenuOpen = ref(false)
 const headerMenuPanelId = 'more-views-panel'
@@ -222,36 +222,15 @@ onBeforeUnmount(() => {
 
       <RouterView />
 
-      <section class="mt-12 border-t border-outline-variant/10 pt-8">
-        <h2
-          class="mb-4 text-tiny font-semibold tracking-label-wider text-on-surface-variant uppercase"
-        >
-          Save Status
-        </h2>
-        <div
-          class="max-w-[70ch] rounded-3xl border border-outline-variant/10 bg-surface-container/80 px-5 py-4 text-supporting text-on-surface-variant shadow-surface-rest"
-        >
-          <p v-if="offlineQueue.queuedCount > 0 && !isOnline">
-            {{ offlineQueue.count }} pending change{{ offlineQueue.count === 1 ? '' : 's' }}
-            will sync when the connection returns.
-          </p>
-          <p v-else-if="offlineQueue.count > 0 && offlineQueue.isFlushing">
-            Pending changes are being saved.
-          </p>
-          <p v-else-if="offlineQueue.acceptedCount > 0">
-            {{ offlineQueue.acceptedCount }} accepted change{{
-              offlineQueue.acceptedCount === 1 ? '' : 's'
-            }}
-            waiting for confirmation.
-          </p>
-          <p v-else-if="offlineQueue.count > 0">
-            Pending changes are ready to sync and already appear in your lists.
-          </p>
-          <p v-else>Your task changes are saved automatically when the app is connected.</p>
-          <p v-if="offlineQueue.lastError" class="mt-2 text-caption text-error">
-            {{ offlineQueue.lastError }}
-          </p>
-        </div>
+      <section
+        v-if="offlineQueue.lastError"
+        class="mt-8 rounded-2xl border border-error/20 bg-error-container/25 px-4 py-3 text-supporting text-on-error-container"
+        role="alert"
+      >
+        <p class="text-tiny font-semibold tracking-label-wide text-error uppercase">Sync error</p>
+        <p class="mt-1 text-caption">
+          {{ offlineQueue.lastError }}
+        </p>
       </section>
     </main>
 

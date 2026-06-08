@@ -8,11 +8,7 @@ const addTodo = vi.fn<(label: string, weekNumber: number | null, id?: string) =>
 )
 const canCreateTodos = ref(true)
 const createTodoDisabledReason = ref<string | null>(null)
-const isOnline = ref(true)
-const acceptedCount = ref(0)
-const queuedCount = ref(0)
 const queueError = ref<string | null>(null)
-const isFlushing = ref(false)
 
 vi.mock('@lucide/vue', () => {
   const icon = defineComponent({
@@ -70,13 +66,8 @@ vi.mock('./composables/useElectricTodos', () => ({
     addTodo,
     canCreateTodos: computed(() => canCreateTodos.value),
     createTodoDisabledReason: computed(() => createTodoDisabledReason.value),
-    isOnline: computed(() => isOnline.value),
     offlineQueue: computed(() => ({
-      acceptedCount: acceptedCount.value,
-      count: queuedCount.value,
-      isFlushing: isFlushing.value,
       lastError: queueError.value,
-      queuedCount: queuedCount.value - acceptedCount.value,
     })),
   }),
 }))
@@ -120,43 +111,24 @@ beforeEach(() => {
   addTodo.mockResolvedValue('todo-a')
   canCreateTodos.value = true
   createTodoDisabledReason.value = null
-  isOnline.value = true
-  acceptedCount.value = 0
-  queuedCount.value = 0
   queueError.value = null
-  isFlushing.value = false
 })
 
-test('App explains pending changes waiting locally', async () => {
-  isOnline.value = false
-  queuedCount.value = 2
-
-  const html = await renderApp()
-
-  assert.match(html, /2 pending changes will sync when the connection returns\./)
-})
-
-test('App explains queue flushing and shows queue errors', async () => {
-  queuedCount.value = 1
-  isFlushing.value = true
+test('App shows offline queue errors when sync fails', async () => {
   queueError.value = 'Queue replay failed'
 
   const html = await renderApp()
 
-  assert.match(
-    html,
-    /Pending changes are being written and confirmed against the live Electric stream\./,
-  )
+  assert.match(html, /Sync error/)
   assert.match(html, /Queue replay failed/)
 })
 
-test('App defaults to the merged-model sync explanation when nothing is queued', async () => {
+test('App hides save status copy when there is no queue error', async () => {
   const html = await renderApp()
 
-  assert.match(
-    html,
-    /Todo views merge the confirmed Electric baseline with a local pending overlay/,
-  )
+  assert.notMatch(html, /Save Status/)
+  assert.notMatch(html, /Sync error/)
+  assert.notMatch(html, /Your task changes are saved automatically/)
 })
 
 test('App renders weekly planning links and a collapsed More views trigger', async () => {
@@ -171,22 +143,4 @@ test('App renders weekly planning links and a collapsed More views trigger', asy
   assert.notMatch(html, /Archived/)
   assert.match(html, /aria-expanded="false"/)
   assert.match(html, /aria-label="Open more views"/)
-})
-
-test('App keeps the offline queue default copy unchanged in SSR output', async () => {
-  const html = await renderApp()
-
-  assert.match(
-    html,
-    /Todo views merge the confirmed Electric baseline with a local pending overlay until each accepted txid is confirmed\./,
-  )
-})
-
-test('App explains accepted changes awaiting Electric confirmation', async () => {
-  acceptedCount.value = 1
-  queuedCount.value = 1
-
-  const html = await renderApp()
-
-  assert.match(html, /1 accepted change awaiting Electric confirmation\./)
 })
