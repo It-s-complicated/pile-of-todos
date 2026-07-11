@@ -33,3 +33,4 @@ browser-data
 
 # Local Netlify folder
 .netlify
+auth.json
