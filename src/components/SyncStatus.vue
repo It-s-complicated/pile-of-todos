@@ -8,6 +8,10 @@ import { useTodoSync } from '@/composables/useTodoSync'
 const { isOnline, statuses } = useElectricTodos()
 const { acceptedMutationCount, canRetrySync, queuedMutationCount, syncTodos } = useTodoSync()
 
+const isBlockingError = computed(
+  () => statuses.degraded.value === 'requires-reauth' || statuses.degraded.value === 'quarantined',
+)
+
 const statusConfig = computed(() => {
   if (statuses.degraded.value === 'requires-reauth') {
     return {
@@ -84,6 +88,9 @@ const statusConfig = computed(() => {
 <template>
   <div
     class="flex min-h-10 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 py-2 text-caption shadow-surface-rest"
+    :role="isBlockingError ? 'alert' : 'status'"
+    :aria-live="isBlockingError ? 'assertive' : 'polite'"
+    aria-atomic="true"
   >
     <div
       class="size-2 rounded-full transition-colors duration-200"

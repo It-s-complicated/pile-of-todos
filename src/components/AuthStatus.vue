@@ -54,14 +54,25 @@ async function handleSignOut() {
         <CircleUserRound class="size-5" stroke-width="1.8" />
       </div>
 
-      <div :class="showDetailsOnMobile ? 'block min-w-0 sm:block' : 'hidden min-w-0 sm:block'">
+      <div
+        :class="
+          showDetailsOnMobile ? 'block min-w-0 sm:block' : 'sr-only min-w-0 sm:not-sr-only sm:block'
+        "
+      >
         <p class="text-tiny font-semibold tracking-label-wider text-on-surface-variant uppercase">
           Personal
         </p>
-        <p v-if="isAuthenticated" class="truncate text-supporting text-on-surface">
-          Signed in as <span class="text-primary">{{ signedInLabel }}</span>
+        <p
+          class="truncate text-supporting text-on-surface"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <template v-if="isAuthenticated">
+            Signed in as <span class="text-primary">{{ signedInLabel }}</span>
+          </template>
+          <template v-else>Sign in to start account sync</template>
         </p>
-        <p v-else class="text-supporting text-on-surface">Sign in to start account sync</p>
       </div>
 
       <button
@@ -90,6 +101,9 @@ async function handleSignOut() {
     <p
       v-if="authError"
       class="rounded-2xl border border-error/20 bg-error-container/20 px-3 py-2 text-caption text-on-error-container"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
     >
       {{ authError }}
     </p>

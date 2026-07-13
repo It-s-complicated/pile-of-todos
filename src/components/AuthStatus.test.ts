@@ -55,7 +55,8 @@ beforeEach(() => {
 test('AuthStatus keeps account details hidden on mobile by default', async () => {
   const html = await renderAuthStatus()
 
-  assert.match(html, /class="hidden min-w-0 sm:block"/)
+  assert.match(html, /class="sr-only min-w-0 sm:not-sr-only sm:block"/)
+  assert.match(html, /role="status" aria-live="polite" aria-atomic="true"/)
   assert.match(html, /Sign in to start account sync/)
   assert.match(html, />Sign in</)
 })
@@ -71,4 +72,13 @@ test('AuthStatus reveals account details on mobile when requested for the overfl
   assert.match(html, /Signed in as/)
   assert.match(html, /Ada Lovelace/)
   assert.match(html, />Sign out</)
+})
+
+test('AuthStatus announces blocking authentication errors', async () => {
+  authError.value = 'GitHub sign-in failed'
+
+  const html = await renderAuthStatus()
+
+  assert.match(html, /role="alert" aria-live="assertive" aria-atomic="true"/)
+  assert.match(html, /GitHub sign-in failed/)
 })
