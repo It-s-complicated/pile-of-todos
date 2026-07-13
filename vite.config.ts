@@ -11,6 +11,11 @@ import { analyzer } from 'vite-bundle-analyzer'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
+  server: {
+    watch: {
+      ignored: ['**/browser-data/**'],
+    },
+  },
   staged: {
     '*': 'vp check --fix',
   },

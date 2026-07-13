@@ -13,9 +13,7 @@ overrides:
   '@vue/shared': 'beta'
   '@vue/compat': 'beta'
   vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
-ignoredBuildDependencies:
-  - esbuild
+  vitest: '4.1.10'
 peerDependencyRules:
   allowAny:
     - 'vue'
