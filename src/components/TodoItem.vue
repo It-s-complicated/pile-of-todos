@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, useId } from 'vue'
 
 import type { Todo } from '../db/collections'
+import { focusAfterUpdate } from '@/lib/focus'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
 const props = withDefaults(
@@ -30,6 +31,7 @@ const currentWeek = getCurrentWeekNumber()
 const isEditing = ref(false)
 const editLabel = ref(props.todo.label)
 const editInput = ref<HTMLTextAreaElement | null>(null)
+const editButton = ref<HTMLButtonElement | null>(null)
 const editInputId = useId()
 const editHelpId = `${editInputId}-help`
 const statusTone = computed(() => {
@@ -131,21 +133,29 @@ function startEdit() {
   })
 }
 
-function saveEdit() {
+function finishEdit(restoreFocus: boolean) {
+  isEditing.value = false
+
+  if (restoreFocus) {
+    focusAfterUpdate(() => editButton.value)
+  }
+}
+
+function saveEdit(restoreFocus = false) {
   if (!props.canMutate) {
-    cancelEdit()
+    cancelEdit(restoreFocus)
     return
   }
 
   if (editLabel.value.trim()) {
     emit('update', { label: editLabel.value.trim() })
   }
-  isEditing.value = false
+  finishEdit(restoreFocus)
 }
 
-function cancelEdit() {
+function cancelEdit(restoreFocus = false) {
   editLabel.value = props.todo.label
-  isEditing.value = false
+  finishEdit(restoreFocus)
 }
 </script>
 
@@ -177,9 +187,9 @@ function cancelEdit() {
             :aria-describedby="editHelpId"
             rows="1"
             class="min-h-11 w-full resize-none overflow-hidden rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-3 py-2 text-body text-on-surface transition-colors duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-            @blur="saveEdit"
-            @keydown.enter.prevent="saveEdit"
-            @keydown.esc="cancelEdit"
+            @blur="saveEdit()"
+            @keydown.enter.prevent="saveEdit(true)"
+            @keydown.esc.prevent.stop="cancelEdit(true)"
           />
           <p :id="editHelpId" class="sr-only">Press Enter to save or Escape to cancel.</p>
         </div>
@@ -198,6 +208,7 @@ function cancelEdit() {
 
         <button
           v-if="canMutate && !todo.done"
+          ref="editButton"
           type="button"
           class="inline-flex min-h-8 shrink-0 items-center rounded-full px-2.5 text-tiny font-semibold tracking-label-wide text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:pointer-events-none sm:min-h-10 sm:justify-self-end sm:px-3.5 sm:opacity-0 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:pointer-coarse:pointer-events-auto sm:pointer-coarse:opacity-100"
           :class="{ 'pointer-events-none invisible': isEditing }"

@@ -7,6 +7,7 @@ import AuthStatus from './components/AuthStatus.vue'
 import NewTodoForm from './components/NewTodoForm.vue'
 import SyncStatus from './components/SyncStatus.vue'
 import { useElectricTodos } from './composables/useElectricTodos'
+import { focusAfterUpdate } from '@/lib/focus'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 import Logo from './components/Logo.vue'
 
@@ -30,6 +31,8 @@ const route = useRoute()
 const { offlineQueue } = useElectricTodos()
 const currentWeek = getCurrentWeekNumber()
 const isHeaderMenuOpen = ref(false)
+const headerMenuToggle = ref<HTMLButtonElement | null>(null)
+const headerMenuPanel = ref<HTMLElement | null>(null)
 const headerMenuPanelId = 'more-views-panel'
 
 const workspaceCopy: Record<string, WorkspaceCopy> = {
@@ -67,11 +70,34 @@ const headerMenuToggleLabel = computed(() =>
 )
 
 function closeHeaderMenu() {
+  if (!isHeaderMenuOpen.value) {
+    return
+  }
+
   isHeaderMenuOpen.value = false
+  focusAfterUpdate(() => headerMenuToggle.value)
 }
 
 function toggleHeaderMenu() {
-  isHeaderMenuOpen.value = !isHeaderMenuOpen.value
+  if (isHeaderMenuOpen.value) {
+    closeHeaderMenu()
+    return
+  }
+
+  isHeaderMenuOpen.value = true
+  focusAfterUpdate(() => headerMenuPanel.value?.querySelector<HTMLElement>('a, button') ?? null)
+}
+
+function handleHeaderMenuFocusout(event: FocusEvent) {
+  if (
+    event.relatedTarget instanceof Node &&
+    event.currentTarget instanceof HTMLElement &&
+    event.currentTarget.contains(event.relatedTarget)
+  ) {
+    return
+  }
+
+  isHeaderMenuOpen.value = false
 }
 
 function handleWindowKeydown(event: KeyboardEvent) {
@@ -108,6 +134,7 @@ onBeforeUnmount(() => {
         </div>
 
         <button
+          ref="headerMenuToggle"
           type="button"
           class="order-3 inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-outline-variant/10 bg-surface-container/80 px-3 text-on-surface shadow-surface-rest transition-all duration-200 hover:bg-surface-container-highest active:scale-[0.98]"
           :aria-controls="headerMenuPanelId"
@@ -157,7 +184,9 @@ onBeforeUnmount(() => {
         <div
           v-if="isHeaderMenuOpen"
           :id="headerMenuPanelId"
+          ref="headerMenuPanel"
           class="absolute inset-x-0 top-full z-40"
+          @focusout="handleHeaderMenuFocusout"
         >
           <div class="mx-auto flex max-w-screen-2xl justify-end px-3 pb-4 sm:px-5 lg:px-6">
             <div
