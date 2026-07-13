@@ -73,80 +73,83 @@ function handleMove(todo: Todo, weekNumber: number | null) {
 
       <slot name="empty" v-else-if="todos.length === 0" />
 
-      <div v-else class="flex flex-col gap-3">
-        <TodoItem
+      <ul v-else role="list" class="flex flex-col gap-3">
+        <li
           v-for="(todo, index) in todos"
-          :id="todo.id"
           :key="todo.id"
-          :can-mutate="canMutateTodos"
-          :mutate-disabled-reason="mutateTodoDisabledReason"
-          :todo="todo"
           :style="{ '--staggered-animation-delay': `${Math.min(index * 50, 500)}ms` }"
           class="animate-fade-in-up animation-delay-(--staggered-animation-delay)"
-          @update="handleUpdate(todo.id, $event)"
         >
-          <template #primaryAction>
-            <button
-              type="button"
-              role="checkbox"
-              :aria-checked="todo.done"
-              :aria-label="
-                todo.done ? `Mark incomplete: ${todo.label}` : `Mark complete: ${todo.label}`
-              "
-              :disabled="!canMutateTodos"
-              :title="!canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined"
-              class="relative size-11 shrink-0 rounded-full border border-outline-variant/60 transition-[background-color,border-color,color,transform] duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-              :class="
-                todo.done
-                  ? 'border-primary bg-primary text-on-primary'
-                  : 'bg-surface-container-low hover:border-primary/70 hover:bg-surface-container-highest'
-              "
-              @click="handleUpdate(todo.id, { done: !todo.done })"
-            >
-              <Check
-                v-if="todo.done"
-                class="absolute inset-0 h-full w-full p-0.5 text-on-primary transition-transform duration-200"
-                :class="{ 'animate-checkmark': todo.done }"
-                stroke-width="3"
+          <TodoItem
+            :id="todo.id"
+            :can-mutate="canMutateTodos"
+            :mutate-disabled-reason="mutateTodoDisabledReason"
+            :todo="todo"
+            @update="handleUpdate(todo.id, $event)"
+          >
+            <template #primaryAction>
+              <button
+                type="button"
+                role="checkbox"
+                :aria-checked="todo.done"
+                :aria-label="
+                  todo.done ? `Mark incomplete: ${todo.label}` : `Mark complete: ${todo.label}`
+                "
+                :disabled="!canMutateTodos"
+                :title="!canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined"
+                class="relative size-11 shrink-0 rounded-full border border-outline-variant/60 transition-[background-color,border-color,color,transform] duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                :class="
+                  todo.done
+                    ? 'border-primary bg-primary text-on-primary'
+                    : 'bg-surface-container-low hover:border-primary/70 hover:bg-surface-container-highest'
+                "
+                @click="handleUpdate(todo.id, { done: !todo.done })"
+              >
+                <Check
+                  v-if="todo.done"
+                  class="absolute inset-0 h-full w-full p-0.5 text-on-primary transition-transform duration-200"
+                  :class="{ 'animate-checkmark': todo.done }"
+                  stroke-width="3"
+                />
+              </button>
+            </template>
+            <template #actions>
+              <WeekSelect
+                :model-value="todo.weekNumber"
+                :current-week="currentWeek"
+                :disabled="!canMutateTodos"
+                :label="`Move task: ${todo.label}`"
+                variant="compact"
+                class="min-w-0 flex-1 sm:flex-none"
+                @update:model-value="handleMove(todo, $event)"
               />
-            </button>
-          </template>
-          <template #actions>
-            <WeekSelect
-              :model-value="todo.weekNumber"
-              :current-week="currentWeek"
-              :disabled="!canMutateTodos"
-              :label="`Move task: ${todo.label}`"
-              variant="compact"
-              class="min-w-0 flex-1 sm:flex-none"
-              @update:model-value="handleMove(todo, $event)"
-            />
-            <button
-              v-for="action in [
-                {
-                  icon: todo.archived ? ArchiveRestore : Archive,
-                  label: todo.archived ? `Unarchive: ${todo.label}` : `Archive: ${todo.label}`,
-                  handler: handleArchive,
-                  disabled: !canMutateTodos,
-                  class: 'hover:text-secondary',
-                  title: !canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined,
-                },
-              ]"
-              type="button"
-              :key="action.label"
-              :disabled="action.disabled"
-              :aria-label="action.label"
-              :title="action.title"
-              class="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant transition-[background-color,color,transform] duration-150 hover:bg-surface-container-highest active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-10"
-              :class="action.class"
-              @click="action.handler(todo)"
-            >
-              <component :is="action.icon" class="size-4" stroke-width="1.8" aria-hidden="true" />
-              <span class="sr-only">{{ action.label }}</span>
-            </button>
-          </template>
-        </TodoItem>
-      </div>
+              <button
+                v-for="action in [
+                  {
+                    icon: todo.archived ? ArchiveRestore : Archive,
+                    label: todo.archived ? `Unarchive: ${todo.label}` : `Archive: ${todo.label}`,
+                    handler: handleArchive,
+                    disabled: !canMutateTodos,
+                    class: 'hover:text-secondary',
+                    title: !canMutateTodos ? (mutateTodoDisabledReason ?? undefined) : undefined,
+                  },
+                ]"
+                type="button"
+                :key="action.label"
+                :disabled="action.disabled"
+                :aria-label="action.label"
+                :title="action.title"
+                class="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant transition-[background-color,color,transform] duration-150 hover:bg-surface-container-highest active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-10"
+                :class="action.class"
+                @click="action.handler(todo)"
+              >
+                <component :is="action.icon" class="size-4" stroke-width="1.8" aria-hidden="true" />
+                <span class="sr-only">{{ action.label }}</span>
+              </button>
+            </template>
+          </TodoItem>
+        </li>
+      </ul>
     </div>
   </div>
 </template>
