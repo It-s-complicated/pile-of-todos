@@ -6,6 +6,10 @@ import { assert, test } from 'vite-plus/test'
 
 const rpcMigrationPath = new URL('../db/out/0004_todo_mutation_rpc.sql', import.meta.url)
 const ledgerMigrationPath = new URL('../db/out/0005_todo_mutation_ledger.sql', import.meta.url)
+const rlsRepairMigrationPath = new URL(
+  '../db/out/0006_restore_todos_rls_policies.sql',
+  import.meta.url,
+)
 const ledgerSnapshotPath = new URL('../db/out/meta/0005_snapshot.json', import.meta.url)
 const journalPath = new URL('../db/out/meta/_journal.json', import.meta.url)
 
@@ -116,6 +120,27 @@ test('todo mutation ledger migration reserves accepted ledger writes for the mut
   )
 })
 
+test('todo RLS repair migration restores per-user policies', async () => {
+  const migrationSql = await readFile(rlsRepairMigrationPath, 'utf8')
+
+  for (const operation of ['select', 'insert', 'update', 'delete']) {
+    assert.match(
+      migrationSql,
+      new RegExp(`create policy "todos_${operation}_own"[\\s\\S]*for ${operation}`, 'i'),
+    )
+  }
+  assert.match(migrationSql, /to authenticated[\s\S]*user_id = \(select auth\.uid\(\)\)/i)
+  assert.match(
+    migrationSql,
+    /for update[\s\S]*using \(user_id = \(select auth\.uid\(\)\)\)[\s\S]*with check \(user_id = \(select auth\.uid\(\)\)\)/i,
+  )
+  assert.match(
+    migrationSql,
+    /create policy "todo_mutation_ledger_select_own"[\s\S]*for select[\s\S]*to authenticated[\s\S]*user_id = \(select auth\.uid\(\)\)/i,
+  )
+  assert.notMatch(migrationSql, /create policy "todo_mutation_ledger_insert_own"/i)
+})
+
 test('todo mutation RPC migration is registered in the Drizzle journal', async () => {
   const journal = await journalPromise
 
@@ -125,6 +150,10 @@ test('todo mutation RPC migration is registered in the Drizzle journal', async (
   )
   assert.equal(
     journal.entries.some(({ tag }) => tag === '0005_todo_mutation_ledger'),
+    true,
+  )
+  assert.equal(
+    journal.entries.some(({ tag }) => tag === '0006_restore_todos_rls_policies'),
     true,
   )
 })
