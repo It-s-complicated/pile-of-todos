@@ -16,8 +16,6 @@
   --color-on-background: #e2e6eb;
   --color-on-surface: #e2e6eb;
   --color-on-surface-variant: #a8abb0;
-  --color-inverse-surface: #f9f9fc;
-  --color-inverse-on-surface: #535557;
 
   --color-primary: #b8cbc1;
   --color-primary-container: #45564e;
@@ -66,10 +64,10 @@
   --text-control--line-height: 1.25rem;
   --text-title: 1.125rem;
   --text-title--line-height: 1.375rem;
-  --text-headline: 1.375rem;
+  --text-headline: 1.5rem;
   --text-headline--line-height: 1.65rem;
-  --text-display: 1.75rem;
-  --text-display--line-height: 1.95rem;
+  --text-display: 1.875rem;
+  --text-display--line-height: 1.875rem;
 
   --tracking-label: 0.14em;
   --tracking-label-wide: 0.18em;
@@ -94,7 +92,7 @@ body {
   margin: 0;
   background:
     radial-gradient(circle at top left, rgba(184, 203, 193, 0.12), transparent 32%),
-    radial-gradient(circle at 85% 20%, rgba(205, 219, 240, 0.1), transparent 26%),
+    radial-gradient(circle at 85% 20%, rgba(243, 246, 255, 0.1), transparent 26%),
     radial-gradient(circle at bottom right, rgba(226, 190, 193, 0.08), transparent 30%),
     linear-gradient(180deg, #111416 0%, #0c0e10 100%);
   font-family: var(--font-body);
