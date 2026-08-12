@@ -51,7 +51,6 @@ type TodoMutationIntent = {
 export type AcceptedTodoMutation = {
   mutationId: string
   todoId: string
-  txid: number
 }
 
 type TodoMutationRpcError = {
@@ -92,20 +91,9 @@ const todoMutationRpcErrorSchema = v.object({
   message: v.pipe(v.string(), v.trim(), v.nonEmpty()),
 })
 
-const txidSchema = v.union([
-  v.pipe(v.number(), v.integer(), v.minValue(0)),
-  v.pipe(
-    v.string(),
-    v.trim(),
-    v.regex(/^\d+$/),
-    v.transform((value) => Number.parseInt(value, 10)),
-  ),
-])
-
 const acceptedTodoMutationRpcSchema = v.object({
   mutationId: v.optional(v.string()),
   todoId: v.optional(v.string()),
-  txid: txidSchema,
 })
 
 function getNormalizedPostgrestText(error: TodoMutationRpcError) {
@@ -204,7 +192,6 @@ function parseAcceptedTodoMutation(
   return {
     mutationId,
     todoId,
-    txid: result.output.txid,
   }
 }
 

@@ -59,7 +59,7 @@ beforeEach(() => {
   pendingMutationCount.value = 0
 })
 
-test('useTodoData exposes signed-in auth state and the Electric read model', async () => {
+test('useTodoData exposes signed-in auth state and the confirmed read model', async () => {
   const { useTodoData } = await import('./useTodoData')
 
   const todoData = useTodoData()

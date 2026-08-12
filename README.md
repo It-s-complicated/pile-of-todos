@@ -4,8 +4,8 @@ A weekly planning todo app built with Vue 3, TanStack DB, and Tailwind CSS.
 
 The runtime architecture is explicitly browser-driven:
 
-- Supabase handles browser auth and browser write calls.
-- Electric handles browser read sync / confirmed baseline reads.
+- Supabase handles browser auth, confirmed reads, Realtime, and RPC writes.
+- TanStack DB provides the live confirmed-read collection and optimistic overlay.
 - This app does **not** include an app-owned server runtime, proxy, or `/api/*` routes.
 
 ## What it does
@@ -22,16 +22,13 @@ Create `.env.local` for browser runtime variables. The app does not use an `API_
 
 ### Frontend (Vite) variables
 
-| Variable                  | Required | Purpose                                                                 |
-| ------------------------- | -------- | ----------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`       | Yes      | Supabase project URL used by the browser for auth and write operations. |
-| `VITE_SUPABASE_ANON_KEY`  | Yes      | Supabase publishable/anon key used by the browser client.               |
-| `VITE_ELECTRIC_SHAPE_URL` | Yes      | Electric shape endpoint used directly by the browser for read sync.     |
-| `VITE_ELECTRIC_SOURCE_ID` | Yes      | Electric source identifier appended to the shape request.               |
-| `VITE_ELECTRIC_SECRET`    | Yes      | Electric secret appended to the shape request.                          |
-| `VITE_DEVICE_ID`          | Yes      | Stable device identifier attached to client mutation intents.           |
+| Variable                 | Required | Purpose                                                       |
+| ------------------------ | -------- | ------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`      | Yes      | Supabase project URL used by the browser.                     |
+| `VITE_SUPABASE_ANON_KEY` | Yes      | Supabase publishable/anon key used by the browser client.     |
+| `VITE_DEVICE_ID`         | Yes      | Stable device identifier attached to client mutation intents. |
 
-The frontend runtime contract intentionally does **not** include `VITE_API_BASE_URL`, `VITE_ELECTRIC_PROXY_URL`, or other env vars that imply an app-owned server, proxy, or `/api/*` route layer. The Electric source id and secret are currently part of the browser configuration used to build the direct shape URL.
+The frontend runtime contract intentionally does **not** include an app-owned API base URL or server secret. Supabase RLS scopes browser reads, and all writes use `apply_todo_mutation`.
 
 ### Backend/tooling variable
 
@@ -42,7 +39,7 @@ The frontend runtime contract intentionally does **not** include `VITE_API_BASE_
 ## Auth and backend architecture note
 
 - Current app is frontend-only; Supabase Auth handles authentication and Supabase database functions/tables handle browser writes.
-- Electric is read transport only; it supplies confirmed, auth-scoped todo reads to the browser.
+- `@supabase-labs/tanstack-db` supplies confirmed, auth-scoped todo reads through PostgREST and Realtime.
 - No app-owned server runtime, proxy, or `/api/*` routes are present in this app.
 - If migrating to better-auth later, add a backend service first.
 - If/when a backend is introduced, re-evaluate replacing Supabase auth flows with better-auth in that backend layer.
@@ -67,8 +64,8 @@ To integrate Supabase authentication correctly in this frontend-only app:
 ## Sync architecture summary
 
 - Browser auth: Supabase Auth
-- Browser write path: direct Supabase calls from the client
-- Browser read path: direct Electric shape reads from the client
+- Browser write path: Supabase `apply_todo_mutation` RPC calls from the client
+- Browser read path: Supabase PostgREST + Realtime through TanStack DB
 - App-owned server runtime: none
 - App-owned `/api/*` routes: none
 
@@ -108,10 +105,8 @@ Use Vite+ commands:
   - Defines the Valibot todo schema and todo type.
   - Exposes the device-id helper used by queued mutation intents.
 - `confirmed-todos.ts`
-  - Creates the Electric-backed TanStack DB collection for confirmed todo reads.
-  - Adds auth headers, user-scoped shape params, column mapping, and `txid` confirmation helpers.
-- `electric-read-config.ts` and `electric-user-scope.ts`
-  - Build the Electric shape URL and user-specific read filter.
+  - Creates the Supabase-backed TanStack DB collection for confirmed todo reads.
+  - Defines the snake_case PostgREST row schema, domain mapper, Realtime subscription, and snapshot refresh helper.
 - `schema.ts`
   - Drizzle Postgres table definition and validation schemas for `todos`.
 - `connection.ts`
@@ -119,20 +114,20 @@ Use Vite+ commands:
 
 ### `src/composables`
 
-- `useElectricTodos.ts`
+- `useTodos.ts`
   - Main public todo API used by the UI.
   - Combines read state, mutation methods, connectivity, queue counts, and sync/degraded statuses.
 - `useTodoData.ts`
   - Shared singleton wiring for auth state, network state, read model readiness, and the mutation queue controller.
 - `useTodoReadModel.ts`
-  - Reads confirmed todos from Electric and overlays pending queued mutations for optimistic UI.
+  - Reads the authenticated Supabase snapshot and overlays pending queued mutations for optimistic UI.
 - `useTodoMutations.ts`
   - Builds optimistic create/update/delete mutation intents and puts them on the durable queue.
 - `useTodoSync.ts`
   - Derives user-facing sync/degraded status from the mutation queue controller.
 - `useTodoCreateQueueController.ts`
   - Durable local mutation queue controller.
-  - Persists queued mutations, flushes them to the Supabase RPC, and waits for Electric `txid` confirmation.
+  - Persists queued mutations, flushes them to the Supabase RPC, and removes accepted overlays only after a successful confirmed snapshot refresh.
 - `useDataExport.ts`
   - Programmatic export/import JSON helper.
   - Import validates individual todos before queueing create mutations.
@@ -167,7 +162,7 @@ Use Vite+ commands:
 - Export creates a JSON payload containing `todos`.
 - Export serializes the current visible merged todo set when invoked programmatically; export is not currently exposed in the visible UI.
 - Import accepts either a top-level todo array or an object with a `todos` array, then validates each todo with Valibot before queueing any changes.
-- **Import semantics:** imported todos are submitted through the same durable local mutation queue as manually created todos, so they appear immediately in the optimistic overlay and remain pending until Electric confirms them.
+- **Import semantics:** imported todos use the same durable local mutation queue as manually created todos, so they appear immediately and remain pending until the post-write Supabase snapshot refresh succeeds.
 
 ## Troubleshooting
 
@@ -180,10 +175,9 @@ Use Vite+ commands:
 ### Sync status meanings
 
 - **Re-auth required**: pending work is blocked until the signed-in account refreshes its Supabase session.
-- **Sync degraded**: an invariant or quarantine condition needs operator attention before normal sync can resume.
 - **Retry pending**: at least one queued mutation failed retryably; use **Retry sync** when available.
 - **Syncing...**: queued work is actively flushing.
-- **Awaiting confirmation**: Supabase accepted the mutation, but Electric has not confirmed the returned `txid` yet.
+- **Awaiting confirmation**: Supabase accepted the mutation, and its optimistic overlay is waiting for a successful authoritative snapshot refresh.
 - **Paused**: sync transport is unavailable or intentionally blocked, including offline, signed-out, or not-ready states.
 - **Synced**: no degraded state or active sync delivery is pending.
 
@@ -197,7 +191,7 @@ Use Vite+ commands:
 
 ## Supabase write hardening
 
-- `todos.user_id` is now the ownership column used by both RLS policies and Electric read scoping.
+- `todos.user_id` is the ownership column used by RLS and the live-query scope.
 - The browser client accepts only `VITE_SUPABASE_ANON_KEY`; `VITE_SUPABASE_KEY` is no longer recognized.
-- Remote sync writes run only for the authenticated owner, and Electric reads are filtered to that same `user_id`.
+- Remote writes run only for the authenticated owner, and confirmed reads are filtered to that same `user_id`.
 - Existing hosted rows with `NULL user_id` must be backfilled to a real Supabase auth user before a follow-up migration can safely mark `user_id` as `NOT NULL`.

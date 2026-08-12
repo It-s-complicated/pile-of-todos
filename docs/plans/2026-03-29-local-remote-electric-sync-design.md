@@ -1,5 +1,9 @@
 # Local / Remote / Electric Sync Design
 
+> Superseded for application reads and mutation confirmation by the
+> [Supabase TanStack DB migration plan](./2026-08-12-electric-to-supabase-tanstack-db-migration.md).
+> This document remains as historical context for the durable queue, optimistic overlay, RPC, and idempotency design.
+
 ## Summary
 
 Adopt a hybrid sync model for todos. Postgres is the durable source of truth. Electric is read and sync transport only. The client keeps a confirmed baseline from Electric plus a pending mutation ledger used for optimistic UI, retries, and recovery. Every accepted write must be confirmed by txid-backed sync-back before it is considered complete. The UI reads one merged todo view and never chooses between separate local and Postgres selectors.

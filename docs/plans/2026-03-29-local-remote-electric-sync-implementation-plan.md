@@ -6,6 +6,10 @@ updated: 2026-04-03
 
 # Implementation Plan
 
+> Superseded for application reads and mutation confirmation by the
+> [Supabase TanStack DB migration plan](./2026-08-12-electric-to-supabase-tanstack-db-migration.md).
+> This document remains as historical implementation context.
+
 ## Goal
 Replace the current dual local/remote sync coupling with one Supabase-backed client write path, one Electric-confirmed read baseline, and one user-partitioned optimistic ledger that survives resets, offline work, and auth transitions.
 

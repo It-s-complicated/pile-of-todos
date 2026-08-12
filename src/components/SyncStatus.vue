@@ -2,15 +2,13 @@
 import { RefreshCcw } from '@lucide/vue'
 import { computed } from 'vue'
 
-import { useElectricTodos } from '@/composables/useElectricTodos'
+import { useTodos } from '@/composables/useTodos'
 import { useTodoSync } from '@/composables/useTodoSync'
 
-const { isOnline, statuses } = useElectricTodos()
+const { isOnline, statuses } = useTodos()
 const { acceptedMutationCount, canRetrySync, queuedMutationCount, syncTodos } = useTodoSync()
 
-const isBlockingError = computed(
-  () => statuses.degraded.value === 'requires-reauth' || statuses.degraded.value === 'quarantined',
-)
+const isBlockingError = computed(() => statuses.degraded.value === 'requires-reauth')
 
 const statusConfig = computed(() => {
   if (statuses.degraded.value === 'requires-reauth') {
@@ -25,14 +23,6 @@ const statusConfig = computed(() => {
     return {
       dotClass: 'bg-secondary',
       text: 'Retry pending',
-      textClass: 'text-secondary',
-    }
-  }
-
-  if (statuses.degraded.value === 'quarantined') {
-    return {
-      dotClass: 'bg-secondary',
-      text: 'Confirmation blocked',
       textClass: 'text-secondary',
     }
   }

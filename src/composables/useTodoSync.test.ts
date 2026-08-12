@@ -5,7 +5,7 @@ const acceptedMutationCount = ref(0)
 const isFlushing = ref(false)
 const isOnline = ref(true)
 const isReady = ref(true)
-const lastErrorKind = ref<'none' | 'quarantined' | 'requires-reauth' | 'retryable'>('none')
+const lastErrorKind = ref<'none' | 'requires-reauth' | 'retryable'>('none')
 const pendingMutationCount = ref(0)
 const requiresReauth = ref(false)
 const queuedMutationCount = ref(0)
@@ -115,7 +115,7 @@ test('useTodoSync reports syncing while pending mutations are being flushed', as
   assert.equal(sync.syncStatus.value, 'syncing')
 })
 
-test('useTodoSync reports accepted mutations awaiting Electric confirmation', async () => {
+test('useTodoSync reports accepted mutations awaiting a confirmed snapshot refresh', async () => {
   acceptedMutationCount.value = 1
   pendingMutationCount.value = 1
   const { useTodoSync } = await import('./useTodoSync')
@@ -124,15 +124,4 @@ test('useTodoSync reports accepted mutations awaiting Electric confirmation', as
 
   assert.equal(sync.syncStatus.value, 'awaiting-confirmation')
   assert.equal(sync.acceptedMutationCount.value, 1)
-})
-
-test('useTodoSync surfaces accepted-but-unconfirmed failures as quarantined state', async () => {
-  acceptedMutationCount.value = 1
-  pendingMutationCount.value = 1
-  lastErrorKind.value = 'quarantined'
-  const { useTodoSync } = await import('./useTodoSync')
-
-  const sync = useTodoSync()
-
-  assert.equal(sync.degradedStatus.value, 'quarantined')
 })

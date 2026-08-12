@@ -10,6 +10,11 @@ const rlsRepairMigrationPath = new URL(
   '../db/out/0006_restore_todos_rls_policies.sql',
   import.meta.url,
 )
+const readAccessMigrationPath = new URL(
+  '../db/out/0007_supabase_tanstack_read_access.sql',
+  import.meta.url,
+)
+const realtimeMigrationPath = new URL('../db/out/0008_enable_todos_realtime.sql', import.meta.url)
 const ledgerSnapshotPath = new URL('../db/out/meta/0005_snapshot.json', import.meta.url)
 const journalPath = new URL('../db/out/meta/_journal.json', import.meta.url)
 
@@ -141,6 +146,38 @@ test('todo RLS repair migration restores per-user policies', async () => {
   assert.notMatch(migrationSql, /create policy "todo_mutation_ledger_insert_own"/i)
 })
 
+test('Supabase read migration exposes only authenticated selects and RPC writes', async () => {
+  const migrationSql = await readFile(readAccessMigrationPath, 'utf8')
+
+  assert.match(migrationSql, /alter table public\.todos enable row level security/i)
+  assert.match(
+    migrationSql,
+    /create policy "todos_select_own"[\s\S]*to authenticated[\s\S]*user_id = \(select auth\.uid\(\)\)/i,
+  )
+  assert.match(migrationSql, /grant select on table public\.todos to authenticated/i)
+  assert.match(
+    migrationSql,
+    /revoke insert, update, delete on table public\.todos from authenticated, anon, public/i,
+  )
+  assert.match(
+    migrationSql,
+    /revoke execute on function public\.apply_todo_mutation\(jsonb\) from public, anon/i,
+  )
+  assert.match(
+    migrationSql,
+    /grant execute on function public\.apply_todo_mutation\(jsonb\) to authenticated/i,
+  )
+})
+
+test('Supabase Realtime migration adds todos to the publication idempotently', async () => {
+  const migrationSql = await readFile(realtimeMigrationPath, 'utf8')
+
+  assert.match(migrationSql, /if not exists[\s\S]*from pg_publication_tables/i)
+  assert.match(migrationSql, /pubname = 'supabase_realtime'/i)
+  assert.match(migrationSql, /alter publication supabase_realtime add table public\.todos/i)
+  assert.notMatch(migrationSql, /replica identity full/i)
+})
+
 test('todo mutation RPC migration is registered in the Drizzle journal', async () => {
   const journal = await journalPromise
 
@@ -154,6 +191,14 @@ test('todo mutation RPC migration is registered in the Drizzle journal', async (
   )
   assert.equal(
     journal.entries.some(({ tag }) => tag === '0006_restore_todos_rls_policies'),
+    true,
+  )
+  assert.equal(
+    journal.entries.some(({ tag }) => tag === '0007_supabase_tanstack_read_access'),
+    true,
+  )
+  assert.equal(
+    journal.entries.some(({ tag }) => tag === '0008_enable_todos_realtime'),
     true,
   )
 })

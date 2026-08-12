@@ -3,13 +3,13 @@ import type { Todo } from '@/db/collections'
 import { Archive, ArchiveRestore, Check } from '@lucide/vue'
 import { computed } from 'vue'
 
-import { useElectricTodos } from '@/composables/useElectricTodos'
+import { useTodos } from '@/composables/useTodos'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
 import TodoItem from './TodoItem.vue'
 import WeekSelect from './WeekSelect.vue'
 
-const { canMutateTodos, isReady, mutateTodoDisabledReason, updateTodo } = useElectricTodos()
+const { canMutateTodos, isReady, mutateTodoDisabledReason, updateTodo } = useTodos()
 defineProps<{ todos: Todo[] }>()
 
 const loading = computed(() => !isReady.value)

@@ -4,7 +4,7 @@ import type { ComputedRef, Ref } from 'vue'
 import { useTodoData } from './useTodoData.ts'
 
 type TodoSyncStatus = 'awaiting-confirmation' | 'paused' | 'queued-offline' | 'syncing' | 'synced'
-type TodoDegradedStatus = 'none' | 'quarantined' | 'requires-reauth' | 'retryable-error'
+type TodoDegradedStatus = 'none' | 'requires-reauth' | 'retryable-error'
 
 type TodoSyncState = {
   acceptedMutationCount: ComputedRef<number>
@@ -33,10 +33,6 @@ export function useTodoSync(): TodoSyncState {
   const degradedStatus = computed<TodoDegradedStatus>(() => {
     if (todoData.sync.controller.transportState.value.requiresReauth) {
       return 'requires-reauth'
-    }
-
-    if (todoData.sync.controller.lastErrorKind.value === 'quarantined') {
-      return 'quarantined'
     }
 
     if (todoData.sync.controller.lastErrorKind.value === 'retryable') {

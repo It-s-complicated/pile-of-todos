@@ -1,68 +1,59 @@
-import type { ExternalParamsRecord } from '@electric-sql/client'
-import { snakeCamelMapper } from '@electric-sql/client'
-import { electricCollectionOptions } from '@tanstack/electric-db-collection'
+import { supabaseCollectionOptions } from '@supabase-labs/tanstack-db'
 import { createCollection } from '@tanstack/vue-db'
+import * as v from 'valibot'
 
-import { getAuthSyncAccess } from '@/lib/auth-allowlist'
-import { getSupabaseSession } from '@/lib/supabase'
-import { getElectricUserScope } from '@/lib/supabase-config'
+import { getSupabaseClient } from '@/lib/supabase'
 
-import { todoSchema } from './collections'
-import { getElectricReadShapeUrl } from './electric-read-config'
-import { createElectricScopeParams } from './electric-user-scope'
+import { todoSchema, type Todo } from './collections'
 
-function createConfirmedTodosCollection(shapeUrl: string) {
-  const readCurrentSyncAccess = async () => {
-    const session = await getSupabaseSession()
+export const confirmedTodoRowSchema = v.object({
+  id: v.string(),
+  label: v.string(),
+  week_number: v.nullable(v.number()),
+  done: v.boolean(),
+  archived: v.boolean(),
+  created_at: v.number(),
+  updated_at: v.number(),
+  device_id: v.nullable(v.string()),
+  user_id: v.string(),
+  deleted_at: v.nullable(v.number()),
+})
 
-    return getAuthSyncAccess({
-      isAuthenticated: session !== null,
-      userId: session?.user.id ?? null,
-      accessToken: session?.access_token ?? null,
-    })
-  }
-  const currentUserScope = createElectricScopeParams(async () =>
-    getElectricUserScope((await readCurrentSyncAccess()).userId),
-  )
+export type ConfirmedTodoRow = v.InferOutput<typeof confirmedTodoRowSchema>
 
-  const collectionOptions = electricCollectionOptions({
-    id: 'confirmed-todos',
-    schema: todoSchema,
-    getKey: (item) => item.id,
-    shapeOptions: {
-      url: shapeUrl,
-      headers: {
-        Authorization: async () => {
-          const { accessToken } = await readCurrentSyncAccess()
-          return accessToken ? `Bearer ${accessToken}` : ''
-        },
-      },
-      columnMapper: snakeCamelMapper(),
-      parser: {
-        int8: (value) => Number(value),
-      },
-      params: {
-        table: 'todos',
-        where: currentUserScope.where,
-        params: currentUserScope.params,
-      } as unknown as ExternalParamsRecord,
-    },
-  }) as unknown as Parameters<typeof createCollection>[0]
-
-  return createCollection(collectionOptions)
+export function mapConfirmedTodoRow(row: ConfirmedTodoRow): Todo {
+  return v.parse(todoSchema, {
+    id: row.id,
+    label: row.label,
+    weekNumber: row.week_number,
+    done: row.done,
+    archived: row.archived,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    deviceId: row.device_id,
+    userId: row.user_id,
+    deletedAt: row.deleted_at,
+  })
 }
 
-let cachedConfirmedTodosCollection: ReturnType<typeof createConfirmedTodosCollection> | null = null
+const confirmedTodosCollection = createCollection(
+  supabaseCollectionOptions({
+    tableName: 'todos',
+    keys: ['id'],
+    schema: confirmedTodoRowSchema,
+    supabase: getSupabaseClient(),
+    realtime: true,
+  }),
+)
 
 export function getConfirmedTodosCollection() {
-  if (cachedConfirmedTodosCollection) {
-    return cachedConfirmedTodosCollection
-  }
-
-  cachedConfirmedTodosCollection = createConfirmedTodosCollection(getElectricReadShapeUrl())
-  return cachedConfirmedTodosCollection
+  return confirmedTodosCollection
 }
 
-export async function awaitConfirmedTodosTxid(txid: number, timeout?: number) {
-  return getConfirmedTodosCollection().utils.awaitTxId(txid, timeout)
+export async function refreshConfirmedTodos(): Promise<void> {
+  const results = await confirmedTodosCollection.utils.refetch({ throwOnError: true })
+
+  if (results.length === 0) {
+    throw new Error('Confirmed todo snapshot is not active')
+  }
 }

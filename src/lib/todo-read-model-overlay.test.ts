@@ -18,7 +18,7 @@ const confirmedTodo: Todo = {
   deletedAt: null,
 }
 
-test('mergeTodoReadModel overlays pending updates on top of confirmed Electric rows', () => {
+test('mergeTodoReadModel overlays pending updates on top of confirmed rows', () => {
   const merged = mergeTodoReadModel([confirmedTodo], [
     {
       acceptedAt: null,
@@ -39,7 +39,6 @@ test('mergeTodoReadModel overlays pending updates on top of confirmed Electric r
       },
       queuedAt: 30,
       state: 'queued',
-      txid: null,
       updatedAt: 30,
     },
   ] satisfies QueuedTodoMutationEntry[])
@@ -48,7 +47,7 @@ test('mergeTodoReadModel overlays pending updates on top of confirmed Electric r
   assert.equal(merged[0]?.updatedAt, 30)
 })
 
-test('mergeTodoReadModel keeps optimistic creates visible until Electric confirms them', () => {
+test('mergeTodoReadModel keeps optimistic creates visible until snapshot confirmation', () => {
   const createdTodo: Todo = {
     ...confirmedTodo,
     id: '22222222-2222-4222-8222-222222222222',
@@ -76,7 +75,6 @@ test('mergeTodoReadModel keeps optimistic creates visible until Electric confirm
       },
       queuedAt: 10,
       state: 'accepted',
-      txid: 41,
       updatedAt: 10,
     },
   ] satisfies QueuedTodoMutationEntry[])
@@ -107,7 +105,6 @@ test('mergeTodoReadModel lets pending deletes win locally until confirmation', (
       },
       queuedAt: deletedAt,
       state: 'queued',
-      txid: null,
       updatedAt: deletedAt,
     },
   ] satisfies QueuedTodoMutationEntry[])

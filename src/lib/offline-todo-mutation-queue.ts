@@ -52,7 +52,6 @@ export type QueuedTodoMutationEntry = {
   mutation: QueuedTodoMutation
   queuedAt: number
   state: TodoMutationQueueState
-  txid: number | null
   updatedAt: number
 }
 
@@ -133,7 +132,6 @@ const queuedTodoMutationEntrySchema = v.object({
   mutation: queuedTodoMutationSchema,
   queuedAt: storedNumberSchema,
   state: v.picklist(['accepted', 'queued']),
-  txid: optionalNullableNumberSchema,
   updatedAt: storedNumberSchema,
 })
 
@@ -260,7 +258,6 @@ function migrateLegacyCreates(storage: Storage | null, currentEntries: QueuedTod
       },
       queuedAt: entry.queuedAt,
       state: 'queued',
-      txid: null,
       updatedAt: entry.updatedAt,
     })
   })

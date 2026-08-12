@@ -1,23 +1,23 @@
+allowBuilds:
+  '@parcel/watcher': set this to true or false
+  esbuild: set this to true or false
+  sharp: set this to true or false
+
 overrides:
-  'vue': 'beta'
-  '@vue/compiler-core': 'beta'
-  '@vue/compiler-dom': 'beta'
-  '@vue/compiler-sfc': 'beta'
-  '@vue/compiler-ssr': 'beta'
-  '@vue/compiler-vapor': 'beta'
-  '@vue/reactivity': 'beta'
-  '@vue/runtime-core': 'beta'
-  '@vue/runtime-dom': 'beta'
-  '@vue/runtime-vapor': 'beta'
-  '@vue/server-renderer': 'beta'
-  '@vue/shared': 'beta'
-  '@vue/compat': 'beta'
-  vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: '4.1.10'
+  'vue': 'rc'
+  '@vue/compiler-core': 'rc'
+  '@vue/compiler-dom': 'rc'
+  '@vue/compiler-sfc': 'rc'
+  '@vue/compiler-ssr': 'rc'
+  '@vue/compiler-vapor': 'rc'
+  '@vue/reactivity': 'rc'
+  '@vue/runtime-core': 'rc'
+  '@vue/runtime-dom': 'rc'
+  '@vue/runtime-vapor': 'rc'
+  '@vue/server-renderer': 'rc'
+  '@vue/shared': 'rc'
+  '@vue/compat': 'rc'
+
 peerDependencyRules:
   allowAny:
     - 'vue'
-allowBuilds:
-  '@parcel/watcher': true
-  esbuild: true
-  sharp: true

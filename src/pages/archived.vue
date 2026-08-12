@@ -3,9 +3,9 @@ import { computed } from 'vue'
 
 import TodoList from '@/components/TodoList.vue'
 import TodoListEmpty from '@/components/TodoListEmpty.vue'
-import { useElectricTodos } from '@/composables/useElectricTodos'
+import { useTodos } from '@/composables/useTodos'
 
-const { todos } = useElectricTodos()
+const { todos } = useTodos()
 const filteredTodos = computed(() =>
   todos.value.filter((todo) => todo.deletedAt === null && todo.archived),
 )

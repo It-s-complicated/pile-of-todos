@@ -78,17 +78,15 @@ beforeEach(() => {
   vi.resetModules()
 })
 
-test('queued create stays pending until Electric confirms the accepted txid', async () => {
+test('queued create stays pending until the confirmed snapshot refresh completes', async () => {
   const accessState = ref<'signed-in' | 'signed-out'>('signed-in')
   const authVersion = ref('token-a')
   const isAuthReady = ref(true)
   const isOnline = ref(false)
   const userId = ref<string | null>('user-a')
   const storage = createOfflineTodoMutationQueue({ storage: createMemoryStorage() })
-  const confirmation = createDeferred<boolean>()
-  const awaitTxid = vi.fn<(txid: number, timeout?: number) => Promise<boolean>>(
-    () => confirmation.promise,
-  )
+  const confirmation = createDeferred<void>()
+  const refreshConfirmedTodos = vi.fn<() => Promise<void>>(() => confirmation.promise)
   const rpc = vi.fn<
     (functionName: 'apply_todo_mutation', params: { intent: unknown }) => Promise<MockRpcResponse>
   >(async () => ({
@@ -110,10 +108,10 @@ test('queued create stays pending until Electric confirms the accepted txid', as
       isAuthReady,
       userId,
     },
-    awaitTxid,
     network: {
       isOnline,
     },
+    refreshConfirmedTodos,
     storage,
     writeClient: writeClient as never,
   })
@@ -141,10 +139,68 @@ test('queued create stays pending until Electric confirms the accepted txid', as
   assert.equal(controller.acceptedMutationCount.value, 1)
   assert.equal(controller.pendingMutationCount.value, 1)
 
-  confirmation.resolve(true)
+  confirmation.resolve()
   await settleControllerState()
 
-  assert.equal(awaitTxid.mock.calls[0]?.[0], 41)
+  assert.equal(refreshConfirmedTodos.mock.calls.length, 1)
+  assert.equal(controller.pendingMutationCount.value, 0)
+})
+
+test('failed snapshot refresh preserves an accepted entry without repeating its RPC', async () => {
+  const accessState = ref<'signed-in' | 'signed-out'>('signed-in')
+  const authVersion = ref('token-a')
+  const isAuthReady = ref(true)
+  const isOnline = ref(false)
+  const userId = ref<string | null>('user-a')
+  const storage = createOfflineTodoMutationQueue({ storage: createMemoryStorage() })
+  const refreshConfirmedTodos = vi.fn<() => Promise<void>>()
+  refreshConfirmedTodos.mockRejectedValueOnce(new Error('Snapshot request failed'))
+  refreshConfirmedTodos.mockResolvedValueOnce()
+  const rpc = vi.fn<
+    (functionName: 'apply_todo_mutation', params: { intent: unknown }) => Promise<MockRpcResponse>
+  >(async () => ({
+    data: {
+      mutationId: 'mutation-a',
+      todoId: optimisticTodo.id,
+    },
+    error: null,
+  }))
+  const { useTodoMutationQueueController } = await import('./useTodoCreateQueueController')
+  const controller = useTodoMutationQueueController({
+    auth: { accessState, authVersion, isAuthReady, userId },
+    network: { isOnline },
+    refreshConfirmedTodos,
+    storage,
+    writeClient: { rpc } as never,
+  })
+
+  controller.queueMutation({
+    kind: 'create',
+    mutationId: 'mutation-a',
+    optimisticTodo,
+    todoId: optimisticTodo.id,
+    values: {
+      archived: false,
+      createdAt: 10,
+      deletedAt: null,
+      done: false,
+      label: optimisticTodo.label,
+      updatedAt: 10,
+      weekNumber: 12,
+    },
+  })
+
+  isOnline.value = true
+  await settleControllerState()
+
+  assert.equal(controller.lastErrorKind.value, 'retryable')
+  assert.equal(controller.acceptedMutationCount.value, 1)
+  assert.equal(rpc.mock.calls.length, 1)
+
+  await controller.flushPendingMutations()
+
+  assert.equal(refreshConfirmedTodos.mock.calls.length, 2)
+  assert.equal(rpc.mock.calls.length, 1)
   assert.equal(controller.pendingMutationCount.value, 0)
 })
 
@@ -155,7 +211,7 @@ test('same-user reauth preserves pending work and resumes it after session refre
   const isOnline = ref(false)
   const userId = ref<string | null>('user-a')
   const storage = createOfflineTodoMutationQueue({ storage: createMemoryStorage() })
-  const awaitTxid = vi.fn<(txid: number, timeout?: number) => Promise<boolean>>(async () => true)
+  const refreshConfirmedTodos = vi.fn<() => Promise<void>>(async () => undefined)
   const rpc = vi.fn<
     (functionName: 'apply_todo_mutation', params: { intent: unknown }) => Promise<MockRpcResponse>
   >(async () => ({
@@ -188,10 +244,10 @@ test('same-user reauth preserves pending work and resumes it after session refre
       isAuthReady,
       userId,
     },
-    awaitTxid,
     network: {
       isOnline,
     },
+    refreshConfirmedTodos,
     storage,
     writeClient: writeClient as never,
   })
@@ -229,7 +285,7 @@ test('same-user reauth preserves pending work and resumes it after session refre
   assert.equal(controller.pendingMutationCount.value, 0)
 })
 
-test('user switches quarantine the old user queue instead of replaying it under the new user', async () => {
+test('user switches isolate the old user queue instead of replaying it under the new user', async () => {
   const accessState = ref<'signed-in' | 'signed-out'>('signed-in')
   const authVersion = ref('token-a')
   const isAuthReady = ref(true)
@@ -253,10 +309,10 @@ test('user switches quarantine the old user queue instead of replaying it under 
       isAuthReady,
       userId,
     },
-    awaitTxid: vi.fn<(txid: number, timeout?: number) => Promise<boolean>>(async () => true),
     network: {
       isOnline,
     },
+    refreshConfirmedTodos: vi.fn<() => Promise<void>>(async () => undefined),
     storage,
     writeClient: writeClient as never,
   })

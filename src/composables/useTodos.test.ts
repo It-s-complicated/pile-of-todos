@@ -66,21 +66,21 @@ beforeEach(() => {
   updateTodo.mockReset()
 })
 
-test('useElectricTodos allows creates for signed-in users even while offline', async () => {
+test('useTodos allows creates for signed-in users even while offline', async () => {
   isOnline.value = false
-  const { useElectricTodos } = await import('./useElectricTodos')
+  const { useTodos } = await import('./useTodos')
 
-  const todos = useElectricTodos()
+  const todos = useTodos()
 
   assert.equal(todos.canCreateTodos.value, true)
   assert.equal(todos.createTodoDisabledReason.value, null)
 })
 
-test('useElectricTodos blocks all writes when there is no signed-in session', async () => {
+test('useTodos blocks all writes when there is no signed-in session', async () => {
   accessState.value = 'signed-out'
-  const { useElectricTodos } = await import('./useElectricTodos')
+  const { useTodos } = await import('./useTodos')
 
-  const todos = useElectricTodos()
+  const todos = useTodos()
 
   assert.equal(todos.canCreateTodos.value, false)
   assert.equal(todos.canMutateTodos.value, false)
@@ -88,14 +88,14 @@ test('useElectricTodos blocks all writes when there is no signed-in session', as
   assert.equal(todos.mutateTodoDisabledReason.value, 'Sign in to update todos.')
 })
 
-test('useElectricTodos keeps mutations enabled offline and exposes pending queue state', async () => {
+test('useTodos keeps mutations enabled offline and exposes pending queue state', async () => {
   isOnline.value = false
   acceptedMutationCount.value = 1
   pendingMutationCount.value = 2
   queuedMutationCount.value = 1
-  const { useElectricTodos } = await import('./useElectricTodos')
+  const { useTodos } = await import('./useTodos')
 
-  const todos = useElectricTodos()
+  const todos = useTodos()
 
   assert.equal(todos.canMutateTodos.value, true)
   assert.equal(todos.mutateTodoDisabledReason.value, null)

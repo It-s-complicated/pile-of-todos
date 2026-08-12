@@ -6,7 +6,7 @@ import { useRoute } from 'vue-router'
 import AuthStatus from './components/AuthStatus.vue'
 import NewTodoForm from './components/NewTodoForm.vue'
 import SyncStatus from './components/SyncStatus.vue'
-import { useElectricTodos } from './composables/useElectricTodos'
+import { useTodos } from './composables/useTodos'
 import { focusAfterUpdate } from '@/lib/focus'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 import Logo from './components/Logo.vue'
@@ -28,7 +28,7 @@ const primaryNavItems = navItems.slice(0, 4)
 const moreNavItems = navItems.slice(4)
 
 const route = useRoute()
-const { offlineQueue } = useElectricTodos()
+const { offlineQueue } = useTodos()
 const currentWeek = getCurrentWeekNumber()
 const isHeaderMenuOpen = ref(false)
 const headerMenuToggle = ref<HTMLButtonElement | null>(null)

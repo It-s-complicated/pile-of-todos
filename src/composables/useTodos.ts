@@ -24,7 +24,7 @@ function getMutateTodoDisabledReason(
   return 'Sign in to update todos.'
 }
 
-export function useElectricTodos() {
+export function useTodos() {
   const todoData = useTodoData()
   const todoSync = useTodoSync()
   const todoMutations = useTodoMutations()

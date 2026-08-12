@@ -92,7 +92,7 @@ test('buildRemoteTodoRow rejects todos outside the active user scope', () => {
 test('upsertRemoteTodo sends create mutations through the RPC', async () => {
   const rpcCalls: RpcCall[] = []
 
-  await upsertRemoteTodo(
+  const accepted = await upsertRemoteTodo(
     createRpcClient(
       {
         data: {
@@ -107,6 +107,7 @@ test('upsertRemoteTodo sends create mutations through the RPC', async () => {
     buildRemoteTodoRow(baseTodo, '33333333-3333-4333-8333-333333333333', 'device-1'),
   )
 
+  assert.deepEqual(accepted, { mutationId: 'mutation-1', todoId: baseTodo.id })
   assert.equal(rpcCalls.length, 1)
   assert.deepEqual(rpcCalls[0]?.params.intent.kind, 'create')
   assert.equal(rpcCalls[0]?.params.intent.todoId, baseTodo.id)

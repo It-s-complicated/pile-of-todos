@@ -1,11 +1,16 @@
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
-import { useLiveQuery } from '@tanstack/vue-db'
+import { eq, useLiveQuery } from '@tanstack/vue-db'
 
-import { getConfirmedTodosCollection } from '@/db/confirmed-todos'
+import {
+  getConfirmedTodosCollection,
+  mapConfirmedTodoRow,
+  refreshConfirmedTodos,
+} from '@/db/confirmed-todos'
 import type { Todo } from '@/db/collections'
 import { mergeTodoReadModel } from '@/lib/todo-read-model-overlay'
 
+import { useAuth } from './useAuth'
 import { useTodoMutationQueueController } from './useTodoCreateQueueController'
 
 type TodoReadModel = {
@@ -14,28 +19,52 @@ type TodoReadModel = {
   todos: ComputedRef<Todo[]>
 }
 
-function normalizeTodo(todo: Todo): Todo {
-  return {
-    ...todo,
-    userId: todo.userId ?? null,
-    deletedAt: todo.deletedAt ?? null,
-  }
-}
-
 export function useTodoReadModel(): TodoReadModel {
+  const { accessState, isAuthReady, userId } = useAuth()
   const confirmedCollection = getConfirmedTodosCollection()
-  const mutationQueue = useTodoMutationQueueController()
-  const { data: confirmedRows, isReady } = useLiveQuery((q) =>
-    q.from({ todo: confirmedCollection }).select(({ todo }) => todo),
+  const activeUserId = computed(() => (accessState.value === 'signed-in' ? userId.value : null))
+  const { data: confirmedRows, isReady: isQueryReady } = useLiveQuery(
+    (q) => {
+      const currentUserId = activeUserId.value
+
+      if (!isAuthReady.value || !currentUserId) {
+        return undefined
+      }
+
+      return q
+        .from({ todo: confirmedCollection })
+        .where(({ todo }) => eq(todo.user_id, currentUserId))
+        .select(({ todo }) => todo)
+    },
+    [isAuthReady, activeUserId],
   )
+  const mutationQueue = useTodoMutationQueueController()
 
   const confirmedTodos = computed(() =>
-    (confirmedRows.value ?? []).map((todo) => normalizeTodo(todo as unknown as Todo)),
+    activeUserId.value
+      ? (confirmedRows.value ?? [])
+          .filter((row) => row.user_id === activeUserId.value)
+          .map(mapConfirmedTodoRow)
+      : [],
+  )
+
+  watch(
+    () => ({ isAuthReady: isAuthReady.value, userId: activeUserId.value }),
+    ({ isAuthReady: ready, userId: nextUserId }, previous) => {
+      if (!ready || !nextUserId || (previous?.isAuthReady && previous.userId === nextUserId)) {
+        return
+      }
+
+      void refreshConfirmedTodos().catch(() => undefined)
+    },
+    { immediate: true },
   )
 
   return {
     confirmedTodos,
-    isReady,
+    isReady: computed(
+      () => isAuthReady.value && (activeUserId.value === null || isQueryReady.value),
+    ),
     todos: computed(() =>
       mergeTodoReadModel(confirmedTodos.value, mutationQueue.pendingMutations.value),
     ),

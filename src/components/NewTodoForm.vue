@@ -3,14 +3,14 @@ import { computed, reactive, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { safeParse } from 'valibot'
 
-import { useElectricTodos } from '@/composables/useElectricTodos'
+import { useTodos } from '@/composables/useTodos'
 import { todoLabelSchema } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 import WeekSelect from './WeekSelect.vue'
 
 type CreateTodoValidationErrorKind = 'gate' | 'validation' | 'none'
 
-const { addTodo, canCreateTodos, createTodoDisabledReason } = useElectricTodos()
+const { addTodo, canCreateTodos, createTodoDisabledReason } = useTodos()
 const router = useRouter()
 const currentWeek = getCurrentWeekNumber()
 const id = useId()

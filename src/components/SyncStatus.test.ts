@@ -4,7 +4,7 @@ import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
 const acceptedMutationCount = ref(0)
 const canRetrySync = ref(false)
-const degraded = ref<'none' | 'quarantined' | 'requires-reauth' | 'retryable-error'>('none')
+const degraded = ref<'none' | 'requires-reauth' | 'retryable-error'>('none')
 const isOnline = ref(true)
 const queuedMutationCount = ref(0)
 const sync = ref<'awaiting-confirmation' | 'paused' | 'queued-offline' | 'syncing' | 'synced'>(
@@ -18,8 +18,8 @@ vi.mock('@lucide/vue', () => ({
   }),
 }))
 
-vi.mock('@/composables/useElectricTodos', () => ({
-  useElectricTodos: () => ({ isOnline, statuses: { degraded, sync } }),
+vi.mock('@/composables/useTodos', () => ({
+  useTodos: () => ({ isOnline, statuses: { degraded, sync } }),
 }))
 
 vi.mock('@/composables/useTodoSync', () => ({

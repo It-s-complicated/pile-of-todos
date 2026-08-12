@@ -61,8 +61,8 @@ vi.mock('@/lib/get-current-week-number', () => ({
   getCurrentWeekNumber: () => 14,
 }))
 
-vi.mock('./composables/useElectricTodos', () => ({
-  useElectricTodos: () => ({
+vi.mock('./composables/useTodos', () => ({
+  useTodos: () => ({
     addTodo,
     canCreateTodos: computed(() => canCreateTodos.value),
     createTodoDisabledReason: computed(() => createTodoDisabledReason.value),

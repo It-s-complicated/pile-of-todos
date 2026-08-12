@@ -73,7 +73,6 @@ test('createOfflineTodoMutationQueue persists queued mutations per partition', (
     },
     queuedAt: 10,
     state: 'queued',
-    txid: null,
     updatedAt: 10,
   })
   queue.save({
@@ -95,7 +94,6 @@ test('createOfflineTodoMutationQueue persists queued mutations per partition', (
     },
     queuedAt: 20,
     state: 'accepted',
-    txid: 42,
     updatedAt: 25,
   })
 
@@ -123,7 +121,6 @@ test('createOfflineTodoMutationQueue replaces an existing queued mutation with t
     },
     queuedAt: 10,
     state: 'queued',
-    txid: null,
     updatedAt: 10,
   })
   queue.save({
@@ -145,7 +142,6 @@ test('createOfflineTodoMutationQueue replaces an existing queued mutation with t
     },
     queuedAt: 10,
     state: 'accepted',
-    txid: 99,
     updatedAt: 20,
   })
 
@@ -177,4 +173,34 @@ test('createOfflineTodoMutationQueue migrates legacy queued creates into pending
   assert.equal(entry?.mutation.todoId, queuedTodo.id)
   assert.equal(entry?.state, 'queued')
   assert.equal(storage.getItem('ai-todo-app-offline-created-todos'), null)
+})
+
+test('createOfflineTodoMutationQueue discards legacy txid fields from accepted entries', () => {
+  const storage = createMemoryStorage()
+  const partitionKey = getOfflineTodoMutationPartitionKey('user-a')
+  storage.setItem(
+    'ai-todo-app-offline-todo-mutations',
+    JSON.stringify([
+      {
+        acceptedAt: 20,
+        partitionKey,
+        mutation: {
+          kind: 'update',
+          mutationId: 'mutation-a',
+          optimisticTodo: queuedTodo,
+          todoId: queuedTodo.id,
+          updates: { done: true, updatedAt: 20 },
+        },
+        queuedAt: 10,
+        state: 'accepted',
+        txid: 99,
+        updatedAt: 20,
+      },
+    ]),
+  )
+
+  const [entry] = createOfflineTodoMutationQueue({ storage }).list(partitionKey)
+
+  assert.equal(entry?.state, 'accepted')
+  assert.equal(entry && 'txid' in entry, false)
 })

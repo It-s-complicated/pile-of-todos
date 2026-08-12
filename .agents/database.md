@@ -2,9 +2,10 @@
 
 ## Collection Setup
 
-- Use TanStack DB `createCollection()` with `localStorageCollectionOptions`
-- Collection file: `src/db/collections.ts` defines `todosCollection` and schemas
-- Cross-tab sync enabled by default
+- `src/db/confirmed-todos.ts` owns the Supabase-backed confirmed-read collection.
+- Keep the collection transport schema in snake_case and map rows to the shared `Todo` domain type in one place.
+- Do not call the collection's direct mutation methods; writes must use `apply_todo_mutation` so idempotency and soft deletes stay intact.
+- The durable browser mutation queue is user-partitioned in localStorage.
 
 ## Schema Design
 
@@ -14,8 +15,8 @@
 
 ## CRUD Operations
 
-- Collection methods: `insert()`, `update()`, `delete()` (synchronous)
-- Live queries via `useLiveQuery()` hook
+- Queue optimistic mutations through `useTodoMutations()`.
+- Live confirmed reads use `useLiveQuery()` and Supabase RLS.
 
 ## Data Import/Export
 

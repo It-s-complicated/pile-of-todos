@@ -3,10 +3,10 @@ import { computed } from 'vue'
 
 import TodoList from '@/components/TodoList.vue'
 import TodoListEmpty from '@/components/TodoListEmpty.vue'
-import { useElectricTodos } from '@/composables/useElectricTodos'
+import { useTodos } from '@/composables/useTodos'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 
-const { todos } = useElectricTodos()
+const { todos } = useTodos()
 const currentWeek = getCurrentWeekNumber()
 const filteredTodos = computed(() =>
   todos.value.filter(

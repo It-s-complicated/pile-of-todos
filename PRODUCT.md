@@ -10,9 +10,9 @@ Pile of Todos is built for one person planning and finishing work across a weekl
 
 ## Product Purpose
 
-Pile of Todos exists to make weekly task planning durable, fast, and calm. Success means the user can capture a task without context switching, review work by time horizon, move items between lanes with confidence, and understand sync state without needing to think about Supabase, Electric, queued mutations, or txid confirmation mechanics.
+Pile of Todos exists to make weekly task planning durable, fast, and calm. Success means the user can capture a task without context switching, review work by time horizon, move items between lanes with confidence, and understand sync state without needing to think about Supabase, queued mutations, or snapshot confirmation mechanics.
 
-The product is intentionally browser-driven. Supabase handles authentication and writes, Electric supplies confirmed reads, and a local optimistic overlay keeps the planning surface useful while changes are queued, offline, accepted, or awaiting confirmation.
+The product is intentionally browser-driven. Supabase handles authentication, confirmed reads, Realtime, and RPC writes, while a local optimistic overlay keeps the planning surface useful while changes are queued, offline, accepted, or awaiting confirmation.
 
 ## Brand Personality
 
