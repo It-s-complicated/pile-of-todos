@@ -4,6 +4,8 @@ allowBuilds:
   sharp: false
 
 overrides:
+  # ponytail: remove after esbuild 0.28.2's platform binaries resolve in CI
+  'esbuild@0.28.2': '0.28.0'
   'vue': 'rc'
   '@vue/compiler-core': 'rc'
   '@vue/compiler-dom': 'rc'
