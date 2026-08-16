@@ -4,6 +4,7 @@ allowBuilds:
   sharp: false
 
 overrides:
+  '@tanstack/db': '0.7.2'
   # ponytail: remove after esbuild 0.28.2's platform binaries resolve in CI
   'esbuild@0.28.2': '0.28.0'
   'vue': 'rc'
