@@ -15,6 +15,10 @@ const readAccessMigrationPath = new URL(
   import.meta.url,
 )
 const realtimeMigrationPath = new URL('../db/out/0008_enable_todos_realtime.sql', import.meta.url)
+const hardeningMigrationPath = new URL(
+  '../db/out/0009_harden_todo_mutation_rpc.sql',
+  import.meta.url,
+)
 const ledgerSnapshotPath = new URL('../db/out/meta/0005_snapshot.json', import.meta.url)
 const journalPath = new URL('../db/out/meta/_journal.json', import.meta.url)
 
@@ -178,6 +182,32 @@ test('Supabase Realtime migration adds todos to the publication idempotently', a
   assert.notMatch(migrationSql, /replica identity full/i)
 })
 
+test('todo mutation hardening removes stale write policies', async () => {
+  const migrationSql = await readFile(hardeningMigrationPath, 'utf8')
+
+  for (const operation of ['insert', 'update', 'delete']) {
+    assert.match(
+      migrationSql,
+      new RegExp(`drop policy if exists "todos_${operation}_own" on public\\.todos`, 'i'),
+    )
+  }
+})
+
+test('todo mutation hardening validates labels and epoch timestamps before writes', async () => {
+  const migrationSql = await readFile(hardeningMigrationPath, 'utf8')
+
+  assert.match(migrationSql, /char_length\(requested_label\) > 500/i)
+  assert.match(migrationSql, /requested_label !~\*/i)
+  assert.match(migrationSql, /max_timestamp_ms constant numeric := 253402300799999/i)
+  assert.match(migrationSql, /jsonb_typeof\(requested_updated_at_value\) <> 'number'/i)
+  assert.match(migrationSql, /raise sqlstate 'PT400'/i)
+  assert.match(migrationSql, /security definer[\s\S]*set search_path = public/i)
+  assert.match(
+    migrationSql,
+    /revoke execute on function public\.apply_todo_mutation\(jsonb\) from public, anon/i,
+  )
+})
+
 test('todo mutation RPC migration is registered in the Drizzle journal', async () => {
   const journal = await journalPromise
 
@@ -199,6 +229,10 @@ test('todo mutation RPC migration is registered in the Drizzle journal', async (
   )
   assert.equal(
     journal.entries.some(({ tag }) => tag === '0008_enable_todos_realtime'),
+    true,
+  )
+  assert.equal(
+    journal.entries.some(({ tag }) => tag === '0009_harden_todo_mutation_rpc'),
     true,
   )
 })

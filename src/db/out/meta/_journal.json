@@ -64,6 +64,13 @@
       "when": 1786564287452,
       "tag": "0008_enable_todos_realtime",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786885923298,
+      "tag": "0009_harden_todo_mutation_rpc",
+      "breakpoints": true
     }
   ]
 }

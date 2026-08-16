@@ -18,7 +18,7 @@ The runtime architecture is explicitly browser-driven:
 
 ## Environment variables
 
-Create `.env.local` for browser runtime variables. The app does not use an `API_BASE_URL` for app-owned `/api/*` routes. If you use Drizzle migration/push tooling, also provide `DATABASE_URL` in your shell environment or `.env.local`.
+Create `.env.local` for browser runtime variables. The app does not use an `API_BASE_URL` for app-owned `/api/*` routes. If you use Drizzle migration tooling, also provide `DATABASE_URL` in your shell environment or `.env.local`.
 
 ### Frontend (Vite) variables
 
@@ -32,9 +32,9 @@ The frontend runtime contract intentionally does **not** include an app-owned AP
 
 ### Backend/tooling variable
 
-| Variable       | Required                                                                | Purpose                                                     | Behavior when missing                                                 |
-| -------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
-| `DATABASE_URL` | Required for Drizzle commands (`migrate`, `db:push`, `db:studio`, etc.) | PostgreSQL connection string for schema management tooling. | Drizzle commands fail at startup. Frontend app runtime is unaffected. |
+| Variable       | Required                                                                   | Purpose                                                     | Behavior when missing                                                 |
+| -------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| `DATABASE_URL` | Required for Drizzle commands (`migrate`, `migrate:generate`, `db:studio`) | PostgreSQL connection string for schema management tooling. | Drizzle commands fail at startup. Frontend app runtime is unaffected. |
 
 ## Auth and backend architecture note
 
@@ -96,6 +96,8 @@ Use Vite+ commands:
 - `vp test` — run the test suite.
 - `vp build` — produce the production build.
 - `vp preview` — preview the production build locally.
+- `pnpm migrate:generate` — generate a reviewed migration after a schema change.
+- `pnpm migrate` — apply committed migrations. Do not use `drizzle-kit push`.
 
 ## Architecture overview
 

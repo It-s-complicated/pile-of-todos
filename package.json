@@ -10,7 +10,6 @@
     "test": "vp test run",
     "migrate": "drizzle-kit migrate",
     "migrate:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check",

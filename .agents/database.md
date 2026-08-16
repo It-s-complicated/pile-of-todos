@@ -9,6 +9,7 @@
 
 ## Schema Design
 
+- Generate and apply reviewed migrations with `pnpm migrate:generate` and `pnpm migrate`; never use `drizzle-kit push`.
 - Define schemas using valibot for runtime validation
 - Use `crypto.randomUUID()` for unique IDs (cloud-sync ready)
 - Always set `updatedAt` timestamp on modifications
