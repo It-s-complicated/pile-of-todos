@@ -22,6 +22,9 @@ import { useNetworkStatus } from './useNetworkStatus'
 
 type QueueErrorKind = 'none' | 'requires-reauth' | 'retryable'
 
+const MAX_AUTO_FLUSH_ATTEMPTS = 5
+const RETRY_BASE_DELAY_MS = 1_000
+
 type UseTodoMutationQueueControllerOptions = {
   auth?: {
     accessState: Ref<ReturnType<typeof useAuth>['accessState']['value']>
@@ -111,6 +114,8 @@ function createTodoMutationQueueController(options: UseTodoMutationQueueControll
   const lastErrorKind = ref<QueueErrorKind>('none')
   const isFlushing = ref(false)
   const pendingMutations = ref<QueuedTodoMutationEntry[]>([])
+  let retryAttemptCount = 0
+  let retryTimer: ReturnType<typeof setTimeout> | null = null
 
   const activeUserId = computed(() =>
     auth.accessState.value === 'signed-in' ? auth.userId.value : null,
@@ -153,20 +158,54 @@ function createTodoMutationQueueController(options: UseTodoMutationQueueControll
     pendingMutations.value = storage.list(activePartitionKey.value)
   }
 
-  function clearSyncError() {
+  function cancelScheduledRetry() {
+    if (retryTimer !== null) {
+      clearTimeout(retryTimer)
+      retryTimer = null
+    }
+  }
+
+  function clearSyncErrorState() {
     lastError.value = null
     lastErrorKind.value = 'none'
   }
 
+  function clearSyncError() {
+    cancelScheduledRetry()
+    retryAttemptCount = 0
+    clearSyncErrorState()
+  }
+
   function markRequiresReauth(message: string) {
+    cancelScheduledRetry()
     requiresReauth.value = true
     lastError.value = message
     lastErrorKind.value = 'requires-reauth'
   }
 
   function markRetryableError(message: string) {
+    cancelScheduledRetry()
     lastError.value = message
     lastErrorKind.value = 'retryable'
+    retryAttemptCount += 1
+
+    if (retryAttemptCount >= MAX_AUTO_FLUSH_ATTEMPTS) {
+      return
+    }
+
+    retryTimer = setTimeout(
+      () => {
+        retryTimer = null
+
+        if (!canFlush.value) {
+          return
+        }
+
+        clearSyncErrorState()
+        void flushPendingMutations()
+      },
+      RETRY_BASE_DELAY_MS * 2 ** (retryAttemptCount - 1),
+    )
   }
 
   function queueMutation(mutation: QueuedTodoMutation) {
@@ -289,6 +328,22 @@ function createTodoMutationQueueController(options: UseTodoMutationQueueControll
   )
 
   watch(activePartitionKey, reloadPendingMutations, { immediate: true })
+
+  watch(
+    () => network.isOnline.value,
+    (online, wasOnline) => {
+      if (!online) {
+        cancelScheduledRetry()
+        return
+      }
+
+      if (wasOnline === false && lastErrorKind.value === 'retryable') {
+        retryAttemptCount = 0
+        clearSyncErrorState()
+        void flushPendingMutations()
+      }
+    },
+  )
 
   watch(
     () => ({

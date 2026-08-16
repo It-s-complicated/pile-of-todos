@@ -51,9 +51,9 @@ export function getConfirmedTodosCollection() {
 }
 
 export async function refreshConfirmedTodos(): Promise<void> {
-  const results = await confirmedTodosCollection.utils.refetch({ throwOnError: true })
+  const observerResults = await confirmedTodosCollection.utils.refetch({ throwOnError: true })
 
-  if (results.length === 0) {
+  if (observerResults.length === 0) {
     throw new Error('Confirmed todo snapshot is not active')
   }
 }

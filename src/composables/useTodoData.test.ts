@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
 const pendingMutationCount = ref(0)
+const initializationOrder: string[] = []
 
 vi.mock('./useAuth', () => ({
   useAuth: () => ({
@@ -20,43 +21,50 @@ vi.mock('./useNetworkStatus', () => ({
 }))
 
 vi.mock('./useTodoReadModel', () => ({
-  useTodoReadModel: () => ({
-    confirmedTodos: computed(() => []),
-    isReady: ref(true),
-    todos: computed(() => []),
-  }),
+  useTodoReadModel: () => {
+    initializationOrder.push('read-model')
+    return {
+      confirmedTodos: computed(() => []),
+      isReady: ref(true),
+      todos: computed(() => []),
+    }
+  },
 }))
 
 vi.mock('./useTodoCreateQueueController', () => ({
-  useTodoMutationQueueController: () => ({
-    clearSyncError: vi.fn<() => void>(),
-    acceptedMutationCount: computed(() => 0),
-    flushPendingMutations: vi.fn<() => Promise<boolean>>(async () => true),
-    isFlushing: ref(false),
-    lastError: ref<string | null>(null),
-    lastErrorKind: ref<'none'>('none'),
-    markRequiresReauth: vi.fn<(message: string) => void>(),
-    pendingMutationCount: computed(() => pendingMutationCount.value),
-    pendingMutations: computed(() => []),
-    queueMutation: vi.fn<(mutation: unknown) => void>(),
-    queuedMutationCount: computed(() => pendingMutationCount.value),
-    reloadPendingMutations: vi.fn<() => void>(),
-    transportState: computed(() => ({
-      acceptedMutationCount: 0,
-      canFlush: true,
-      hasAcceptedPending: false,
-      hasQueuedPending: pendingMutationCount.value > 0,
-      isAuthReady: true,
-      isOnline: true,
-      lastErrorKind: 'none',
-      requiresReauth: false,
-    })),
-  }),
+  useTodoMutationQueueController: () => {
+    initializationOrder.push('queue-controller')
+    return {
+      clearSyncError: vi.fn<() => void>(),
+      acceptedMutationCount: computed(() => 0),
+      flushPendingMutations: vi.fn<() => Promise<boolean>>(async () => true),
+      isFlushing: ref(false),
+      lastError: ref<string | null>(null),
+      lastErrorKind: ref<'none'>('none'),
+      markRequiresReauth: vi.fn<(message: string) => void>(),
+      pendingMutationCount: computed(() => pendingMutationCount.value),
+      pendingMutations: computed(() => []),
+      queueMutation: vi.fn<(mutation: unknown) => void>(),
+      queuedMutationCount: computed(() => pendingMutationCount.value),
+      reloadPendingMutations: vi.fn<() => void>(),
+      transportState: computed(() => ({
+        acceptedMutationCount: 0,
+        canFlush: true,
+        hasAcceptedPending: false,
+        hasQueuedPending: pendingMutationCount.value > 0,
+        isAuthReady: true,
+        isOnline: true,
+        lastErrorKind: 'none',
+        requiresReauth: false,
+      })),
+    }
+  },
 }))
 
 beforeEach(() => {
   vi.resetModules()
   pendingMutationCount.value = 0
+  initializationOrder.length = 0
 })
 
 test('useTodoData exposes signed-in auth state and the confirmed read model', async () => {
@@ -68,6 +76,7 @@ test('useTodoData exposes signed-in auth state and the confirmed read model', as
   assert.equal(todoData.auth.activeUserId.value, 'user-a')
   assert.equal(todoData.connectivity.isReady.value, true)
   assert.equal(todoData.readModel.todos.value.length, 0)
+  assert.deepEqual(initializationOrder, ['read-model', 'queue-controller'])
 })
 
 test('useTodoData exposes the shared pending mutation queue controller', async () => {

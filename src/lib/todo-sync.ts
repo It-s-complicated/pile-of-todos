@@ -65,13 +65,17 @@ type TodoMutationRpcResponse = {
   error: unknown
 }
 
+type TodoMutationRpcRequest = PromiseLike<TodoMutationRpcResponse> & {
+  abortSignal?: (signal: AbortSignal) => PromiseLike<TodoMutationRpcResponse>
+}
+
 type TodoMutationRpcClient = {
   rpc: (
     functionName: 'apply_todo_mutation',
     params: {
       intent: TodoMutationIntent
     },
-  ) => PromiseLike<TodoMutationRpcResponse>
+  ) => TodoMutationRpcRequest
 }
 
 export class TodoRemoteWriteError extends Error {
@@ -199,16 +203,33 @@ async function applyRemoteTodoMutation(
   supabase: TodoMutationRpcClient,
   intent: TodoMutationIntent,
 ): Promise<AcceptedTodoMutation> {
-  const { data, error } = await supabase.rpc('apply_todo_mutation', { intent })
+  const abortController = new AbortController()
+  const rpcRequest = supabase.rpc('apply_todo_mutation', { intent })
+  const request = rpcRequest.abortSignal?.(abortController.signal) ?? rpcRequest
+  let timeout: ReturnType<typeof setTimeout> | undefined
 
-  if (error) {
-    throw createTodoWriteError(parseTodoMutationRpcError(error))
+  try {
+    const { data, error } = await Promise.race([
+      request,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          abortController.abort()
+          reject(new TodoRemoteWriteError('Todo mutation request timed out', 'retryable'))
+        }, 10_000)
+      }),
+    ])
+
+    if (error) {
+      throw createTodoWriteError(parseTodoMutationRpcError(error))
+    }
+
+    return parseAcceptedTodoMutation(data, {
+      mutationId: intent.mutationId,
+      todoId: intent.todoId,
+    })
+  } finally {
+    clearTimeout(timeout)
   }
-
-  return parseAcceptedTodoMutation(data, {
-    mutationId: intent.mutationId,
-    todoId: intent.todoId,
-  })
 }
 
 export function buildRemoteTodoRow(

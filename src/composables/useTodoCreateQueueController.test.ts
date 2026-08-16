@@ -2,7 +2,10 @@ import { nextTick, ref } from 'vue'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
 import type { Todo } from '@/db/collections'
-import { createOfflineTodoMutationQueue } from '@/lib/offline-todo-mutation-queue'
+import {
+  createOfflineTodoMutationQueue,
+  type QueuedTodoMutation,
+} from '@/lib/offline-todo-mutation-queue'
 
 type MockRpcResponse = {
   data: unknown
@@ -74,6 +77,22 @@ const optimisticTodo: Todo = {
   deletedAt: null,
 }
 
+const queuedCreateMutation: QueuedTodoMutation = {
+  kind: 'create',
+  mutationId: 'mutation-a',
+  optimisticTodo,
+  todoId: optimisticTodo.id,
+  values: {
+    archived: false,
+    createdAt: 10,
+    deletedAt: null,
+    done: false,
+    label: optimisticTodo.label,
+    updatedAt: 10,
+    weekNumber: 12,
+  },
+}
+
 beforeEach(() => {
   vi.resetModules()
 })
@@ -116,21 +135,7 @@ test('queued create stays pending until the confirmed snapshot refresh completes
     writeClient: writeClient as never,
   })
 
-  controller.queueMutation({
-    kind: 'create',
-    mutationId: 'mutation-a',
-    optimisticTodo,
-    todoId: optimisticTodo.id,
-    values: {
-      archived: false,
-      createdAt: 10,
-      deletedAt: null,
-      done: false,
-      label: optimisticTodo.label,
-      updatedAt: 10,
-      weekNumber: 12,
-    },
-  })
+  controller.queueMutation(queuedCreateMutation)
 
   isOnline.value = true
   await settleControllerState()
@@ -174,21 +179,7 @@ test('failed snapshot refresh preserves an accepted entry without repeating its 
     writeClient: { rpc } as never,
   })
 
-  controller.queueMutation({
-    kind: 'create',
-    mutationId: 'mutation-a',
-    optimisticTodo,
-    todoId: optimisticTodo.id,
-    values: {
-      archived: false,
-      createdAt: 10,
-      deletedAt: null,
-      done: false,
-      label: optimisticTodo.label,
-      updatedAt: 10,
-      weekNumber: 12,
-    },
-  })
+  controller.queueMutation(queuedCreateMutation)
 
   isOnline.value = true
   await settleControllerState()
@@ -252,21 +243,7 @@ test('same-user reauth preserves pending work and resumes it after session refre
     writeClient: writeClient as never,
   })
 
-  controller.queueMutation({
-    kind: 'create',
-    mutationId: 'mutation-a',
-    optimisticTodo,
-    todoId: optimisticTodo.id,
-    values: {
-      archived: false,
-      createdAt: 10,
-      deletedAt: null,
-      done: false,
-      label: optimisticTodo.label,
-      updatedAt: 10,
-      weekNumber: 12,
-    },
-  })
+  controller.queueMutation(queuedCreateMutation)
 
   isOnline.value = true
   await settleControllerState()
@@ -283,6 +260,111 @@ test('same-user reauth preserves pending work and resumes it after session refre
 
   assert.equal(rpc.mock.calls.length, 2)
   assert.equal(controller.pendingMutationCount.value, 0)
+})
+
+test('retryable failures automatically retry with backoff', async () => {
+  vi.useFakeTimers()
+
+  try {
+    const accessState = ref<'signed-in' | 'signed-out'>('signed-in')
+    const authVersion = ref('token-a')
+    const isAuthReady = ref(true)
+    const isOnline = ref(false)
+    const userId = ref<string | null>('user-a')
+    const storage = createOfflineTodoMutationQueue({ storage: createMemoryStorage() })
+    const rpc =
+      vi.fn<
+        (
+          functionName: 'apply_todo_mutation',
+          params: { intent: unknown },
+        ) => Promise<MockRpcResponse>
+      >()
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Temporary network failure' },
+    })
+    rpc.mockResolvedValueOnce({
+      data: { mutationId: 'mutation-a', todoId: optimisticTodo.id },
+      error: null,
+    })
+    const { useTodoMutationQueueController } = await import('./useTodoCreateQueueController')
+    const controller = useTodoMutationQueueController({
+      auth: { accessState, authVersion, isAuthReady, userId },
+      network: { isOnline },
+      refreshConfirmedTodos: vi.fn<() => Promise<void>>(async () => undefined),
+      storage,
+      writeClient: { rpc } as never,
+    })
+
+    controller.queueMutation(queuedCreateMutation)
+
+    isOnline.value = true
+    await settleControllerState()
+
+    assert.equal(rpc.mock.calls.length, 1)
+    assert.equal(controller.lastErrorKind.value, 'retryable')
+
+    await vi.advanceTimersByTimeAsync(1_000)
+    await settleControllerState()
+
+    assert.equal(rpc.mock.calls.length, 2)
+    assert.equal(controller.lastErrorKind.value, 'none')
+    assert.equal(controller.pendingMutationCount.value, 0)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('coming back online immediately resumes a parked retryable queue', async () => {
+  vi.useFakeTimers()
+
+  try {
+    const accessState = ref<'signed-in' | 'signed-out'>('signed-in')
+    const authVersion = ref('token-a')
+    const isAuthReady = ref(true)
+    const isOnline = ref(false)
+    const userId = ref<string | null>('user-a')
+    const storage = createOfflineTodoMutationQueue({ storage: createMemoryStorage() })
+    const rpc =
+      vi.fn<
+        (
+          functionName: 'apply_todo_mutation',
+          params: { intent: unknown },
+        ) => Promise<MockRpcResponse>
+      >()
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Temporary network failure' },
+    })
+    rpc.mockResolvedValueOnce({
+      data: { mutationId: 'mutation-a', todoId: optimisticTodo.id },
+      error: null,
+    })
+    const { useTodoMutationQueueController } = await import('./useTodoCreateQueueController')
+    const controller = useTodoMutationQueueController({
+      auth: { accessState, authVersion, isAuthReady, userId },
+      network: { isOnline },
+      refreshConfirmedTodos: vi.fn<() => Promise<void>>(async () => undefined),
+      storage,
+      writeClient: { rpc } as never,
+    })
+
+    controller.queueMutation(queuedCreateMutation)
+
+    isOnline.value = true
+    await settleControllerState()
+    assert.equal(controller.lastErrorKind.value, 'retryable')
+
+    isOnline.value = false
+    await settleControllerState()
+    isOnline.value = true
+    await settleControllerState()
+
+    assert.equal(rpc.mock.calls.length, 2)
+    assert.equal(controller.pendingMutationCount.value, 0)
+  } finally {
+    vi.useRealTimers()
+  }
 })
 
 test('user switches isolate the old user queue instead of replaying it under the new user', async () => {
@@ -317,21 +399,7 @@ test('user switches isolate the old user queue instead of replaying it under the
     writeClient: writeClient as never,
   })
 
-  controller.queueMutation({
-    kind: 'create',
-    mutationId: 'mutation-a',
-    optimisticTodo,
-    todoId: optimisticTodo.id,
-    values: {
-      archived: false,
-      createdAt: 10,
-      deletedAt: null,
-      done: false,
-      label: optimisticTodo.label,
-      updatedAt: 10,
-      weekNumber: 12,
-    },
-  })
+  controller.queueMutation(queuedCreateMutation)
 
   assert.equal(controller.pendingMutationCount.value, 1)
 

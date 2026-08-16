@@ -1,12 +1,8 @@
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 import { eq, useLiveQuery } from '@tanstack/vue-db'
 
-import {
-  getConfirmedTodosCollection,
-  mapConfirmedTodoRow,
-  refreshConfirmedTodos,
-} from '@/db/confirmed-todos'
+import { getConfirmedTodosCollection, mapConfirmedTodoRow } from '@/db/confirmed-todos'
 import type { Todo } from '@/db/collections'
 import { mergeTodoReadModel } from '@/lib/todo-read-model-overlay'
 
@@ -46,18 +42,6 @@ export function useTodoReadModel(): TodoReadModel {
           .filter((row) => row.user_id === activeUserId.value)
           .map(mapConfirmedTodoRow)
       : [],
-  )
-
-  watch(
-    () => ({ isAuthReady: isAuthReady.value, userId: activeUserId.value }),
-    ({ isAuthReady: ready, userId: nextUserId }, previous) => {
-      if (!ready || !nextUserId || (previous?.isAuthReady && previous.userId === nextUserId)) {
-        return
-      }
-
-      void refreshConfirmedTodos().catch(() => undefined)
-    },
-    { immediate: true },
   )
 
   return {

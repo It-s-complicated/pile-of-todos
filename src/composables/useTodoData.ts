@@ -32,8 +32,8 @@ export function useTodoData(): TodoDataState {
 
   const { isOnline } = useNetworkStatus()
   const { accessState, isAuthReady, isAuthenticated, userId } = useAuth()
-  const controller = useTodoMutationQueueController()
   const readModel = useTodoReadModel()
+  const controller = useTodoMutationQueueController()
   const activeUserId = computed(() => (accessState.value === 'signed-in' ? userId.value : null))
 
   sharedTodoData = {

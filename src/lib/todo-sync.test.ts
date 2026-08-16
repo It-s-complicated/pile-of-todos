@@ -1,4 +1,4 @@
-import { assert, test } from 'vite-plus/test'
+import { assert, test, vi } from 'vite-plus/test'
 
 import type { SyncTodo } from './todo-sync.ts'
 
@@ -144,6 +144,39 @@ test('upsertRemoteTodo surfaces row-level security failures as auth errors', asy
   } catch (error) {
     assert.equal(error instanceof TodoRemoteWriteError, true)
     assert.equal(error instanceof TodoRemoteWriteError ? error.kind : null, 'auth')
+  }
+})
+
+test('upsertRemoteTodo aborts a hung RPC after ten seconds', async () => {
+  vi.useFakeTimers()
+
+  try {
+    let requestSignal: AbortSignal | undefined
+    const pendingPromise = new Promise<never>(() => undefined)
+    const pendingRequest = Object.assign(pendingPromise, {
+      abortSignal(signal: AbortSignal) {
+        requestSignal = signal
+        return pendingPromise
+      },
+    })
+    const writePromise = upsertRemoteTodo(
+      {
+        rpc: () => pendingRequest,
+      },
+      buildRemoteTodoRow(baseTodo, '33333333-3333-4333-8333-333333333333', 'device-1'),
+    )
+    let timeoutError: unknown
+    const rejection = writePromise.catch((error: unknown) => {
+      timeoutError = error
+    })
+
+    await vi.advanceTimersByTimeAsync(10_000)
+    await rejection
+
+    assert.match(timeoutError instanceof Error ? timeoutError.message : '', /timed out/)
+    assert.equal(requestSignal?.aborted, true)
+  } finally {
+    vi.useRealTimers()
   }
 })
 

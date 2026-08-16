@@ -10,7 +10,6 @@ const userId = ref<string | null>(null)
 const isQueryReady = ref(true)
 const confirmedRows = ref<ConfirmedTodoRow[]>([])
 const pendingMutations = ref([])
-const refreshConfirmedTodos = vi.fn<() => Promise<void>>(async () => undefined)
 
 vi.mock('@tanstack/vue-db', () => ({
   eq: vi.fn<() => undefined>(),
@@ -31,7 +30,6 @@ vi.mock('@/db/confirmed-todos', () => ({
     userId: row.user_id,
     deletedAt: row.deleted_at,
   }),
-  refreshConfirmedTodos,
 }))
 
 vi.mock('./useAuth', () => ({
@@ -65,7 +63,6 @@ beforeEach(() => {
   isQueryReady.value = true
   confirmedRows.value = []
   pendingMutations.value = []
-  refreshConfirmedTodos.mockClear()
 })
 
 test('useTodoReadModel treats a signed-out scope as a ready empty snapshot', async () => {
@@ -80,7 +77,7 @@ test('useTodoReadModel treats a signed-out scope as a ready empty snapshot', asy
   scope.stop()
 })
 
-test('useTodoReadModel refetches restored sessions and hides switched-user rows', async () => {
+test('useTodoReadModel scopes restored sessions and accepts empty snapshots', async () => {
   confirmedRows.value = [userARow]
   const { useTodoReadModel } = await import('./useTodoReadModel')
   const scope = effectScope()
@@ -95,7 +92,6 @@ test('useTodoReadModel refetches restored sessions and hides switched-user rows'
   await nextTick()
 
   assert.equal(readModel.confirmedTodos.value[0]?.label, 'User A todo')
-  assert.equal(refreshConfirmedTodos.mock.calls.length, 1)
 
   userId.value = 'user-b'
   await nextTick()
@@ -106,7 +102,6 @@ test('useTodoReadModel refetches restored sessions and hides switched-user rows'
   await nextTick()
 
   assert.equal(readModel.confirmedTodos.value[0]?.label, 'User B todo')
-  assert.equal(refreshConfirmedTodos.mock.calls.length, 2)
 
   confirmedRows.value = []
   assert.deepEqual(readModel.confirmedTodos.value, [])
