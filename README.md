@@ -11,6 +11,7 @@ The runtime architecture is explicitly browser-driven:
 ## What it does
 
 - Capture tasks into a backlog or assign them to upcoming week numbers.
+- On launchers that support PWA shortcuts, long-press the installed app icon and choose **Add task** to open the current-week view with the task composer focused. Creating tasks still requires a signed-in session.
 - Navigate focused list views: Backlog, Current Week, Future, Unfinished, Finished, and Archived.
 - Keep working offline with queued mutations that sync later.
 - Import todo JSON into the same durable queued-mutation flow used by normal todo creation.

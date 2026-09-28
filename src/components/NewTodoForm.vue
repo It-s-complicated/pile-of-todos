@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, ref, useId, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref, useId, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { safeParse } from 'valibot'
 
 import { useTodos } from '@/composables/useTodos'
 import { todoLabelSchema } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+import { focusAfterUpdate } from '@/lib/focus'
 import WeekSelect from './WeekSelect.vue'
 
 type CreateTodoValidationErrorKind = 'gate' | 'validation' | 'none'
@@ -20,6 +21,8 @@ const formState = reactive<{ label: string; weekNumber: null | number }>({
 })
 const validationError = ref('')
 const validationErrorKind = ref<CreateTodoValidationErrorKind>('none')
+const route = useRoute()
+const labelInput = ref<HTMLInputElement | null>(null)
 
 const showWeekOptions = computed(() => formState.label.trim().length > 0)
 
@@ -45,6 +48,15 @@ watch(canCreateTodos, (nextCanCreateTodos) => {
 
   clearValidationError()
 })
+
+function focusShortcutInput() {
+  if (route.query.add === '1') {
+    focusAfterUpdate(() => labelInput.value)
+  }
+}
+
+onMounted(focusShortcutInput)
+watch(() => route.query.add, focusShortcutInput)
 
 async function createTodo() {
   if (!canCreateTodos.value) {
@@ -105,6 +117,7 @@ async function createTodo() {
             New Task
           </label>
           <input
+            ref="labelInput"
             :id="`${id}-new`"
             v-model="formState.label"
             placeholder="What needs to be done?"

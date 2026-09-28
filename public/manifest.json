@@ -5,6 +5,14 @@
   "display": "standalone",
   "background_color": "#0c0e10",
   "theme_color": "#0c0e10",
+  "shortcuts": [
+    {
+      "name": "Add task",
+      "short_name": "Add task",
+      "description": "Capture a new todo",
+      "url": "/current?add=1"
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
