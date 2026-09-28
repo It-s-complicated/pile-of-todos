@@ -1,60 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Colorful stack of checklist sticky notes">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="A pile of three todo sheets, with one task checked off">
+  <rect width="512" height="512" fill="#0c0e10"/>
   <defs>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
-      <feOffset in="blur" dx="6" dy="10" result="offsetBlur"/>
-      <feFlood flood-color="#111827" flood-opacity="0.32" result="flood"/>
-      <feComposite in="flood" in2="offsetBlur" operator="in" result="shadowColor"/>
+    <filter id="lift" x="-25%" y="-25%" width="150%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="9" result="blur"/>
+      <feOffset in="blur" dx="0" dy="12" result="offset"/>
+      <feFlood flood-color="#050607" flood-opacity="0.55"/>
+      <feComposite in2="offset" operator="in" result="shadow"/>
       <feMerge>
-        <feMergeNode in="shadowColor"/>
+        <feMergeNode in="shadow"/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
-    <g id="note-lines" stroke="#1f2937" stroke-opacity="0.58" fill="none" stroke-width="3">
-      <rect x="20" y="22" width="14" height="14" />
-      <line x1="44" y1="29" x2="168" y2="29" />
-      <rect x="20" y="52" width="14" height="14" />
-      <line x1="44" y1="59" x2="168" y2="59" />
-      <rect x="20" y="82" width="14" height="14" />
-      <line x1="44" y1="89" x2="168" y2="89" />
-      <rect x="20" y="112" width="14" height="14" />
-      <line x1="44" y1="119" x2="168" y2="119" />
-      <rect x="20" y="142" width="14" height="14" />
-      <line x1="44" y1="149" x2="168" y2="149" />
-      <rect x="20" y="172" width="14" height="14" />
-      <line x1="44" y1="179" x2="168" y2="179" />
-    </g>
   </defs>
-
-  <g filter="url(#shadow)">
-    <g transform="translate(84 128) rotate(-30 96 112)">
-      <rect width="192" height="224" rx="10" fill="#22d3ee"/>
-      <use href="#note-lines"/>
+  <g filter="url(#lift)">
+    <g transform="rotate(-16 246 263)">
+      <rect x="147" y="141" width="198" height="244" rx="15" fill="#dbe9ff"/>
+      <path d="M171 180h93M171 198h69" stroke="#515e70" stroke-width="7" stroke-linecap="round" opacity=".7"/>
     </g>
-
-    <g transform="translate(124 112) rotate(-12 96 112)">
-      <rect width="192" height="224" rx="10" fill="#f725a8"/>
-      <use href="#note-lines"/>
+    <g transform="rotate(12 269 254)">
+      <rect x="170" y="132" width="198" height="244" rx="15" fill="#e2bec1"/>
+      <path d="M288 174h57M300 193h45" stroke="#533a3c" stroke-width="7" stroke-linecap="round" opacity=".6"/>
     </g>
-
-    <g transform="translate(170 96) rotate(10 96 112)">
-      <rect width="192" height="224" rx="10" fill="#a855f7"/>
-      <use href="#note-lines"/>
-    </g>
-
-    <g transform="translate(78 214) rotate(-18 96 112)">
-      <rect width="192" height="224" rx="10" fill="#3dd6eb"/>
-      <use href="#note-lines"/>
-    </g>
-
-    <g transform="translate(240 220) rotate(18 96 112)">
-      <rect width="192" height="224" rx="10" fill="#f725a8"/>
-      <use href="#note-lines"/>
-    </g>
-
-    <g transform="translate(158 148) rotate(-5 96 112)">
-      <rect width="192" height="224" rx="10" fill="#e8f400"/>
-      <use href="#note-lines"/>
+    <g transform="rotate(-4 264 275)">
+      <rect x="159" y="154" width="210" height="242" rx="17" fill="#e2e6eb"/>
+      <path d="M198 185h132" stroke="#33443c" stroke-width="8" stroke-linecap="round" opacity=".3"/>
+      <circle cx="203" cy="238" r="20" fill="#45564e"/>
+      <path d="m193 238 7 7 14-16" fill="none" stroke="#d4e8dd" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M241 238h89" stroke="#33443c" stroke-width="9" stroke-linecap="round" opacity=".8"/>
+      <circle cx="203" cy="299" r="17" fill="none" stroke="#45564e" stroke-width="6"/>
+      <path d="M241 299h89" stroke="#33443c" stroke-width="9" stroke-linecap="round" opacity=".8"/>
+      <circle cx="203" cy="355" r="17" fill="none" stroke="#45564e" stroke-width="6"/>
+      <path d="M241 355h65" stroke="#33443c" stroke-width="9" stroke-linecap="round" opacity=".8"/>
     </g>
   </g>
 </svg>
