@@ -52,5 +52,11 @@
     "vue-tsc": "^3.3.11",
     "workbox-window": "^7.4.1"
   },
-  "packageManager": "pnpm@11.9.0"
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.8.1",
+      "onFail": "download"
+    }
+  }
 }
