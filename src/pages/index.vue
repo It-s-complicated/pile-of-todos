@@ -2,6 +2,6 @@
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-router.push('/backlog')
+router.push('/current')
 </script>
 <template></template>

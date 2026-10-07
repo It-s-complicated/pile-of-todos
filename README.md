@@ -149,7 +149,7 @@ Use Vite+ commands:
 ### Routing and pages
 
 - `src/router/index.ts` uses `vue-router/auto-routes` to load page routes from `src/pages`.
-- `src/pages/index.vue` redirects to `/backlog`.
+- `src/pages/index.vue` redirects to `/current`, making Current the app's start page.
 - The page files define route-based list categories:
   - `/backlog`
   - `/current`
