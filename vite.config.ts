@@ -39,7 +39,10 @@ export default defineConfig({
     },
   },
   plugins: [
-    netlify(),
+    netlify({
+      // This frontend-only app has no Edge Functions to emulate.
+      edgeFunctions: { enabled: false },
+    }),
     analyzer({ enabled: false }),
     vitePluginVueDevTools(),
     VueRouter({

@@ -100,6 +100,13 @@ Use Vite+ commands:
 - `pnpm migrate:generate` — generate a reviewed migration after a schema change.
 - `pnpm migrate` — apply committed migrations. Do not use `drizzle-kit push`.
 
+### Dependency compatibility
+
+- Keep the `@tanstack/db` override in `pnpm-workspace.yaml` aligned with the exact dependency declared by `@tanstack/vue-db`. The Vue bindings and Supabase adapter must share a compatible DB version; a stale override can cause missing-export errors during dependency optimization.
+- Vue intentionally uses the `rc` release channel. Only `vue`, `@vue/compiler-dom`, `@vue/compiler-sfc`, and `@vue/shared` need overrides for third-party ranges that exclude prereleases; Vue's other internal packages already use exact, matching versions.
+- Keep `vite@*` mapped to the Vite+ core catalog so plugins use the same Vite implementation as the toolchain.
+- The Netlify dev plugin disables Edge Functions because this frontend-only app has none. Starting the app does not require Deno.
+
 ## Architecture overview
 
 ### `src/db`

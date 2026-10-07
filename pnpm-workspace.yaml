@@ -4,22 +4,15 @@ allowBuilds:
   sharp: false
 
 overrides:
-  '@tanstack/db': '0.9.2'
-  # ponytail: remove after esbuild 0.28.2's platform binaries resolve in CI
-  'esbuild@0.28.2': '0.28.0'
+  # Keep the Supabase adapter and Vue bindings on the same DB instance/version.
+  # Match the exact @tanstack/db dependency declared by @tanstack/vue-db.
+  '@tanstack/db': '0.12.0'
+  # Third-party ranges exclude prereleases; keep only their Vue RC entry points.
   'vue': 'rc'
-  '@vue/compiler-core': 'rc'
   '@vue/compiler-dom': 'rc'
   '@vue/compiler-sfc': 'rc'
-  '@vue/compiler-ssr': 'rc'
-  '@vue/compiler-vapor': 'rc'
-  '@vue/reactivity': 'rc'
-  '@vue/runtime-core': 'rc'
-  '@vue/runtime-dom': 'rc'
-  '@vue/runtime-vapor': 'rc'
-  '@vue/server-renderer': 'rc'
   '@vue/shared': 'rc'
-  '@vue/compat': 'rc'
+  # Keep every Vite consumer on the core bundled with Vite+.
   vite@*: 'catalog:'
 
 peerDependencyRules:
