@@ -20,10 +20,10 @@
     "typecheck:native": "tsgo -b --noEmit"
   },
   "dependencies": {
-    "@lucide/vue": "^1.55.0",
+    "@lucide/vue": "^1.56.0",
     "@supabase-labs/tanstack-db": "0.1.0",
     "@supabase/supabase-js": "^2.117.3",
-    "@tanstack/vue-db": "^0.3.7",
+    "@tanstack/vue-db": "^0.3.8",
     "drizzle-orm": "^0.45.4",
     "drizzle-valibot": "^0.4.2",
     "pg": "^8.23.1",

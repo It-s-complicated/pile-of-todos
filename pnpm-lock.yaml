@@ -181,8 +181,8 @@ importers:
   .:
     dependencies:
       '@lucide/vue':
-        specifier: ^1.55.0
-        version: 1.55.0(vue@3.6.0-rc.11(@typescript/typescript6@6.0.2))
+        specifier: ^1.56.0
+        version: 1.56.0(vue@3.6.0-rc.11(@typescript/typescript6@6.0.2))
       '@supabase-labs/tanstack-db':
         specifier: 0.1.0
         version: 0.1.0(@opentelemetry/api@1.9.1)(@typescript/typescript6@6.0.2)
@@ -190,8 +190,8 @@ importers:
         specifier: ^2.117.3
         version: 2.117.3(@opentelemetry/api@1.9.1)
       '@tanstack/vue-db':
-        specifier: ^0.3.7
-        version: 0.3.7(@typescript/typescript6@6.0.2)(vue@3.6.0-rc.11(@typescript/typescript6@6.0.2))
+        specifier: ^0.3.8
+        version: 0.3.8(@typescript/typescript6@6.0.2)(vue@3.6.0-rc.11(@typescript/typescript6@6.0.2))
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.1)
@@ -1669,8 +1669,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@lucide/vue@1.55.0':
-    resolution: {integrity: sha512-3lpuTiVGIMbG7vEVhcDnHvIu+ZkjXka7eOp9tIA9iDPu6GHpfqwykVyAb+LM1uYYVgSI9Myo4HGzTvVnTS2CyA==}
+  '@lucide/vue@1.56.0':
+    resolution: {integrity: sha512-IA7xSJwb5NQ6zamA1+zUmbVrWeX8TFPxCeqTRKJGLjb7jJmR2+USChuVRy+Opf9T545xkCSz/UJT2g44zyGgng==}
     peerDependencies:
       vue: '>=3.0.1'
 
@@ -2628,8 +2628,8 @@ packages:
       '@tanstack/query-core': ^5.0.0
       typescript: '>=4.7'
 
-  '@tanstack/vue-db@0.3.7':
-    resolution: {integrity: sha512-C0Rrm8ODCSu+Y3pLhUp2JFNS8ciOrh1Et6OAsU1e1gLQJWWna6uZnDx6e7II/NXwRW2KfJMpDRL3y0TLDoXpmQ==}
+  '@tanstack/vue-db@0.3.8':
+    resolution: {integrity: sha512-SDMI9wur9DWY+shvdUi4pOQYFwr4trHI68x5B0l5GCWVxZWyM529Hos4UoVppS3aBfzOLfZu/9yH0Q1bkQO+Tw==}
     peerDependencies:
       vue: '>=3.3.0'
 
@@ -7606,7 +7606,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@lucide/vue@1.55.0(vue@3.6.0-rc.11(@typescript/typescript6@6.0.2))':
+  '@lucide/vue@1.56.0(vue@3.6.0-rc.11(@typescript/typescript6@6.0.2))':
     dependencies:
       vue: 3.6.0-rc.11(@typescript/typescript6@6.0.2)
 
@@ -8522,7 +8522,7 @@ snapshots:
       '@tanstack/query-core': 5.104.0
       typescript: '@typescript/typescript6@6.0.2'
 
-  '@tanstack/vue-db@0.3.7(@typescript/typescript6@6.0.2)(vue@3.6.0-rc.11(@typescript/typescript6@6.0.2))':
+  '@tanstack/vue-db@0.3.8(@typescript/typescript6@6.0.2)(vue@3.6.0-rc.11(@typescript/typescript6@6.0.2))':
     dependencies:
       '@tanstack/db': 0.12.0(@typescript/typescript6@6.0.2)
       vue: 3.6.0-rc.11(@typescript/typescript6@6.0.2)
