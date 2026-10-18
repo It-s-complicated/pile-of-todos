@@ -20,10 +20,10 @@
     "typecheck:native": "tsgo -b --noEmit"
   },
   "dependencies": {
-    "@lucide/vue": "^1.56.0",
+    "@lucide/vue": "^1.59.0",
     "@supabase-labs/tanstack-db": "0.1.0",
-    "@supabase/supabase-js": "^2.117.3",
-    "@tanstack/vue-db": "^0.3.8",
+    "@supabase/supabase-js": "^2.118.0",
+    "@tanstack/vue-db": "^0.3.10",
     "drizzle-orm": "^0.45.4",
     "drizzle-valibot": "^0.4.2",
     "pg": "^8.23.1",
@@ -55,7 +55,7 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "12.9.1",
+      "version": "12.14.0",
       "onFail": "download"
     }
   }
