@@ -1,0 +1,57 @@
+diff --git a/dist/index.d.mts b/dist/index.d.mts
+index b030f9489d5bb45f281a30eec7ef68b138062deb..5c27f0107fd1ee88c10cd9eb49b3592b945d9834 100644
+--- a/dist/index.d.mts
++++ b/dist/index.d.mts
+@@ -1,5 +1,5 @@
+ import * as _tanstack_db0 from "@tanstack/db";
+-import { Collection, ExtractContext, InferResultType, InitialQueryBuilder, QueryBuilder } from "@tanstack/db";
++import { ExtractContext, InferResultType, InitialQueryBuilder, QueryBuilder } from "@tanstack/db";
+ import * as _tanstack_query_db_collection0 from "@tanstack/query-db-collection";
+ import { SupabaseClient } from "@supabase/supabase-js";
+ import { QueryClient } from "@tanstack/query-core";
+@@ -41,31 +41,7 @@ declare const supabaseCollectionOptions: <TSchema extends StandardSchemaV1>({
+   realtime,
+   realtimeUseFilter
+ }: SupabaseCollectionOptions<TSchema>) => {
+-  sync: {
+-    sync: (params: {
+-      collection: Collection<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, any, any, any>;
+-      begin: (options?: {
+-        immediate?: boolean;
+-      }) => void;
+-      write: (message: _tanstack_db0.ChangeMessageOrDeleteKeyMessage<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number>) => void;
+-      commit: (signal?: AbortSignal) => _tanstack_db0.SyncAppliedReceipt;
+-      markReady: () => void;
+-      markError: (error?: unknown) => void;
+-      truncate: () => void;
+-      metadata?: _tanstack_db0.SyncMetadataApi<string | number> | undefined;
+-    }) => ReturnType<(params: {
+-      collection: Collection<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, any, any, any>;
+-      begin: (options?: {
+-        immediate?: boolean;
+-      }) => void;
+-      write: (message: _tanstack_db0.ChangeMessageOrDeleteKeyMessage<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number>) => void;
+-      commit: (signal?: AbortSignal) => _tanstack_db0.SyncAppliedReceipt;
+-      markReady: () => void;
+-      markError: (error?: unknown) => void;
+-      truncate: () => void;
+-      metadata?: _tanstack_db0.SyncMetadataApi<string | number> | undefined;
+-    }) => void | _tanstack_db0.CleanupFn | _tanstack_db0.SyncConfigRes>;
+-  };
++  sync: _tanstack_db0.SyncConfig<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number>;
+   id?: string;
+   schema: TSchema | (undefined & TSchema);
+   getKey: (item: TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>) => string | number;
+@@ -75,9 +51,9 @@ declare const supabaseCollectionOptions: <TSchema extends StandardSchemaV1>({
+   defaultIndexType?: _tanstack_db0.IndexConstructor<string | number> | undefined;
+   compare?: ((x: TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, y: TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>) => number) | undefined;
+   syncMode?: _tanstack_db0.SyncMode;
+-  onInsert?: _tanstack_db0.InsertMutationFn<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, _tanstack_query_db_collection0.QueryCollectionUtils<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferInput<TSchema> extends object ? StandardSchemaV1.InferInput<TSchema> : Record<string, unknown> : Record<string, unknown>, unknown>, any> | undefined;
+-  onUpdate?: _tanstack_db0.UpdateMutationFn<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, _tanstack_query_db_collection0.QueryCollectionUtils<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferInput<TSchema> extends object ? StandardSchemaV1.InferInput<TSchema> : Record<string, unknown> : Record<string, unknown>, unknown>, any> | undefined;
+-  onDelete?: _tanstack_db0.DeleteMutationFn<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, _tanstack_query_db_collection0.QueryCollectionUtils<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferInput<TSchema> extends object ? StandardSchemaV1.InferInput<TSchema> : Record<string, unknown> : Record<string, unknown>, unknown>, any> | undefined;
++  onInsert?: _tanstack_db0.InsertMutationFn<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, _tanstack_query_db_collection0.QueryCollectionUtils<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferInput<TSchema> extends object ? StandardSchemaV1.InferInput<TSchema> : Record<string, unknown> : Record<string, unknown>, unknown>> | undefined;
++  onUpdate?: _tanstack_db0.UpdateMutationFn<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, _tanstack_query_db_collection0.QueryCollectionUtils<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferInput<TSchema> extends object ? StandardSchemaV1.InferInput<TSchema> : Record<string, unknown> : Record<string, unknown>, unknown>> | undefined;
++  onDelete?: _tanstack_db0.DeleteMutationFn<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, _tanstack_query_db_collection0.QueryCollectionUtils<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferInput<TSchema> extends object ? StandardSchemaV1.InferInput<TSchema> : Record<string, unknown> : Record<string, unknown>, unknown>> | undefined;
+   defaultStringCollation?: _tanstack_db0.StringCollationConfig;
+   utils: _tanstack_query_db_collection0.QueryCollectionUtils<TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferOutput<TSchema> extends object ? StandardSchemaV1.InferOutput<TSchema> : Record<string, unknown> : Record<string, unknown>, string | number, TSchema extends StandardSchemaV1<unknown, unknown> ? StandardSchemaV1.InferInput<TSchema> extends object ? StandardSchemaV1.InferInput<TSchema> : Record<string, unknown> : Record<string, unknown>, unknown>;
+ };
