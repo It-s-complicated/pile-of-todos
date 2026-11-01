@@ -54,7 +54,6 @@ async function submit() {
 }
 
 beforeEach(() => {
-  window.sessionStorage.clear()
   canCreateTodos.value = true
   createTodoDisabledReason.value = null
   addTodo.mockReset()
@@ -82,7 +81,7 @@ test('receives an editable draft, removes only share parameters, and queues a ta
   await typeLabel('Read https://example.com/?q=Grüße 👋')
   await submit()
   assert.deepEqual(addTodo.mock.calls, [['Read https://example.com/?q=Grüße 👋', null]])
-  assert.equal(field().tagName, 'INPUT')
+  assert.equal(field().value, '')
 
   app!.unmount()
   document.body.innerHTML = ''
@@ -90,7 +89,7 @@ test('receives an editable draft, removes only share parameters, and queues a ta
   assert.equal(field().value, '')
 })
 
-test('keeps edited drafts and scheduling through a reload or sign-in redirect', async () => {
+test('uses the existing form validation and scheduling for shared text', async () => {
   canCreateTodos.value = false
   createTodoDisabledReason.value = 'Sign in to create todos.'
   await mountForm('/backlog?share_text=Original')
@@ -103,65 +102,53 @@ test('keeps edited drafts and scheduling through a reload or sign-in redirect', 
   await submit()
   assert.equal(addTodo.mock.calls.length, 0)
 
-  app!.unmount()
-  document.body.innerHTML = ''
   canCreateTodos.value = true
   createTodoDisabledReason.value = null
-  await mountForm('/current')
+  await nextTick()
   assert.equal(field().value, 'Edited before signing in')
   assert.equal(document.querySelector('select')!.value, '15')
   await submit()
   assert.deepEqual(addTodo.mock.calls, [['Edited before signing in', 15]])
 })
 
-test('a new share replaces the form contents and discard resets the form', async () => {
-  const router = await mountForm('/backlog?share_text=First')
+test('a new share replaces the existing form contents', async () => {
+  const router = await mountForm()
+  await typeLabel('An ordinary draft')
+  await router.push('/backlog?share_text=First')
+  await vi.waitFor(() => assert.equal(router.currentRoute.value.query.share_text, undefined))
+  assert.equal(field().value, 'First')
   await typeLabel('Edited first')
   await router.push('/backlog?share_text=Second')
   await vi.waitFor(() => assert.equal(router.currentRoute.value.query.share_text, undefined))
   assert.equal(field().value, 'Second')
-
-  const discard = [...document.querySelectorAll('button')].find(
-    (button) => button.textContent?.trim() === 'Discard',
-  )!
-  discard.click()
-  await nextTick()
-  assert.equal(field().value, '')
-
-  app!.unmount()
-  document.body.innerHTML = ''
-  await mountForm()
+  await submit()
+  assert.deepEqual(addTodo.mock.calls, [['Second', null]])
   assert.equal(field().value, '')
 })
 
-test('manual drafts use the same persisted form and reset after saving', async () => {
+test('ordinary tasks keep the original current-week default and unsaved form state is not persisted', async () => {
   await mountForm()
   await typeLabel('An ordinary draft')
   app!.unmount()
   document.body.innerHTML = ''
 
   await mountForm()
-  assert.equal(field().value, 'An ordinary draft')
-  await submit()
-  assert.deepEqual(addTodo.mock.calls, [['An ordinary draft', 14]])
   assert.equal(field().value, '')
-
-  app!.unmount()
-  document.body.innerHTML = ''
-  await mountForm()
+  await typeLabel('An ordinary task')
+  await submit()
+  assert.deepEqual(addTodo.mock.calls, [['An ordinary task', 14]])
   assert.equal(field().value, '')
 })
 
 test('preserves long shares for editing and retains the draft when saving fails', async () => {
   await mountForm(`/backlog?share_text=${'a'.repeat(501)}`)
   assert.equal(field().value.length, 501)
-  assert.equal(field().getAttribute('aria-invalid'), 'true')
   await submit()
   assert.equal(addTodo.mock.calls.length, 0)
+  assert.match(document.body.textContent ?? '', /at most 500 characters/)
   await typeLabel('Short enough')
   addTodo.mockRejectedValueOnce(new Error('Storage is full'))
   await submit()
   assert.match(document.body.textContent ?? '', /Storage is full/)
   assert.equal(field().value, 'Short enough')
-  assert.ok(window.sessionStorage.length > 0)
 })

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useId, watch } from 'vue'
+import { computed, onMounted, reactive, ref, useId, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useSessionStorage } from '@vueuse/core'
 import { safeParse } from 'valibot'
 
 import { useTodos } from '@/composables/useTodos'
@@ -12,27 +11,22 @@ import { getSharedTodoLabel } from '@/lib/shared-todo'
 import WeekSelect from './WeekSelect.vue'
 
 type CreateTodoValidationErrorKind = 'gate' | 'validation' | 'none'
-type CreateTodoFormState = { label: string; weekNumber: number | null; shared: boolean }
 
 const { addTodo, canCreateTodos, createTodoDisabledReason } = useTodos()
 const router = useRouter()
 const currentWeek = getCurrentWeekNumber()
 const id = useId()
-const formState = useSessionStorage<CreateTodoFormState>(
-  'pile-of-todos-create-form',
-  { label: '', weekNumber: currentWeek, shared: false },
-  { flush: 'sync', writeDefaults: false },
-)
+const formState = reactive<{ label: string; weekNumber: null | number }>({
+  label: '',
+  weekNumber: currentWeek,
+})
 const validationError = ref('')
 const isSubmitting = ref(false)
 const validationErrorKind = ref<CreateTodoValidationErrorKind>('none')
 const route = useRoute()
-const labelInput = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
+const labelInput = ref<HTMLTextAreaElement | null>(null)
 
-const showWeekOptions = computed(() => formState.value.label.trim().length > 0)
-const sharedLabelTooLong = computed(
-  () => formState.value.shared && formState.value.label.trim().length > 500,
-)
+const showWeekOptions = computed(() => formState.label.trim().length > 0)
 
 function clearValidationError() {
   validationError.value = ''
@@ -58,7 +52,7 @@ watch(canCreateTodos, (nextCanCreateTodos) => {
 })
 
 function focusShortcutInput() {
-  if (route.query.add === '1' || formState.value.shared) {
+  if (route.query.add === '1') {
     focusAfterUpdate(() => labelInput.value)
   }
 }
@@ -71,7 +65,8 @@ watch(
     const label = getSharedTodoLabel(query)
     if (!label) return
 
-    formState.value = { label, weekNumber: null, shared: true }
+    formState.label = label
+    formState.weekNumber = null
     clearValidationError()
     focusAfterUpdate(() => labelInput.value)
     const remainingQuery = { ...query }
@@ -82,7 +77,8 @@ watch(
 )
 
 function resetForm() {
-  formState.value = { label: '', weekNumber: currentWeek, shared: false }
+  formState.label = ''
+  formState.weekNumber = currentWeek
   clearValidationError()
   focusAfterUpdate(() => labelInput.value)
 }
@@ -94,7 +90,7 @@ async function createTodo() {
     return
   }
 
-  const submittedDraft = formState.value
+  const submittedDraft = { ...formState }
   const trimmedLabel = submittedDraft.label.trim()
   const result = safeParse(todoLabelSchema, trimmedLabel)
 
@@ -106,7 +102,6 @@ async function createTodo() {
   isSubmitting.value = true
   try {
     const todoId = await addTodo(trimmedLabel, submittedDraft.weekNumber)
-    clearValidationError()
     const path =
       submittedDraft.weekNumber === null
         ? `/backlog`
@@ -132,18 +127,6 @@ async function createTodo() {
     <div
       class="rounded-3xl border border-outline-variant/10 bg-surface-container/90 p-3 shadow-floating backdrop-blur-2xl sm:p-3.5"
     >
-      <div v-if="formState.shared" class="mb-3 flex items-center justify-between gap-3">
-        <p class="text-supporting text-on-surface-variant" role="status">
-          Review shared content before adding it.
-        </p>
-        <button
-          type="button"
-          class="inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-control text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface"
-          @click="resetForm"
-        >
-          Discard
-        </button>
-      </div>
       <div
         v-if="validationError"
         aria-live="polite"
@@ -159,38 +142,18 @@ async function createTodo() {
             :for="`${id}-new`"
             class="block text-tiny font-semibold tracking-label-wider text-on-surface-variant uppercase"
           >
-            {{ formState.shared ? 'Shared task' : 'New Task' }}
+            New Task
           </label>
           <textarea
-            v-if="formState.shared"
-            ref="labelInput"
-            :id="`${id}-new`"
-            v-model="formState.label"
-            :aria-describedby="sharedLabelTooLong ? `${id}-length` : undefined"
-            :aria-invalid="sharedLabelTooLong ? true : undefined"
-            rows="3"
-            required
-            class="max-h-40 min-h-12 w-full resize-y rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-body text-on-surface focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
-          />
-          <input
-            v-else
             ref="labelInput"
             :id="`${id}-new`"
             v-model="formState.label"
             placeholder="What needs to be done?"
-            autocomplete="off"
+            rows="1"
             required
-            class="h-12 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-0 text-body text-on-surface transition-all duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
+            @keydown.enter.exact.prevent="createTodo"
+            class="max-h-40 min-h-12 w-full resize-y rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-body text-on-surface focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
           />
-          <p
-            v-if="sharedLabelTooLong"
-            :id="`${id}-length`"
-            class="text-caption text-on-error-container"
-            role="alert"
-          >
-            Shared content is {{ formState.label.trim().length }} characters. Shorten it to 500
-            before adding.
-          </p>
         </div>
         <button
           type="submit"
