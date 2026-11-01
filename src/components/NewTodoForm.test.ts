@@ -82,7 +82,6 @@ test('receives an editable draft, removes only share parameters, and queues a ta
   await typeLabel('Read https://example.com/?q=Grüße 👋')
   await submit()
   assert.deepEqual(addTodo.mock.calls, [['Read https://example.com/?q=Grüße 👋', null]])
-  assert.equal(window.sessionStorage.length, 0)
   assert.equal(field().tagName, 'INPUT')
 
   app!.unmount()
@@ -115,7 +114,7 @@ test('keeps edited drafts and scheduling through a reload or sign-in redirect', 
   assert.deepEqual(addTodo.mock.calls, [['Edited before signing in', 15]])
 })
 
-test('a new share replaces the current shared draft and discard clears session storage', async () => {
+test('a new share replaces the form contents and discard resets the form', async () => {
   const router = await mountForm('/backlog?share_text=First')
   await typeLabel('Edited first')
   await router.push('/backlog?share_text=Second')
@@ -128,7 +127,24 @@ test('a new share replaces the current shared draft and discard clears session s
   discard.click()
   await nextTick()
   assert.equal(field().value, '')
-  assert.equal(window.sessionStorage.length, 0)
+
+  app!.unmount()
+  document.body.innerHTML = ''
+  await mountForm()
+  assert.equal(field().value, '')
+})
+
+test('manual drafts use the same persisted form and reset after saving', async () => {
+  await mountForm()
+  await typeLabel('An ordinary draft')
+  app!.unmount()
+  document.body.innerHTML = ''
+
+  await mountForm()
+  assert.equal(field().value, 'An ordinary draft')
+  await submit()
+  assert.deepEqual(addTodo.mock.calls, [['An ordinary draft', 14]])
+  assert.equal(field().value, '')
 
   app!.unmount()
   document.body.innerHTML = ''

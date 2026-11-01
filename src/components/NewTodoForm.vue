@@ -1,27 +1,28 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, useId, watch } from 'vue'
+import { computed, onMounted, ref, useId, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useSessionStorage } from '@vueuse/core'
 import { safeParse } from 'valibot'
 
 import { useTodos } from '@/composables/useTodos'
-import { useSharedTodoDraft } from '@/composables/useSharedTodoDraft'
 import { todoLabelSchema } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 import { focusAfterUpdate } from '@/lib/focus'
+import { getSharedTodoLabel } from '@/lib/shared-todo'
 import WeekSelect from './WeekSelect.vue'
 
 type CreateTodoValidationErrorKind = 'gate' | 'validation' | 'none'
+type CreateTodoFormState = { label: string; weekNumber: number | null; shared: boolean }
 
 const { addTodo, canCreateTodos, createTodoDisabledReason } = useTodos()
 const router = useRouter()
 const currentWeek = getCurrentWeekNumber()
 const id = useId()
-const regularDraft = reactive<{ label: string; weekNumber: null | number }>({
-  label: '',
-  weekNumber: currentWeek,
-})
-const { sharedDraft, clearSharedDraft } = useSharedTodoDraft()
-const formState = computed(() => sharedDraft.value ?? regularDraft)
+const formState = useSessionStorage<CreateTodoFormState>(
+  'pile-of-todos-create-form',
+  { label: '', weekNumber: currentWeek, shared: false },
+  { flush: 'sync', writeDefaults: false },
+)
 const validationError = ref('')
 const isSubmitting = ref(false)
 const validationErrorKind = ref<CreateTodoValidationErrorKind>('none')
@@ -30,7 +31,7 @@ const labelInput = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
 const showWeekOptions = computed(() => formState.value.label.trim().length > 0)
 const sharedLabelTooLong = computed(
-  () => sharedDraft.value && formState.value.label.trim().length > 500,
+  () => formState.value.shared && formState.value.label.trim().length > 500,
 )
 
 function clearValidationError() {
@@ -57,7 +58,7 @@ watch(canCreateTodos, (nextCanCreateTodos) => {
 })
 
 function focusShortcutInput() {
-  if (route.query.add === '1') {
+  if (route.query.add === '1' || formState.value.shared) {
     focusAfterUpdate(() => labelInput.value)
   }
 }
@@ -65,17 +66,25 @@ function focusShortcutInput() {
 onMounted(focusShortcutInput)
 watch(() => route.query.add, focusShortcutInput)
 watch(
-  sharedDraft,
-  (draft, previousDraft) => {
+  () => route.query,
+  (query) => {
+    const label = getSharedTodoLabel(query)
+    if (!label) return
+
+    formState.value = { label, weekNumber: null, shared: true }
     clearValidationError()
-    if (draft || previousDraft) focusAfterUpdate(() => labelInput.value)
+    focusAfterUpdate(() => labelInput.value)
+    const remainingQuery = { ...query }
+    for (const key of ['share_title', 'share_text', 'share_url']) delete remainingQuery[key]
+    void router.replace({ query: remainingQuery, hash: route.hash })
   },
   { immediate: true },
 )
 
-function discardSharedDraft() {
-  clearSharedDraft()
+function resetForm() {
+  formState.value = { label: '', weekNumber: currentWeek, shared: false }
   clearValidationError()
+  focusAfterUpdate(() => labelInput.value)
 }
 
 async function createTodo() {
@@ -104,12 +113,7 @@ async function createTodo() {
         : submittedDraft.weekNumber === currentWeek
           ? `/current`
           : `/future`
-    if (submittedDraft === regularDraft) {
-      regularDraft.label = ''
-      regularDraft.weekNumber = currentWeek
-    } else {
-      clearSharedDraft()
-    }
+    resetForm()
     await router.push({ path, hash: `#${todoId}` })
   } catch (error) {
     setGateError(error instanceof Error ? error.message : 'Unable to create todo.')
@@ -128,14 +132,14 @@ async function createTodo() {
     <div
       class="rounded-3xl border border-outline-variant/10 bg-surface-container/90 p-3 shadow-floating backdrop-blur-2xl sm:p-3.5"
     >
-      <div v-if="sharedDraft" class="mb-3 flex items-center justify-between gap-3">
+      <div v-if="formState.shared" class="mb-3 flex items-center justify-between gap-3">
         <p class="text-supporting text-on-surface-variant" role="status">
           Review shared content before adding it.
         </p>
         <button
           type="button"
           class="inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-control text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface"
-          @click="discardSharedDraft"
+          @click="resetForm"
         >
           Discard
         </button>
@@ -155,10 +159,10 @@ async function createTodo() {
             :for="`${id}-new`"
             class="block text-tiny font-semibold tracking-label-wider text-on-surface-variant uppercase"
           >
-            {{ sharedDraft ? 'Shared task' : 'New Task' }}
+            {{ formState.shared ? 'Shared task' : 'New Task' }}
           </label>
           <textarea
-            v-if="sharedDraft"
+            v-if="formState.shared"
             ref="labelInput"
             :id="`${id}-new`"
             v-model="formState.label"
