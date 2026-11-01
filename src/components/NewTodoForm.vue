@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useId, watch } from 'vue'
+import { computed, onMounted, reactive, ref, useId, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useSessionStorage } from '@vueuse/core'
 import { safeParse } from 'valibot'
 
 import { useTodos } from '@/composables/useTodos'
@@ -17,18 +16,17 @@ const { addTodo, canCreateTodos, createTodoDisabledReason } = useTodos()
 const router = useRouter()
 const currentWeek = getCurrentWeekNumber()
 const id = useId()
-const formState = useSessionStorage<{ label: string; weekNumber: null | number }>(
-  'pile-of-todos-create-form',
-  { label: '', weekNumber: currentWeek },
-  { flush: 'sync', writeDefaults: false },
-)
+const formState = reactive<{ label: string; weekNumber: null | number }>({
+  label: '',
+  weekNumber: currentWeek,
+})
 const validationError = ref('')
 const isSubmitting = ref(false)
 const validationErrorKind = ref<CreateTodoValidationErrorKind>('none')
 const route = useRoute()
 const labelInput = ref<HTMLTextAreaElement | null>(null)
 
-const showWeekOptions = computed(() => formState.value.label.trim().length > 0)
+const showWeekOptions = computed(() => formState.label.trim().length > 0)
 
 function clearValidationError() {
   validationError.value = ''
@@ -67,7 +65,8 @@ watch(
     const label = getSharedTodoLabel(query)
     if (!label) return
 
-    formState.value = { label, weekNumber: null }
+    formState.label = label
+    formState.weekNumber = null
     clearValidationError()
     focusAfterUpdate(() => labelInput.value)
     const remainingQuery = { ...query }
@@ -78,7 +77,8 @@ watch(
 )
 
 function resetForm() {
-  formState.value = { label: '', weekNumber: currentWeek }
+  formState.label = ''
+  formState.weekNumber = currentWeek
   clearValidationError()
   focusAfterUpdate(() => labelInput.value)
 }
@@ -96,7 +96,7 @@ async function createTodo() {
     return
   }
 
-  const submittedDraft = { ...formState.value }
+  const submittedDraft = { ...formState }
   const trimmedLabel = submittedDraft.label.trim()
   const result = safeParse(todoLabelSchema, trimmedLabel)
 

@@ -1,8 +1,13 @@
 import { computed, createSSRApp, defineComponent, h, ref } from 'vue'
 import { renderToString } from 'vue/server-renderer'
+import type { LocationQuery } from 'vue-router'
 import { assert, beforeEach, test, vi } from 'vite-plus/test'
 
 let routePath = '/backlog'
+let routeQuery: LocationQuery = {}
+const replace = vi.fn<(to: unknown) => Promise<void>>()
+const isAuthReady = ref(true)
+const isAuthenticated = ref(true)
 const addTodo = vi.fn<(label: string, weekNumber: number | null, id?: string) => Promise<string>>(
   async () => 'todo-a',
 )
@@ -33,11 +38,17 @@ vi.mock('@lucide/vue', () => {
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     path: routePath,
-    query: {},
+    query: routeQuery,
+    hash: '',
   }),
   useRouter: () => ({
     push: vi.fn<(to: unknown) => Promise<void>>(),
+    replace,
   }),
+}))
+
+vi.mock('./composables/useAuth', () => ({
+  useAuth: () => ({ isAuthReady, isAuthenticated }),
 }))
 
 vi.mock('./components/AuthStatus.vue', () => ({
@@ -108,6 +119,11 @@ async function renderApp() {
 beforeEach(() => {
   vi.resetModules()
   routePath = '/backlog'
+  routeQuery = {}
+  isAuthReady.value = true
+  isAuthenticated.value = true
+  replace.mockReset()
+  replace.mockResolvedValue(undefined)
   addTodo.mockReset()
   addTodo.mockResolvedValue('todo-a')
   canCreateTodos.value = true
@@ -144,4 +160,34 @@ test('App renders weekly planning links and a collapsed More views trigger', asy
   assert.notMatch(html, /Archived/)
   assert.match(html, /aria-expanded="false"/)
   assert.match(html, /aria-label="Open more views"/)
+})
+
+test('waits for auth readiness before mounting the form or consuming a share URL', async () => {
+  isAuthReady.value = false
+  routeQuery = { share_text: 'Read https://example.com/' }
+
+  const html = await renderApp()
+
+  assert.notMatch(html, /<textarea/)
+  assert.notMatch(html, /Auth status/)
+  assert.equal(replace.mock.calls.length, 0)
+  assert.equal(addTodo.mock.calls.length, 0)
+})
+
+test('keeps the share URL at sign-in and populates the form after returning authenticated', async () => {
+  isAuthenticated.value = false
+  routeQuery = { share_text: 'Read https://example.com/', keep: '1' }
+
+  const signedOutHtml = await renderApp()
+  assert.match(signedOutHtml, /Auth status/)
+  assert.notMatch(signedOutHtml, /<textarea/)
+  assert.equal(replace.mock.calls.length, 0)
+  assert.equal(routeQuery.share_text, 'Read https://example.com/')
+
+  // OAuth returns to the same URL, with the share parameters still present.
+  isAuthenticated.value = true
+  const signedInHtml = await renderApp()
+  assert.match(signedInHtml, /<textarea[^>]*>Read https:\/\/example.com\//)
+  assert.deepEqual(replace.mock.calls, [[{ query: { keep: '1' }, hash: '' }]])
+  assert.equal(addTodo.mock.calls.length, 0)
 })

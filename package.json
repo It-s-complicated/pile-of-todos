@@ -24,7 +24,6 @@
     "@supabase-labs/tanstack-db": "0.1.0",
     "@supabase/supabase-js": "^2.118.0",
     "@tanstack/vue-db": "^0.3.12",
-    "@vueuse/core": "^15.0.0",
     "drizzle-orm": "^0.45.4",
     "drizzle-valibot": "^0.4.2",
     "pg": "^8.23.1",

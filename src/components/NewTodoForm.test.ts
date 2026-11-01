@@ -54,7 +54,6 @@ async function submit() {
 }
 
 beforeEach(() => {
-  window.sessionStorage.clear()
   canCreateTodos.value = true
   createTodoDisabledReason.value = null
   addTodo.mockReset()
@@ -90,7 +89,7 @@ test('receives an editable draft, removes only share parameters, and queues a ta
   assert.equal(field().value, '')
 })
 
-test('preserves shared text, edits, and scheduling through the sign-in redirect', async () => {
+test('uses the existing form validation and scheduling for shared text', async () => {
   canCreateTodos.value = false
   createTodoDisabledReason.value = 'Sign in to create todos.'
   await mountForm('/backlog?share_text=Original')
@@ -103,11 +102,9 @@ test('preserves shared text, edits, and scheduling through the sign-in redirect'
   await submit()
   assert.equal(addTodo.mock.calls.length, 0)
 
-  app!.unmount()
-  document.body.innerHTML = ''
   canCreateTodos.value = true
   createTodoDisabledReason.value = null
-  await mountForm('/current')
+  await nextTick()
   assert.equal(field().value, 'Edited before signing in')
   assert.equal(document.querySelector('select')!.value, '15')
   await submit()
@@ -129,16 +126,17 @@ test('a new share replaces the existing form contents', async () => {
   assert.equal(field().value, '')
 })
 
-test('ordinary drafts persist and successful saves reset the stored form', async () => {
+test('ordinary tasks use the original current-week default and in-memory state', async () => {
   await mountForm()
   await typeLabel('An ordinary draft')
   app!.unmount()
   document.body.innerHTML = ''
 
   await mountForm()
-  assert.equal(field().value, 'An ordinary draft')
+  assert.equal(field().value, '')
+  await typeLabel('An ordinary task')
   await submit()
-  assert.deepEqual(addTodo.mock.calls, [['An ordinary draft', 14]])
+  assert.deepEqual(addTodo.mock.calls, [['An ordinary task', 14]])
   assert.equal(field().value, '')
 
   app!.unmount()
@@ -157,11 +155,6 @@ test('preserves long shares for editing and retains the draft when saving fails'
   addTodo.mockRejectedValueOnce(new Error('Storage is full'))
   await submit()
   assert.match(document.body.textContent ?? '', /Storage is full/)
-  assert.equal(field().value, 'Short enough')
-
-  app!.unmount()
-  document.body.innerHTML = ''
-  await mountForm()
   assert.equal(field().value, 'Short enough')
 })
 
