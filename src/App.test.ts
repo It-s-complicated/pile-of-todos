@@ -33,6 +33,7 @@ vi.mock('@lucide/vue', () => {
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     path: routePath,
+    query: {},
   }),
   useRouter: () => ({
     push: vi.fn<(to: unknown) => Promise<void>>(),

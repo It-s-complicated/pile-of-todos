@@ -20,7 +20,7 @@ const regularDraft = reactive<{ label: string; weekNumber: null | number }>({
   label: '',
   weekNumber: currentWeek,
 })
-const { sharedDraft, sharedDraftCount, persistenceError, removeSharedDraft } = useSharedTodoDraft()
+const { sharedDraft, clearSharedDraft } = useSharedTodoDraft()
 const formState = computed(() => sharedDraft.value ?? regularDraft)
 const validationError = ref('')
 const isSubmitting = ref(false)
@@ -74,7 +74,7 @@ watch(
 )
 
 function discardSharedDraft() {
-  removeSharedDraft()
+  clearSharedDraft()
   clearValidationError()
 }
 
@@ -108,7 +108,7 @@ async function createTodo() {
       regularDraft.label = ''
       regularDraft.weekNumber = currentWeek
     } else {
-      removeSharedDraft(submittedDraft)
+      clearSharedDraft()
     }
     await router.push({ path, hash: `#${todoId}` })
   } catch (error) {
@@ -131,7 +131,6 @@ async function createTodo() {
       <div v-if="sharedDraft" class="mb-3 flex items-center justify-between gap-3">
         <p class="text-supporting text-on-surface-variant" role="status">
           Review shared content before adding it.
-          <span v-if="sharedDraftCount > 1">{{ sharedDraftCount - 1 }} more waiting.</span>
         </p>
         <button
           type="button"
@@ -141,13 +140,6 @@ async function createTodo() {
           Discard
         </button>
       </div>
-      <p
-        v-if="sharedDraft && persistenceError"
-        class="mb-3 text-supporting text-on-error-container"
-        role="alert"
-      >
-        This draft could not be kept for later. Copy it before reloading or signing in.
-      </p>
       <div
         v-if="validationError"
         aria-live="polite"

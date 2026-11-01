@@ -22,7 +22,7 @@ The runtime architecture is explicitly browser-driven:
 
 Install Pile of Todos from Chrome, then choose it from another app's **Share** menu. Shared titles, text, and URLs open in an editable composer; sharing never creates a task automatically. New shared tasks default to the backlog. File and image sharing are not supported.
 
-Shared drafts and edits are kept in this tab's session storage through reloads and sign-in redirects. Additional shares wait behind the current shared draft, and an ordinary unfinished task draft stays in memory while shared tasks are reviewed. **Discard** removes the current shared draft. Adding a task uses the existing signed-in, offline-capable mutation queue. Content over 500 characters stays intact for editing and must be shortened before saving.
+The shared draft and edits are kept in this tab's session storage through reloads and sign-in redirects. Sharing again replaces the shared draft. Saving or choosing **Discard** clears it. Adding a task uses the existing signed-in, offline-capable mutation queue. Content over 500 characters stays intact for editing and must be shortened before saving.
 
 Deploy migration `0010_allow_shared_task_text` before releasing the frontend: it allows links and Unicode text through the mutation RPC while retaining the 500-character limit and existing authorization and timestamp checks. The generated manifest and the static manifest both declare the same GET share target. Shared content is passed in the initial navigation URL, then removed from the address bar once the draft is stored.
 

@@ -84,6 +84,11 @@ test('receives an editable draft, removes only share parameters, and queues a ta
   assert.deepEqual(addTodo.mock.calls, [['Read https://example.com/?q=Grüße 👋', null]])
   assert.equal(window.sessionStorage.length, 0)
   assert.equal(field().tagName, 'INPUT')
+
+  app!.unmount()
+  document.body.innerHTML = ''
+  await mountForm()
+  assert.equal(field().value, '')
 })
 
 test('keeps edited drafts and scheduling through a reload or sign-in redirect', async () => {
@@ -110,26 +115,25 @@ test('keeps edited drafts and scheduling through a reload or sign-in redirect', 
   assert.deepEqual(addTodo.mock.calls, [['Edited before signing in', 15]])
 })
 
-test('queues additional shares and restores an ordinary unfinished draft afterward', async () => {
-  const router = await mountForm()
-  await typeLabel('My unfinished draft')
-  await router.push('/backlog?share_text=First')
-  await nextTick()
+test('a new share replaces the current shared draft and discard clears session storage', async () => {
+  const router = await mountForm('/backlog?share_text=First')
   await typeLabel('Edited first')
   await router.push('/backlog?share_text=Second')
-  await nextTick()
-  assert.equal(field().value, 'Edited first')
-  assert.match(document.body.textContent ?? '', /1 more waiting/)
+  await vi.waitFor(() => assert.equal(router.currentRoute.value.query.share_text, undefined))
+  assert.equal(field().value, 'Second')
 
   const discard = [...document.querySelectorAll('button')].find(
     (button) => button.textContent?.trim() === 'Discard',
   )!
   discard.click()
   await nextTick()
-  assert.equal(field().value, 'Second')
-  await submit()
-  assert.equal(field().value, 'My unfinished draft')
+  assert.equal(field().value, '')
   assert.equal(window.sessionStorage.length, 0)
+
+  app!.unmount()
+  document.body.innerHTML = ''
+  await mountForm()
+  assert.equal(field().value, '')
 })
 
 test('preserves long shares for editing and retains the draft when saving fails', async () => {
@@ -144,29 +148,4 @@ test('preserves long shares for editing and retains the draft when saving fails'
   assert.match(document.body.textContent ?? '', /Storage is full/)
   assert.equal(field().value, 'Short enough')
   assert.ok(window.sessionStorage.length > 0)
-})
-
-test('ignores malformed stored drafts and warns when storage is unavailable without losing the share URL', async () => {
-  window.sessionStorage.setItem('pile-of-todos-shared-drafts', '{broken')
-  await mountForm()
-  assert.equal(field().value, '')
-  app!.unmount()
-  document.body.innerHTML = ''
-  vi.spyOn(window.sessionStorage, 'setItem').mockImplementation(() => {
-    throw new Error('Blocked')
-  })
-  // Mount directly: the share query intentionally remains when persistence fails.
-  const router = createRouter({
-    history: createMemoryHistory(),
-    routes: [{ path: '/backlog', component: {} }],
-  })
-  await router.push('/backlog?share_text=Keep%20me')
-  const root = document.createElement('div')
-  document.body.append(root)
-  app = createApp(NewTodoForm).use(router)
-  app.mount(root)
-  await nextTick()
-  assert.equal(field().value, 'Keep me')
-  assert.equal(router.currentRoute.value.query.share_text, 'Keep me')
-  assert.match(document.body.textContent ?? '', /Copy it before reloading or signing in/)
 })
