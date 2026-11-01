@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { safeParse } from 'valibot'
 
 import { useTodos } from '@/composables/useTodos'
+import { useSharedTodoDraft } from '@/composables/useSharedTodoDraft'
 import { todoLabelSchema } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 import { focusAfterUpdate } from '@/lib/focus'
@@ -15,16 +16,22 @@ const { addTodo, canCreateTodos, createTodoDisabledReason } = useTodos()
 const router = useRouter()
 const currentWeek = getCurrentWeekNumber()
 const id = useId()
-const formState = reactive<{ label: string; weekNumber: null | number }>({
+const regularDraft = reactive<{ label: string; weekNumber: null | number }>({
   label: '',
   weekNumber: currentWeek,
 })
+const { sharedDraft, sharedDraftCount, persistenceError, removeSharedDraft } = useSharedTodoDraft()
+const formState = computed(() => sharedDraft.value ?? regularDraft)
 const validationError = ref('')
+const isSubmitting = ref(false)
 const validationErrorKind = ref<CreateTodoValidationErrorKind>('none')
 const route = useRoute()
-const labelInput = ref<HTMLInputElement | null>(null)
+const labelInput = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
-const showWeekOptions = computed(() => formState.label.trim().length > 0)
+const showWeekOptions = computed(() => formState.value.label.trim().length > 0)
+const sharedLabelTooLong = computed(
+  () => sharedDraft.value && formState.value.label.trim().length > 500,
+)
 
 function clearValidationError() {
   validationError.value = ''
@@ -57,14 +64,29 @@ function focusShortcutInput() {
 
 onMounted(focusShortcutInput)
 watch(() => route.query.add, focusShortcutInput)
+watch(
+  sharedDraft,
+  (draft, previousDraft) => {
+    clearValidationError()
+    if (draft || previousDraft) focusAfterUpdate(() => labelInput.value)
+  },
+  { immediate: true },
+)
+
+function discardSharedDraft() {
+  removeSharedDraft()
+  clearValidationError()
+}
 
 async function createTodo() {
+  if (isSubmitting.value) return
   if (!canCreateTodos.value) {
     setGateError(createTodoDisabledReason.value ?? 'You cannot create todos right now.')
     return
   }
 
-  const trimmedLabel = formState.label.trim()
+  const submittedDraft = formState.value
+  const trimmedLabel = submittedDraft.label.trim()
   const result = safeParse(todoLabelSchema, trimmedLabel)
 
   if (!result.success) {
@@ -72,20 +94,27 @@ async function createTodo() {
     return
   }
 
+  isSubmitting.value = true
   try {
-    const todoId = await addTodo(trimmedLabel, formState.weekNumber)
+    const todoId = await addTodo(trimmedLabel, submittedDraft.weekNumber)
     clearValidationError()
     const path =
-      formState.weekNumber === null
+      submittedDraft.weekNumber === null
         ? `/backlog`
-        : formState.weekNumber === currentWeek
+        : submittedDraft.weekNumber === currentWeek
           ? `/current`
           : `/future`
+    if (submittedDraft === regularDraft) {
+      regularDraft.label = ''
+      regularDraft.weekNumber = currentWeek
+    } else {
+      removeSharedDraft(submittedDraft)
+    }
     await router.push({ path, hash: `#${todoId}` })
-    formState.label = ''
-    formState.weekNumber = currentWeek
   } catch (error) {
     setGateError(error instanceof Error ? error.message : 'Unable to create todo.')
+  } finally {
+    isSubmitting.value = false
   }
 }
 </script>
@@ -99,6 +128,26 @@ async function createTodo() {
     <div
       class="rounded-3xl border border-outline-variant/10 bg-surface-container/90 p-3 shadow-floating backdrop-blur-2xl sm:p-3.5"
     >
+      <div v-if="sharedDraft" class="mb-3 flex items-center justify-between gap-3">
+        <p class="text-supporting text-on-surface-variant" role="status">
+          Review shared content before adding it.
+          <span v-if="sharedDraftCount > 1">{{ sharedDraftCount - 1 }} more waiting.</span>
+        </p>
+        <button
+          type="button"
+          class="inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-control text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface"
+          @click="discardSharedDraft"
+        >
+          Discard
+        </button>
+      </div>
+      <p
+        v-if="sharedDraft && persistenceError"
+        class="mb-3 text-supporting text-on-error-container"
+        role="alert"
+      >
+        This draft could not be kept for later. Copy it before reloading or signing in.
+      </p>
       <div
         v-if="validationError"
         aria-live="polite"
@@ -114,9 +163,21 @@ async function createTodo() {
             :for="`${id}-new`"
             class="block text-tiny font-semibold tracking-label-wider text-on-surface-variant uppercase"
           >
-            New Task
+            {{ sharedDraft ? 'Shared task' : 'New Task' }}
           </label>
+          <textarea
+            v-if="sharedDraft"
+            ref="labelInput"
+            :id="`${id}-new`"
+            v-model="formState.label"
+            :aria-describedby="sharedLabelTooLong ? `${id}-length` : undefined"
+            :aria-invalid="sharedLabelTooLong ? true : undefined"
+            rows="3"
+            required
+            class="max-h-40 min-h-12 w-full resize-y rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-body text-on-surface focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
+          />
           <input
+            v-else
             ref="labelInput"
             :id="`${id}-new`"
             v-model="formState.label"
@@ -125,10 +186,19 @@ async function createTodo() {
             required
             class="h-12 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-0 text-body text-on-surface transition-all duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
           />
+          <p
+            v-if="sharedLabelTooLong"
+            :id="`${id}-length`"
+            class="text-caption text-on-error-container"
+            role="alert"
+          >
+            Shared content is {{ formState.label.trim().length }} characters. Shorten it to 500
+            before adding.
+          </p>
         </div>
         <button
           type="submit"
-          :disabled="!canCreateTodos"
+          :disabled="!canCreateTodos || isSubmitting"
           :title="createTodoDisabledReason ?? undefined"
           class="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 py-0 text-control font-semibold tracking-label whitespace-nowrap text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-high hover:shadow-primary-lift active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none sm:w-auto"
         >

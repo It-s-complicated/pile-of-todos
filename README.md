@@ -12,10 +12,28 @@ The runtime architecture is explicitly browser-driven:
 
 - Capture tasks into a backlog or assign them to upcoming week numbers.
 - On launchers that support PWA shortcuts, long-press the installed app icon and choose **Add task** to open the current-week view with the task composer focused. Creating tasks still requires a signed-in session.
+- Receive shared text and links through Android's share sheet when installed with a supporting browser, such as Chrome. Review and edit the shared draft, then add it to the backlog or select a week.
 - Navigate focused list views: Backlog, Current Week, Future, Unfinished, Finished, and Archived.
 - Keep working offline with queued mutations that sync later.
 - Import todo JSON into the same durable queued-mutation flow used by normal todo creation.
 - Sync the signed-in account against the shared cloud dataset when available.
+
+## Share text and links on Android
+
+Install Pile of Todos from Chrome, then choose it from another app's **Share** menu. Shared titles, text, and URLs open in an editable composer; sharing never creates a task automatically. New shared tasks default to the backlog. File and image sharing are not supported.
+
+Shared drafts and edits are kept in this tab's session storage through reloads and sign-in redirects. Additional shares wait behind the current shared draft, and an ordinary unfinished task draft stays in memory while shared tasks are reviewed. **Discard** removes the current shared draft. Adding a task uses the existing signed-in, offline-capable mutation queue. Content over 500 characters stays intact for editing and must be shortened before saving.
+
+Deploy migration `0010_allow_shared_task_text` before releasing the frontend: it allows links and Unicode text through the mutation RPC while retaining the 500-character limit and existing authorization and timestamp checks. The generated manifest and the static manifest both declare the same GET share target. Shared content is passed in the initial navigation URL, then removed from the address bar once the draft is stored.
+
+Existing Android installations may take time to pick up manifest changes. If the app does not appear in the share sheet after deployment, reopen it online and allow the installed app to update; reinstall if necessary. Support depends on the browser and installation method.
+
+To check a deployed installation on a phone:
+
+1. Share a webpage from Chrome and selected text from another app. Confirm the title and link/text appear without creating a task.
+2. Edit the draft, reload, and complete sign-in if required. Confirm the edited draft survives in the same tab.
+3. Add the task and confirm it appears once in Backlog. Repeat while offline after the app has been cached and a session restored; reconnect to confirm sync.
+4. Share content longer than 500 characters and confirm it remains editable with a length warning. Discard it and confirm it does not return after reload.
 
 ## Environment variables
 
