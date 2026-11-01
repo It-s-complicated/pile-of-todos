@@ -12,10 +12,28 @@ The runtime architecture is explicitly browser-driven:
 
 - Capture tasks into a backlog or assign them to upcoming week numbers.
 - On launchers that support PWA shortcuts, long-press the installed app icon and choose **Add task** to open the current-week view with the task composer focused. Creating tasks still requires a signed-in session.
+- Receive shared text and links through Android's share sheet when installed with a supporting browser, such as Chrome. Review and edit the shared draft, then add it to the backlog or select a week.
 - Navigate focused list views: Backlog, Current Week, Future, Unfinished, Finished, and Archived.
 - Keep working offline with queued mutations that sync later.
 - Import todo JSON into the same durable queued-mutation flow used by normal todo creation.
 - Sync the signed-in account against the shared cloud dataset when available.
+
+## Share text and links on Android
+
+Install Pile of Todos from Chrome, then choose it from another app's **Share** menu. Shared titles, text, and URLs open in an editable composer; sharing never creates a task automatically. New shared tasks default to the backlog. File and image sharing are not supported.
+
+Sign-in is required before the create form is shown. While signed out, the incoming share URL stays intact and is used as the return URL for GitHub sign-in. After authentication, shared content populates the existing create form directly and the share parameters are removed. The form keeps edits in memory; reloading clears unsaved edits. Saving resets the form and uses the existing offline-capable mutation queue. Content over 500 characters stays intact for editing and must be shortened before saving.
+
+Deploy migration `0010_allow_shared_task_text` before releasing the frontend: it allows links and Unicode text through the mutation RPC while retaining the 500-character limit and existing authorization and timestamp checks. The generated manifest and the static manifest both declare the same GET share target. Shared content is passed in the initial navigation URL, then removed from the address bar once the form is populated.
+
+Existing Android installations may take time to pick up manifest changes. If the app does not appear in the share sheet after deployment, reopen it online and allow the installed app to update; reinstall if necessary. Support depends on the browser and installation method.
+
+To check a deployed installation on a phone:
+
+1. Share a webpage from Chrome and selected text from another app. Confirm the title and link/text appear without creating a task.
+2. While signed out, share a link and confirm sign-in is shown instead of the form. Sign in and confirm the shared text appears in the form without saving automatically. Edit it and choose a week before saving.
+3. Add the task and confirm it appears once in Backlog. Repeat while offline after the app has been cached and a session restored; reconnect to confirm sync.
+4. Share content longer than 500 characters and confirm it remains editable. Try saving and confirm the existing form validation requires shortening it to 500 characters.
 
 ## Environment variables
 
