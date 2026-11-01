@@ -54,6 +54,7 @@ async function submit() {
 }
 
 beforeEach(() => {
+  window.sessionStorage.clear()
   canCreateTodos.value = true
   createTodoDisabledReason.value = null
   addTodo.mockReset()
@@ -89,7 +90,7 @@ test('receives an editable draft, removes only share parameters, and queues a ta
   assert.equal(field().value, '')
 })
 
-test('uses the existing form validation and scheduling for shared text', async () => {
+test('preserves shared text, edits, and scheduling through the sign-in redirect', async () => {
   canCreateTodos.value = false
   createTodoDisabledReason.value = 'Sign in to create todos.'
   await mountForm('/backlog?share_text=Original')
@@ -102,9 +103,11 @@ test('uses the existing form validation and scheduling for shared text', async (
   await submit()
   assert.equal(addTodo.mock.calls.length, 0)
 
+  app!.unmount()
+  document.body.innerHTML = ''
   canCreateTodos.value = true
   createTodoDisabledReason.value = null
-  await nextTick()
+  await mountForm('/current')
   assert.equal(field().value, 'Edited before signing in')
   assert.equal(document.querySelector('select')!.value, '15')
   await submit()
@@ -126,17 +129,21 @@ test('a new share replaces the existing form contents', async () => {
   assert.equal(field().value, '')
 })
 
-test('ordinary tasks keep the original current-week default and unsaved form state is not persisted', async () => {
+test('ordinary drafts persist and successful saves reset the stored form', async () => {
   await mountForm()
   await typeLabel('An ordinary draft')
   app!.unmount()
   document.body.innerHTML = ''
 
   await mountForm()
-  assert.equal(field().value, '')
-  await typeLabel('An ordinary task')
+  assert.equal(field().value, 'An ordinary draft')
   await submit()
-  assert.deepEqual(addTodo.mock.calls, [['An ordinary task', 14]])
+  assert.deepEqual(addTodo.mock.calls, [['An ordinary draft', 14]])
+  assert.equal(field().value, '')
+
+  app!.unmount()
+  document.body.innerHTML = ''
+  await mountForm()
   assert.equal(field().value, '')
 })
 
@@ -151,4 +158,52 @@ test('preserves long shares for editing and retains the draft when saving fails'
   await submit()
   assert.match(document.body.textContent ?? '', /Storage is full/)
   assert.equal(field().value, 'Short enough')
+
+  app!.unmount()
+  document.body.innerHTML = ''
+  await mountForm()
+  assert.equal(field().value, 'Short enough')
+})
+
+test('Enter confirms composing text without submitting, then submits the completed text', async () => {
+  await mountForm()
+  await typeLabel('Buy ')
+  field().dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+  field().value = 'Buy 牛乳'
+  field().dispatchEvent(new Event('input', { bubbles: true }))
+
+  const composingEnter = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    isComposing: true,
+    bubbles: true,
+    cancelable: true,
+  })
+  field().dispatchEvent(composingEnter)
+  await nextTick()
+  assert.equal(composingEnter.defaultPrevented, false)
+  assert.equal(addTodo.mock.calls.length, 0)
+  assert.equal(field().value, 'Buy 牛乳')
+
+  field().dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }))
+  await nextTick()
+  const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+  field().dispatchEvent(enter)
+  await nextTick()
+  assert.equal(enter.defaultPrevented, true)
+  assert.deepEqual(addTodo.mock.calls, [['Buy 牛乳', 14]])
+})
+
+test('Shift+Enter remains available for multiline input', async () => {
+  await mountForm()
+  await typeLabel('A multiline task')
+  const enter = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    shiftKey: true,
+    bubbles: true,
+    cancelable: true,
+  })
+  field().dispatchEvent(enter)
+  await nextTick()
+  assert.equal(enter.defaultPrevented, false)
+  assert.equal(addTodo.mock.calls.length, 0)
 })

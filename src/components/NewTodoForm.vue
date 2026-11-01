@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, useId, watch } from 'vue'
+import { computed, onMounted, ref, useId, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useSessionStorage } from '@vueuse/core'
 import { safeParse } from 'valibot'
 
 import { useTodos } from '@/composables/useTodos'
@@ -16,17 +17,18 @@ const { addTodo, canCreateTodos, createTodoDisabledReason } = useTodos()
 const router = useRouter()
 const currentWeek = getCurrentWeekNumber()
 const id = useId()
-const formState = reactive<{ label: string; weekNumber: null | number }>({
-  label: '',
-  weekNumber: currentWeek,
-})
+const formState = useSessionStorage<{ label: string; weekNumber: null | number }>(
+  'pile-of-todos-create-form',
+  { label: '', weekNumber: currentWeek },
+  { flush: 'sync', writeDefaults: false },
+)
 const validationError = ref('')
 const isSubmitting = ref(false)
 const validationErrorKind = ref<CreateTodoValidationErrorKind>('none')
 const route = useRoute()
 const labelInput = ref<HTMLTextAreaElement | null>(null)
 
-const showWeekOptions = computed(() => formState.label.trim().length > 0)
+const showWeekOptions = computed(() => formState.value.label.trim().length > 0)
 
 function clearValidationError() {
   validationError.value = ''
@@ -65,8 +67,7 @@ watch(
     const label = getSharedTodoLabel(query)
     if (!label) return
 
-    formState.label = label
-    formState.weekNumber = null
+    formState.value = { label, weekNumber: null }
     clearValidationError()
     focusAfterUpdate(() => labelInput.value)
     const remainingQuery = { ...query }
@@ -77,10 +78,15 @@ watch(
 )
 
 function resetForm() {
-  formState.label = ''
-  formState.weekNumber = currentWeek
+  formState.value = { label: '', weekNumber: currentWeek }
   clearValidationError()
   focusAfterUpdate(() => labelInput.value)
+}
+
+function handleEnter(event: KeyboardEvent) {
+  if (event.isComposing) return
+  event.preventDefault()
+  void createTodo()
 }
 
 async function createTodo() {
@@ -90,7 +96,7 @@ async function createTodo() {
     return
   }
 
-  const submittedDraft = { ...formState }
+  const submittedDraft = { ...formState.value }
   const trimmedLabel = submittedDraft.label.trim()
   const result = safeParse(todoLabelSchema, trimmedLabel)
 
@@ -151,7 +157,7 @@ async function createTodo() {
             placeholder="What needs to be done?"
             rows="1"
             required
-            @keydown.enter.exact.prevent="createTodo"
+            @keydown.enter.exact="handleEnter"
             class="max-h-40 min-h-12 w-full resize-y rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-body text-on-surface focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
           />
         </div>

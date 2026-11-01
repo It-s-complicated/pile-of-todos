@@ -22,7 +22,7 @@ The runtime architecture is explicitly browser-driven:
 
 Install Pile of Todos from Chrome, then choose it from another app's **Share** menu. Shared titles, text, and URLs open in an editable composer; sharing never creates a task automatically. New shared tasks default to the backlog. File and image sharing are not supported.
 
-Incoming shares populate the existing create form directly, replacing its current contents. Drafts stay in memory until saved or the page is reloaded. Saving resets the form. Adding a task uses the existing signed-in, offline-capable mutation queue. Content over 500 characters stays intact for editing and must be shortened before saving.
+Incoming shares populate the existing create form directly, replacing its current contents. The form's text and selected week are kept in this tab's session storage through reloads and sign-in redirects. Saving resets the form. Adding a task uses the existing signed-in, offline-capable mutation queue. Content over 500 characters stays intact for editing and must be shortened before saving.
 
 Deploy migration `0010_allow_shared_task_text` before releasing the frontend: it allows links and Unicode text through the mutation RPC while retaining the 500-character limit and existing authorization and timestamp checks. The generated manifest and the static manifest both declare the same GET share target. Shared content is passed in the initial navigation URL, then removed from the address bar once the form is populated.
 
@@ -31,7 +31,7 @@ Existing Android installations may take time to pick up manifest changes. If the
 To check a deployed installation on a phone:
 
 1. Share a webpage from Chrome and selected text from another app. Confirm the title and link/text appear without creating a task.
-2. Edit the shared text and choose a week. Confirm sharing does not save a task automatically and that saving requires sign-in.
+2. Edit the shared text and choose a week, then reload or complete sign-in if required. Confirm the text and selected week survive and that sharing does not save a task automatically.
 3. Add the task and confirm it appears once in Backlog. Repeat while offline after the app has been cached and a session restored; reconnect to confirm sync.
 4. Share content longer than 500 characters and confirm it remains editable. Try saving and confirm the existing form validation requires shortening it to 500 characters.
 
