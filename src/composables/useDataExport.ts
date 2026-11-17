@@ -4,6 +4,7 @@ import { todoSchema, type Todo } from '@/db/collections'
 import { useTodoData } from '@/composables/useTodoData'
 import { useTodoMutations } from '@/composables/useTodoMutations'
 import { useAuth } from '@/composables/useAuth'
+import { normalizeWeekKey } from '@/lib/weeks'
 
 function parseImportedTodosPayload(payload: unknown): unknown[] {
   if (Array.isArray(payload)) {
@@ -96,7 +97,7 @@ export function useDataExport() {
 
       for (const rawTodo of rawTodos) {
         const todo = v.parse(todoSchema, rawTodo) as Todo
-        await createTodo(todo.label, todo.weekNumber, todo.id)
+        await createTodo(todo.label, normalizeWeekKey(todo.weekNumber, todo.createdAt), todo.id)
         importedCount++
       }
 

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { Inbox } from '@lucide/vue'
-defineProps<{ title: string; subtitle: string }>()
+
+defineProps<{
+  link?: { label: string; to: string } | null
+  subtitle: string
+  title: string
+}>()
 </script>
 
 <template>
@@ -20,10 +25,14 @@ defineProps<{ title: string; subtitle: string }>()
         <p class="mt-2 text-supporting text-on-surface-variant">
           {{ subtitle }}
         </p>
-        <p class="mt-3 text-caption leading-5 text-on-surface-variant">
-          Add a task from the composer below, then choose a week when it needs a home.
-        </p>
       </div>
+      <RouterLink
+        v-if="link"
+        :to="link.to"
+        class="inline-flex min-h-10 items-center rounded-full border border-outline-variant/15 px-4 text-control font-semibold text-primary transition-colors duration-150 hover:bg-primary/10"
+      >
+        {{ link.label }}
+      </RouterLink>
     </div>
   </div>
 </template>

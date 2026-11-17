@@ -1,4 +1,5 @@
 /// <reference types="vite-plus/client" />
+/// <reference types="msw/vite/client" />
 
 /**
  * Frontend-only runtime contract.

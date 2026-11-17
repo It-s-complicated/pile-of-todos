@@ -5,6 +5,7 @@ A Vue 3 + TanStack DB todo application with weekly planning features.
 ## Commands
 
 - `npm run dev` - Start Vite development server (http://localhost:5173)
+- `vp run dev:mock` - Start the dev server against an in-browser MSW mock of Supabase (no account or network needed; see [Supabase + TanStack DB](.agents/supabase-tanstack-db.md))
 - `npm run build` - Run TypeScript type check and build for production
 - `npm run preview` - Preview production build locally
 - `npx vue-tsc --noEmit` - Run TypeScript type checking without emitting files

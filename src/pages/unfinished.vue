@@ -3,29 +3,32 @@ import { computed } from 'vue'
 
 import TodoList from '@/components/TodoList.vue'
 import TodoListEmpty from '@/components/TodoListEmpty.vue'
-import { useTodos } from '@/composables/useTodos'
-import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+import { useCurrentWeek } from '@/composables/useCurrentWeek'
+import { useLane } from '@/composables/useLanes'
+import { useTodoActions } from '@/composables/useTodoActions'
+import { groupByWeek } from '@/lib/lanes'
 
-const { todos } = useTodos()
-const currentWeek = getCurrentWeekNumber()
-const filteredTodos = computed(() =>
-  todos.value.filter(
-    (todo) =>
-      todo.deletedAt === null &&
-      todo.weekNumber !== null &&
-      todo.weekNumber < currentWeek &&
-      !todo.done &&
-      !todo.archived,
-  ),
+const unfinished = useLane('unfinished')
+const currentWeek = useCurrentWeek()
+const { moveMany } = useTodoActions()
+
+const groups = computed(() =>
+  groupByWeek(unfinished.value, currentWeek.value, 'desc').map((group) => ({
+    ...group,
+    action:
+      group.todos.length > 1
+        ? { label: 'Move all to this week', run: () => moveMany(group.todos, currentWeek.value) }
+        : null,
+  })),
 )
 </script>
 
 <template>
-  <TodoList :todos="filteredTodos">
+  <TodoList :groups="groups">
     <template #empty>
       <TodoListEmpty
-        title="No unfinished tasks"
-        subtitle="Incomplete tasks from past weeks appear here for review and rescheduling."
+        title="All caught up"
+        subtitle="Open tasks from past weeks land here so you can finish, reschedule, or let them go."
       />
     </template>
   </TodoList>

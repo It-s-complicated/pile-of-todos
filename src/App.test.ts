@@ -31,6 +31,7 @@ vi.mock('@lucide/vue', () => {
     Inbox: icon,
     Layers: icon,
     Menu: icon,
+    Plus: icon,
     X: icon,
   }
 })
@@ -69,8 +70,12 @@ vi.mock('./components/SyncStatus.vue', () => ({
   }),
 }))
 
-vi.mock('@/lib/get-current-week-number', () => ({
-  getCurrentWeekNumber: () => 14,
+vi.mock('./composables/useCurrentWeek', () => ({
+  useCurrentWeek: () => ref(202614),
+}))
+
+vi.mock('./composables/useLanes', () => ({
+  useLane: () => computed(() => []),
 }))
 
 vi.mock('./composables/useTodos', () => ({

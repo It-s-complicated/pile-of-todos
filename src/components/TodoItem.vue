@@ -1,127 +1,73 @@
 <script setup lang="ts">
+import { Archive, ArchiveRestore, ArrowRight, Check } from '@lucide/vue'
+import { safeParse } from 'valibot'
 import { computed, nextTick, ref, useId } from 'vue'
 
-import type { Todo } from '../db/collections'
+import { useCurrentWeek } from '@/composables/useCurrentWeek'
+import { useToast } from '@/composables/useToast'
+import { useTodoActions } from '@/composables/useTodoActions'
+import { todoLabelSchema, type Todo } from '@/db/collections'
 import { focusAfterUpdate } from '@/lib/focus'
-import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+import { getQuickMove } from '@/lib/lanes'
+import { formatRelativeWeek } from '@/lib/weeks'
+
+import WeekSelect from './WeekSelect.vue'
 
 const props = withDefaults(
   defineProps<{
     canMutate?: boolean
     mutateDisabledReason?: string | null
+    /** Show which week the task belongs to (for lanes that mix weeks). */
+    showSchedule?: boolean
     todo: Todo
   }>(),
   {
     canMutate: true,
     mutateDisabledReason: null,
+    showSchedule: false,
   },
 )
 
-const emit = defineEmits<{
-  update: [updates: Partial<Todo>]
-}>()
-
-const slots = defineSlots<{
-  primaryAction?: () => any
-  actions?: () => any
-}>()
-
-const currentWeek = getCurrentWeekNumber()
+const currentWeek = useCurrentWeek()
+const actions = useTodoActions()
+const toast = useToast()
 
 const isEditing = ref(false)
 const editLabel = ref(props.todo.label)
 const editInput = ref<HTMLTextAreaElement | null>(null)
-const editButton = ref<HTMLButtonElement | null>(null)
+const labelButton = ref<HTMLButtonElement | null>(null)
 const editInputId = useId()
 const editHelpId = `${editInputId}-help`
-const statusTone = computed(() => {
-  if (props.todo.weekNumber === null) {
-    return {
-      borderClass: 'hover:border-secondary/25',
-      checkboxRingClass: 'group-has-[[role=checkbox]:hover]:border-secondary/20',
-      dotClass: 'bg-secondary shadow-[0_0_0_3px_rgb(226_190_193_/_0.08)]',
-    }
+
+const disabledTitle = computed(() =>
+  props.canMutate ? undefined : (props.mutateDisabledReason ?? undefined),
+)
+const quickMove = computed(() => getQuickMove(props.todo, currentWeek.value))
+const hasMoveActions = computed(() => !props.todo.archived && !props.todo.done)
+const canEdit = computed(() => props.canMutate && !props.todo.done && !props.todo.archived)
+
+const schedule = computed(() => {
+  const { weekNumber } = props.todo
+
+  if (weekNumber === null) {
+    return { className: 'bg-secondary-container/35 text-secondary', label: 'Backlog' }
   }
 
-  if (props.todo.weekNumber === currentWeek) {
-    return {
-      borderClass: 'hover:border-primary/25',
-      checkboxRingClass: 'group-has-[[role=checkbox]:hover]:border-primary/20',
-      dotClass: 'bg-primary shadow-[0_0_0_3px_rgb(184_203_193_/_0.08)]',
-    }
+  const label = formatRelativeWeek(weekNumber, currentWeek.value)
+
+  if (weekNumber === currentWeek.value) {
+    return { className: 'bg-primary-container/35 text-primary', label }
   }
 
-  if (props.todo.weekNumber > currentWeek) {
-    return {
-      borderClass: 'hover:border-tertiary/25',
-      checkboxRingClass: 'group-has-[[role=checkbox]:hover]:border-tertiary/20',
-      dotClass: 'bg-tertiary shadow-[0_0_0_3px_rgb(243_246_255_/_0.08)]',
-    }
+  if (weekNumber > currentWeek.value) {
+    return { className: 'bg-tertiary-container/20 text-tertiary', label }
   }
 
-  return {
-    borderClass: 'hover:border-error/30',
-    checkboxRingClass: 'group-has-[[role=checkbox]:hover]:border-error/20',
-    dotClass: 'bg-error shadow-[0_0_0_3px_rgb(250_116_111_/_0.08)]',
-  }
-})
-
-type BadgeTone = {
-  className: string
-  label: string
-}
-
-const scheduleBadge = computed<BadgeTone>(() => {
-  if (props.todo.weekNumber === null) {
-    return {
-      className: 'bg-secondary-container/35 text-secondary',
-      label: 'Backlog',
-    }
-  }
-
-  if (props.todo.weekNumber === currentWeek) {
-    return {
-      className: 'bg-primary-container/35 text-primary',
-      label: `Week ${props.todo.weekNumber} · Current`,
-    }
-  }
-
-  if (props.todo.weekNumber > currentWeek) {
-    return {
-      className: 'bg-tertiary-container/25 text-tertiary',
-      label: `Week ${props.todo.weekNumber} · Future`,
-    }
-  }
-
-  return {
-    className: 'bg-error-container/25 text-error',
-    label: `Week ${props.todo.weekNumber} · Past`,
-  }
-})
-
-const lifecycleBadge = computed<BadgeTone>(() => {
-  if (props.todo.archived) {
-    return {
-      className: 'bg-secondary-container/25 text-secondary',
-      label: 'Archived',
-    }
-  }
-
-  if (props.todo.done) {
-    return {
-      className: 'bg-primary-container/25 text-primary',
-      label: 'Complete',
-    }
-  }
-
-  return {
-    className: 'bg-surface-container-highest text-on-surface-variant',
-    label: 'Active',
-  }
+  return { className: 'bg-surface-container-highest text-on-surface-variant', label }
 })
 
 function startEdit() {
-  if (!props.canMutate || props.todo.done) {
+  if (!canEdit.value) {
     return
   }
 
@@ -137,19 +83,27 @@ function finishEdit(restoreFocus: boolean) {
   isEditing.value = false
 
   if (restoreFocus) {
-    focusAfterUpdate(() => editButton.value)
+    focusAfterUpdate(() => labelButton.value)
   }
 }
 
 function saveEdit(restoreFocus = false) {
-  if (!props.canMutate) {
-    cancelEdit(restoreFocus)
+  if (!isEditing.value) {
     return
   }
 
-  if (editLabel.value.trim()) {
-    emit('update', { label: editLabel.value.trim() })
+  const nextLabel = editLabel.value.trim()
+
+  if (nextLabel && props.canMutate) {
+    const result = safeParse(todoLabelSchema, nextLabel)
+
+    if (result.success) {
+      actions.rename(props.todo, nextLabel)
+    } else {
+      toast.show(result.issues[0].message, { tone: 'error' })
+    }
   }
+
   finishEdit(restoreFocus)
 }
 
@@ -161,88 +115,122 @@ function cancelEdit(restoreFocus = false) {
 
 <template>
   <div
-    class="group grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 rounded-3xl border border-outline-variant/10 bg-surface-container p-4 shadow-surface-rest transition-[background-color,border-color,box-shadow,opacity,transform] duration-200 hover:-translate-y-0.5 hover:bg-surface-container-high hover:shadow-surface-hover sm:gap-x-4 sm:p-5"
-    :class="[statusTone.borderClass, statusTone.checkboxRingClass, { 'opacity-90': !canMutate }]"
+    class="group flex flex-wrap items-start gap-x-1 rounded-2xl border border-outline-variant/10 bg-surface-container py-1 pr-2 pl-1 shadow-surface-rest transition-[background-color,border-color,box-shadow] duration-200 hover:border-outline-variant/20 hover:bg-surface-container-high sm:flex-nowrap sm:pr-3"
+    :class="{ 'opacity-90': !canMutate }"
   >
-    <div v-if="slots.primaryAction" class="row-span-2 flex min-w-11 justify-center self-start">
-      <slot name="primaryAction" />
+    <button
+      type="button"
+      role="checkbox"
+      :aria-checked="todo.done"
+      :aria-label="todo.done ? `Mark incomplete: ${todo.label}` : `Mark complete: ${todo.label}`"
+      :disabled="!canMutate || todo.archived"
+      :title="disabledTitle"
+      class="peer flex size-11 shrink-0 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed"
+      @click="actions.toggleDone(todo)"
+    >
+      <span
+        class="flex size-6 items-center justify-center rounded-full border transition-[background-color,border-color,transform] duration-150 ease-out group-active:scale-95"
+        :class="
+          todo.done
+            ? 'border-primary bg-primary text-on-primary'
+            : 'border-outline-variant bg-surface-container-low hover:border-primary/70'
+        "
+      >
+        <Check
+          v-if="todo.done"
+          class="animate-checkmark size-4"
+          stroke-width="3"
+          aria-hidden="true"
+        />
+      </span>
+    </button>
+
+    <div class="min-w-0 flex-1 py-1">
+      <div v-if="isEditing">
+        <label :for="editInputId" class="sr-only">Edit task label: {{ todo.label }}</label>
+        <textarea
+          :id="editInputId"
+          ref="editInput"
+          v-model="editLabel"
+          :aria-describedby="editHelpId"
+          rows="1"
+          maxlength="500"
+          class="block [field-sizing:content] min-h-9 w-full resize-none rounded-xl border border-primary/30 bg-surface-container-highest px-2.5 py-1.5 text-body text-on-surface focus:ring-2 focus:ring-primary/15 focus:outline-none"
+          @blur="saveEdit()"
+          @keydown.enter.prevent="saveEdit(true)"
+          @keydown.esc.prevent.stop="cancelEdit(true)"
+        />
+        <p :id="editHelpId" class="sr-only">Press Enter to save or Escape to cancel.</p>
+      </div>
+
+      <button
+        v-else
+        ref="labelButton"
+        type="button"
+        class="block w-full rounded-xl border border-transparent px-1.5 py-1.5 text-left text-body wrap-break-word transition-colors duration-150 focus:outline-none focus-visible:border-primary/30"
+        :class="[
+          todo.done
+            ? 'text-on-surface-variant line-through decoration-on-surface-variant/60'
+            : 'text-on-surface',
+          canEdit ? 'cursor-text hover:bg-surface-container-highest/60' : 'cursor-default',
+        ]"
+        :aria-label="canEdit ? `Edit task: ${todo.label}` : undefined"
+        :aria-disabled="canEdit ? undefined : 'true'"
+        @click="startEdit"
+      >
+        {{ todo.label }}
+      </button>
+
+      <p v-if="showSchedule" class="mt-0.5 px-1.5 pb-1">
+        <span
+          class="inline-block rounded-full px-2 py-1 text-tiny font-semibold tracking-label uppercase trim-both-cap-alphabetic"
+          :class="schedule.className"
+        >
+          {{ schedule.label }}
+        </span>
+      </p>
     </div>
 
     <div
-      class="min-w-0 space-y-3"
-      :class="{
-        'col-start-2': slots.primaryAction,
-        'col-span-full col-start-1': !slots.primaryAction,
-      }"
+      v-if="canMutate"
+      class="flex items-center justify-end gap-1.5 transition-opacity duration-150 sm:w-auto sm:self-center sm:pb-0 sm:pl-0 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100"
+      :class="hasMoveActions ? 'w-full pb-1.5 pl-11' : 'self-center'"
     >
-      <div class="flex min-w-0 items-start gap-3 sm:min-h-10 sm:items-center">
-        <div v-if="isEditing" class="min-w-0 flex-1">
-          <label :for="editInputId" class="sr-only">Edit task label: {{ todo.label }}</label>
-          <textarea
-            :id="editInputId"
-            ref="editInput"
-            v-model="editLabel"
-            :disabled="!canMutate"
-            :title="!canMutate ? (mutateDisabledReason ?? undefined) : undefined"
-            :aria-describedby="editHelpId"
-            rows="1"
-            class="min-h-11 w-full resize-none overflow-hidden rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-3 py-2 text-body text-on-surface transition-colors duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-            @blur="saveEdit()"
-            @keydown.enter.prevent="saveEdit(true)"
-            @keydown.esc.prevent.stop="cancelEdit(true)"
-          />
-          <p :id="editHelpId" class="sr-only">Press Enter to save or Escape to cancel.</p>
-        </div>
-
-        <div v-else class="min-w-0 flex-1 select-none" @dblclick="startEdit">
-          <p
-            class="min-h-11 rounded-2xl border border-transparent px-3 py-2 text-body wrap-break-word text-on-surface transition-colors duration-200"
-            :class="{
-              'text-on-surface-variant line-through': todo.done,
-              'text-on-surface': !todo.done,
-            }"
-          >
-            {{ todo.label }}
-          </p>
-        </div>
-
+      <template v-if="!todo.archived">
         <button
-          v-if="canMutate && !todo.done"
-          ref="editButton"
+          v-if="quickMove"
           type="button"
-          class="inline-flex min-h-8 shrink-0 items-center rounded-full px-2.5 text-tiny font-semibold tracking-label-wide text-on-surface-variant uppercase transition-[background-color,color,opacity,transform] duration-150 trim-both-cap-alphabetic hover:bg-surface-container-highest hover:text-primary focus:outline-none focus-visible:bg-surface-container-highest focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-primary/35 active:scale-95 sm:pointer-events-none sm:min-h-10 sm:justify-self-end sm:px-3.5 sm:opacity-0 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:pointer-coarse:pointer-events-auto sm:pointer-coarse:opacity-100"
-          :class="{ 'pointer-events-none invisible': isEditing }"
-          :aria-hidden="isEditing ? 'true' : undefined"
-          :tabindex="isEditing ? -1 : undefined"
-          :aria-label="`Edit task label: ${todo.label}`"
-          @click="startEdit"
+          class="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-outline-variant/15 px-3 text-caption font-semibold whitespace-nowrap text-on-surface-variant transition-[background-color,color,border-color] duration-150 hover:border-primary/30 hover:bg-primary/10 hover:text-primary active:scale-[0.98]"
+          :aria-label="`Move to ${quickMove.label.toLowerCase()}: ${todo.label}`"
+          @click="actions.move(todo, quickMove.weekNumber)"
         >
-          Edit
+          <span>{{ quickMove.label }}</span>
+          <ArrowRight class="size-3.5" stroke-width="2" aria-hidden="true" />
         </button>
-      </div>
 
-      <div
-        class="flex flex-col gap-3 border-t border-outline-variant/8 pt-3 sm:flex-row sm:items-center sm:justify-between"
+        <WeekSelect
+          v-if="!todo.done"
+          :model-value="todo.weekNumber"
+          :label="`Move task: ${todo.label}`"
+          variant="compact"
+          @update:model-value="actions.move(todo, $event)"
+        />
+      </template>
+
+      <button
+        type="button"
+        :aria-label="todo.archived ? `Restore: ${todo.label}` : `Archive: ${todo.label}`"
+        :title="todo.archived ? 'Restore' : 'Archive'"
+        class="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-[background-color,color] duration-150 hover:bg-surface-container-highest hover:text-secondary active:scale-95"
+        @click="actions.toggleArchived(todo)"
       >
-        <div class="flex min-w-0 flex-wrap items-center gap-1.5">
-          <span aria-hidden="true" class="mr-1 size-2 rounded-full" :class="statusTone.dotClass" />
-          <span
-            v-for="badge in [scheduleBadge, lifecycleBadge]"
-            :key="badge.label"
-            class="rounded-full px-2.5 py-1 text-tiny font-semibold tracking-label-wide uppercase trim-both-cap-alphabetic"
-            :class="badge.className"
-          >
-            {{ badge.label }}
-          </span>
-        </div>
-
-        <div
-          v-if="slots.actions"
-          class="flex min-w-0 items-center gap-2 opacity-100 transition-opacity duration-150 sm:pointer-events-none sm:justify-end sm:opacity-0 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:pointer-coarse:pointer-events-auto sm:pointer-coarse:opacity-100"
-        >
-          <slot name="actions" />
-        </div>
-      </div>
+        <component
+          :is="todo.archived ? ArchiveRestore : Archive"
+          class="size-4"
+          stroke-width="1.8"
+          aria-hidden="true"
+        />
+      </button>
     </div>
   </div>
 </template>

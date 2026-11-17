@@ -3,24 +3,38 @@ import { computed } from 'vue'
 
 import TodoList from '@/components/TodoList.vue'
 import TodoListEmpty from '@/components/TodoListEmpty.vue'
-import { useTodos } from '@/composables/useTodos'
-import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+import { useLane } from '@/composables/useLanes'
+import { countOpen } from '@/lib/lanes'
 
-const { todos } = useTodos()
-const currentWeek = getCurrentWeekNumber()
-const filteredTodos = computed(() =>
-  todos.value.filter(
-    (todo) => todo.deletedAt === null && todo.weekNumber === currentWeek && !todo.archived,
-  ),
-)
+const current = useLane('current')
+const backlog = useLane('backlog')
+const unfinished = useLane('unfinished')
+
+const unfinishedCount = computed(() => unfinished.value.length)
+const emptyLink = computed(() => {
+  const backlogCount = countOpen(backlog.value)
+  return backlogCount > 0 ? { label: `Pick from backlog (${backlogCount})`, to: '/backlog' } : null
+})
 </script>
 
 <template>
-  <TodoList :todos="filteredTodos">
+  <RouterLink
+    v-if="unfinishedCount > 0"
+    to="/unfinished"
+    class="mb-4 flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-outline-variant/10 bg-surface-container-low/80 px-4 py-2 text-supporting text-on-surface-variant transition-colors duration-150 hover:border-outline-variant/20 hover:text-on-surface"
+  >
+    <span>
+      {{ unfinishedCount === 1 ? '1 task' : `${unfinishedCount} tasks` }} from past weeks still open
+    </span>
+    <span class="shrink-0 text-caption font-semibold text-primary">Review →</span>
+  </RouterLink>
+
+  <TodoList :todos="current">
     <template #empty>
       <TodoListEmpty
-        title="No tasks for this week"
-        subtitle="This lane holds the work you plan to finish before the week closes."
+        title="Nothing planned yet"
+        subtitle="Add what you want to finish this week, or pull something in from the backlog."
+        :link="emptyLink"
       />
     </template>
   </TodoList>

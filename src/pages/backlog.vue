@@ -1,24 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 import TodoList from '@/components/TodoList.vue'
 import TodoListEmpty from '@/components/TodoListEmpty.vue'
-import { useTodos } from '@/composables/useTodos'
+import { useLane } from '@/composables/useLanes'
 
-const { todos } = useTodos()
-const filteredTodos = computed(() =>
-  todos.value.filter(
-    (todo) => todo.deletedAt === null && todo.weekNumber === null && !todo.archived,
-  ),
-)
+const backlog = useLane('backlog')
 </script>
 
 <template>
-  <TodoList :todos="filteredTodos">
+  <TodoList :todos="backlog">
     <template #empty>
       <TodoListEmpty
         title="Backlog is empty"
-        subtitle="Use this lane for tasks you want to keep, but have not scheduled yet."
+        subtitle="Park ideas and someday-tasks here. Pull them into a week when they matter."
       />
     </template>
   </TodoList>

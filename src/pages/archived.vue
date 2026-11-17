@@ -1,22 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 import TodoList from '@/components/TodoList.vue'
 import TodoListEmpty from '@/components/TodoListEmpty.vue'
-import { useTodos } from '@/composables/useTodos'
+import { useLane } from '@/composables/useLanes'
 
-const { todos } = useTodos()
-const filteredTodos = computed(() =>
-  todos.value.filter((todo) => todo.deletedAt === null && todo.archived),
-)
+const archived = useLane('archived')
 </script>
 
 <template>
-  <TodoList :todos="filteredTodos">
+  <TodoList :todos="archived" show-schedule>
     <template #empty>
       <TodoListEmpty
         title="No archived tasks"
-        subtitle="Archived tasks are hidden from active planning lanes and collected here."
+        subtitle="Archived tasks leave your planning lanes and rest here. Restore one any time."
       />
     </template>
   </TodoList>

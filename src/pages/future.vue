@@ -3,28 +3,21 @@ import { computed } from 'vue'
 
 import TodoList from '@/components/TodoList.vue'
 import TodoListEmpty from '@/components/TodoListEmpty.vue'
-import { useTodos } from '@/composables/useTodos'
-import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+import { useCurrentWeek } from '@/composables/useCurrentWeek'
+import { useLane } from '@/composables/useLanes'
+import { groupByWeek } from '@/lib/lanes'
 
-const { todos } = useTodos()
-const currentWeek = getCurrentWeekNumber()
-const filteredTodos = computed(() =>
-  todos.value.filter(
-    (todo) =>
-      todo.deletedAt === null &&
-      todo.weekNumber !== null &&
-      todo.weekNumber > currentWeek &&
-      !todo.archived,
-  ),
-)
+const future = useLane('future')
+const currentWeek = useCurrentWeek()
+const groups = computed(() => groupByWeek(future.value, currentWeek.value, 'asc'))
 </script>
 
 <template>
-  <TodoList :todos="filteredTodos">
+  <TodoList :groups="groups">
     <template #empty>
       <TodoListEmpty
         title="No future-week tasks"
-        subtitle="Tasks assigned to weeks after the current one collect here until their week arrives."
+        subtitle="Schedule something for a later week and it waits here until its week arrives."
       />
     </template>
   </TodoList>
