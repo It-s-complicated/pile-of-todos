@@ -14,9 +14,11 @@ let app: App | undefined
 vi.mock('@/composables/useTodos', () => ({
   useTodos: () => ({ addTodo, canCreateTodos, createTodoDisabledReason }),
 }))
-vi.mock('@/lib/get-current-week-number', () => ({ getCurrentWeekNumber: () => 14 }))
+vi.mock('@/composables/useCurrentWeek', () => ({
+  useCurrentWeek: () => ref(202614),
+}))
 
-async function mountForm(path = '/backlog') {
+async function mountForm(path = '/current') {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: ['/backlog', '/current', '/future'].map((path) => ({
@@ -95,7 +97,7 @@ test('uses the existing form validation and scheduling for shared text', async (
   await mountForm('/backlog?share_text=Original')
   await typeLabel('Edited before signing in')
   const select = document.querySelector('select')!
-  select.value = '15'
+  select.value = '202615'
   select.dispatchEvent(new Event('change', { bubbles: true }))
   await nextTick()
   assert.match(document.body.textContent ?? '', /Sign in to create todos/)
@@ -106,9 +108,9 @@ test('uses the existing form validation and scheduling for shared text', async (
   createTodoDisabledReason.value = null
   await nextTick()
   assert.equal(field().value, 'Edited before signing in')
-  assert.equal(document.querySelector('select')!.value, '15')
+  assert.equal(document.querySelector('select')!.value, '202615')
   await submit()
-  assert.deepEqual(addTodo.mock.calls, [['Edited before signing in', 15]])
+  assert.deepEqual(addTodo.mock.calls, [['Edited before signing in', 202615]])
 })
 
 test('a new share replaces the existing form contents', async () => {
@@ -136,7 +138,7 @@ test('ordinary tasks use the original current-week default and in-memory state',
   assert.equal(field().value, '')
   await typeLabel('An ordinary task')
   await submit()
-  assert.deepEqual(addTodo.mock.calls, [['An ordinary task', 14]])
+  assert.deepEqual(addTodo.mock.calls, [['An ordinary task', 202614]])
   assert.equal(field().value, '')
 
   app!.unmount()
@@ -183,7 +185,7 @@ test('Enter confirms composing text without submitting, then submits the complet
   field().dispatchEvent(enter)
   await nextTick()
   assert.equal(enter.defaultPrevented, true)
-  assert.deepEqual(addTodo.mock.calls, [['Buy 牛乳', 14]])
+  assert.deepEqual(addTodo.mock.calls, [['Buy 牛乳', 202614]])
 })
 
 test('Shift+Enter remains available for multiline input', async () => {

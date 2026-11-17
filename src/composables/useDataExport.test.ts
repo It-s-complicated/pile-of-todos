@@ -161,7 +161,7 @@ describe('useDataExport importTodos', () => {
               {
                 id: 'todo-2',
                 label: 'Second todo',
-                weekNumber: 11,
+                weekNumber: 202611,
                 done: true,
                 archived: false,
                 createdAt: 3,
@@ -183,8 +183,9 @@ describe('useDataExport importTodos', () => {
       message: 'Imported 2 todos',
     })
     expect(mockCreateTodo).toHaveBeenCalledTimes(2)
-    expect(mockCreateTodo).toHaveBeenNthCalledWith(1, 'First todo', 10, 'todo-1')
-    expect(mockCreateTodo).toHaveBeenNthCalledWith(2, 'Second todo', 11, 'todo-2')
+    // Legacy week numbers gain the ISO year they were created in; week keys pass through.
+    expect(mockCreateTodo).toHaveBeenNthCalledWith(1, 'First todo', 197010, 'todo-1')
+    expect(mockCreateTodo).toHaveBeenNthCalledWith(2, 'Second todo', 202611, 'todo-2')
   })
 
   test('returns error when user is not authenticated', async () => {

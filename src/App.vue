@@ -3,16 +3,21 @@ import { Menu, X } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
+import AppToast from './components/AppToast.vue'
 import AuthStatus from './components/AuthStatus.vue'
 import NewTodoForm from './components/NewTodoForm.vue'
 import SyncStatus from './components/SyncStatus.vue'
+import { useCurrentWeek } from './composables/useCurrentWeek'
+import { useLane } from './composables/useLanes'
 import { useTodos } from './composables/useTodos'
 import { useAuth } from './composables/useAuth'
 import { focusAfterUpdate } from '@/lib/focus'
-import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
+import { countOpen } from '@/lib/lanes'
+import { formatWeekRange, weekKeyWeek } from '@/lib/weeks'
 import Logo from './components/Logo.vue'
 
 type WorkspaceCopy = {
+  progress?: { done: number; total: number } | null
   subtitle: string
   title: string
 }
@@ -31,42 +36,75 @@ const moreNavItems = navItems.slice(4)
 const route = useRoute()
 const { offlineQueue } = useTodos()
 const { isAuthReady, isAuthenticated } = useAuth()
-const currentWeek = getCurrentWeekNumber()
+const currentWeek = useCurrentWeek()
+const lanes = {
+  backlog: useLane('backlog'),
+  current: useLane('current'),
+  future: useLane('future'),
+  unfinished: useLane('unfinished'),
+  finished: useLane('finished'),
+  archived: useLane('archived'),
+}
 const isHeaderMenuOpen = ref(false)
 const headerMenuToggle = ref<HTMLButtonElement | null>(null)
 const headerMenuPanel = ref<HTMLElement | null>(null)
 const headerMenuPanelId = 'more-views-panel'
 
-const workspaceCopy: Record<string, WorkspaceCopy> = {
-  '/backlog': {
-    title: 'The Backlog',
-    subtitle:
-      'Capture work that does not have a week yet. Use this lane when you are still triaging.',
-  },
-  '/current': {
-    title: `Current Week · ${currentWeek}`,
-    subtitle: `The work you intend to finish in week ${currentWeek}. Keep this lane focused on real commitments.`,
-  },
-  '/future': {
-    title: 'Future Weeks',
-    subtitle: 'Scheduled work beyond this week. Use this lane to park commitments for later weeks.',
-  },
-  '/unfinished': {
-    title: 'Unfinished',
-    subtitle:
-      'Past-week tasks that still need a decision. Finish, reschedule, or move them back to backlog.',
-  },
-  '/finished': {
-    title: 'Completed',
-    subtitle: 'Finished tasks stay here until you archive them.',
-  },
-  '/archived': {
-    title: 'Archives',
-    subtitle: 'Closed tasks you want out of active planning.',
-  },
+function plural(count: number, noun: string) {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
 }
 
-const activeWorkspace = computed(() => workspaceCopy[route.path] ?? workspaceCopy['/backlog'])
+/** Open tasks per lane, shown quietly next to each nav item. */
+const navCounts = computed<Record<string, number>>(() => ({
+  '/backlog': countOpen(lanes.backlog.value),
+  '/current': countOpen(lanes.current.value),
+  '/future': countOpen(lanes.future.value),
+  '/unfinished': lanes.unfinished.value.length,
+}))
+
+const workspaceCopy = computed<Record<string, WorkspaceCopy>>(() => {
+  const current = lanes.current.value
+  const done = current.length - countOpen(current)
+  const futureWeeks = new Set(lanes.future.value.map((todo) => todo.weekNumber)).size
+
+  return {
+    '/backlog': {
+      title: 'Backlog',
+      subtitle: `${plural(countOpen(lanes.backlog.value), 'task')} without a week`,
+    },
+    '/current': {
+      title: 'This week',
+      subtitle: `Week ${weekKeyWeek(currentWeek.value)} · ${formatWeekRange(currentWeek.value)}`,
+      progress: current.length > 0 ? { done, total: current.length } : null,
+    },
+    '/future': {
+      title: 'Future weeks',
+      subtitle:
+        lanes.future.value.length === 0
+          ? 'Nothing scheduled ahead yet'
+          : `${plural(lanes.future.value.length, 'task')} across ${plural(futureWeeks, 'week')}`,
+    },
+    '/unfinished': {
+      title: 'Unfinished',
+      subtitle:
+        lanes.unfinished.value.length === 0
+          ? 'Nothing left behind'
+          : `${plural(lanes.unfinished.value.length, 'open task')} from past weeks — finish, move, or archive`,
+    },
+    '/finished': {
+      title: 'Completed',
+      subtitle: `${plural(lanes.finished.value.length, 'task')} done, most recent first`,
+    },
+    '/archived': {
+      title: 'Archive',
+      subtitle: `${plural(lanes.archived.value.length, 'task')} out of active planning`,
+    },
+  }
+})
+
+const activeWorkspace = computed(
+  () => workspaceCopy.value[route.path] ?? workspaceCopy.value['/current'],
+)
 const headerMenuToggleLabel = computed(() =>
   isHeaderMenuOpen.value ? 'Close more views' : 'Open more views',
 )
@@ -167,6 +205,13 @@ onBeforeUnmount(() => {
           >
             <span>{{ item.label }}</span>
             <span
+              v-if="navCounts[item.path]"
+              class="ml-1.5 text-caption text-on-surface-variant/80 tabular-nums"
+              :aria-label="`${navCounts[item.path]} open`"
+            >
+              {{ navCounts[item.path] }}
+            </span>
+            <span
               v-if="route.path === item.path"
               aria-hidden="true"
               class="absolute inset-x-3 bottom-0 hidden h-px bg-primary sm:block"
@@ -239,7 +284,7 @@ onBeforeUnmount(() => {
       @click="closeHeaderMenu"
     />
 
-    <main class="mx-auto max-w-3xl px-4 pt-6 pb-80 sm:px-6 sm:pt-8 sm:pb-72 lg:px-0">
+    <main class="mx-auto max-w-3xl px-4 pt-6 pb-56 sm:px-6 sm:pt-8 sm:pb-48 lg:px-0">
       <section class="mb-6 sm:mb-7">
         <h1
           class="font-headline text-headline font-extrabold tracking-tight text-on-surface trim-both-cap-alphabetic sm:text-display"
@@ -248,7 +293,26 @@ onBeforeUnmount(() => {
         </h1>
         <p class="mt-3 max-w-[62ch] text-supporting text-on-surface-variant">
           {{ activeWorkspace.subtitle }}
+          <template v-if="activeWorkspace.progress">
+            · {{ activeWorkspace.progress.done }} of {{ activeWorkspace.progress.total }} done
+          </template>
         </p>
+        <div
+          v-if="activeWorkspace.progress"
+          class="mt-3 h-1 max-w-xs overflow-hidden rounded-full bg-surface-container-highest"
+          role="progressbar"
+          aria-label="This week's progress"
+          :aria-valuenow="activeWorkspace.progress.done"
+          aria-valuemin="0"
+          :aria-valuemax="activeWorkspace.progress.total"
+        >
+          <div
+            class="h-full rounded-full bg-primary/80 transition-[width] duration-300 ease-out"
+            :style="{
+              width: `${(activeWorkspace.progress.done / activeWorkspace.progress.total) * 100}%`,
+            }"
+          />
+        </div>
       </section>
 
       <RouterView />
@@ -265,11 +329,15 @@ onBeforeUnmount(() => {
       </section>
     </main>
 
-    <NewTodoForm v-if="isAuthReady && isAuthenticated" />
-    <AuthStatus
-      v-else-if="isAuthReady"
-      class="fixed bottom-3 left-1/2 z-40 w-[min(100%-1rem,48rem)] -translate-x-1/2 sm:bottom-4"
-      :show-details-on-mobile="true"
-    />
+    <div
+      class="fixed bottom-3 left-1/2 z-40 flex w-[min(100%-1rem,48rem)] -translate-x-1/2 flex-col gap-2 sm:bottom-4"
+    >
+      <AppToast />
+      <NewTodoForm v-if="isAuthReady && isAuthenticated" />
+      <AuthStatus
+        v-else-if="isAuthReady"
+        :show-details-on-mobile="true"
+      />
+    </div>
   </div>
 </template>

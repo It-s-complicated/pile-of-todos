@@ -1,22 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 import TodoList from '@/components/TodoList.vue'
 import TodoListEmpty from '@/components/TodoListEmpty.vue'
-import { useTodos } from '@/composables/useTodos'
+import { useLane } from '@/composables/useLanes'
 
-const { todos } = useTodos()
-const filteredTodos = computed(() =>
-  todos.value.filter((todo) => todo.deletedAt === null && todo.done && !todo.archived),
-)
+const finished = useLane('finished')
 </script>
 
 <template>
-  <TodoList :todos="filteredTodos">
+  <TodoList :todos="finished" show-schedule>
     <template #empty>
       <TodoListEmpty
         title="No completed tasks"
-        subtitle="Tasks you mark done appear here before you archive them."
+        subtitle="Tasks you check off show up here, most recent first, until you archive them."
       />
     </template>
   </TodoList>

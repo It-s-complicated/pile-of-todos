@@ -28,9 +28,20 @@
 
 ### View Filtering Behavior
 
+Lane filtering and sorting live in `src/lib/lanes.ts` (`filterLane`), exposed to views through `useLane(laneId)`. `currentWeek` comes from `useCurrentWeek()`, which updates when the ISO week changes while the app is open.
+
 - **backlog**: `weekNumber === null && !archived`
-- **current-week**: `weekNumber === currentWeek && !archived`
-- **future**: `weekNumber > currentWeek && !archived`
-- **unfinished**: `weekNumber < currentWeek && !done && !archived`
-- **finished**: `done === true && !archived`
-- **archived**: `archived === true` (shows all archived todos)
+- **current**: `weekNumber === currentWeek && !archived` (open tasks first)
+- **future**: `weekNumber > currentWeek && !archived`, grouped by week
+- **unfinished**: `weekNumber < currentWeek && !done && !archived`, grouped by week
+- **finished**: `done === true && !archived`, most recently updated first
+- **archived**: `archived === true`
+
+## Weeks
+
+- `weekNumber` holds a year-aware ISO week key `YYYYWW` (e.g. `202646`). Use the helpers in `src/lib/weeks.ts`; never do arithmetic on the key directly (use `addWeeks`).
+- Legacy rows stored only `1`–`53`; `normalizeWeekKey()` upgrades them in the read-model overlay and on import.
+
+## Task actions
+
+- Use `useTodoActions()` for complete / move / archive / rename from the UI. It shows an undo toast and the undo only restores the fields the action changed.

@@ -1,10 +1,12 @@
 import type { Todo } from '@/db/collections'
 import type { QueuedTodoMutationEntry } from '@/lib/offline-todo-mutation-queue'
+import { normalizeWeekKey } from '@/lib/weeks'
 
 function normalizeTodo(todo: Todo): Todo {
   return {
     ...todo,
     deletedAt: todo.deletedAt ?? null,
+    weekNumber: normalizeWeekKey(todo.weekNumber, todo.createdAt),
     userId: todo.userId ?? null,
   }
 }

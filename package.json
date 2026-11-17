@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
+    "dev:mock": "vp dev --mode mock --port 5173 --strictPort",
     "build": "vue-tsc -b && vp build",
     "preview": "vp preview",
     "test": "vp test run",
@@ -43,6 +44,7 @@
     "@vue/tsconfig": "^0.9.1",
     "drizzle-kit": "^0.31.11",
     "happy-dom": "^21.0.4",
+    "msw": "^3.0.5",
     "tailwindcss": "^4.3.3",
     "typescript": "npm:@typescript/typescript6@~6.0.2",
     "unplugin-fonts": "^2.1.0",

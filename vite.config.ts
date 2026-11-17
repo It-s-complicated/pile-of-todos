@@ -2,6 +2,7 @@ import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import UnpluginFonts from 'unplugin-fonts/vite'
 import { defineConfig } from 'vite-plus'
+import { msw } from 'msw/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { qrcode } from 'vite-plugin-qrcode'
 import vitePluginVueDevTools from 'vite-plugin-vue-devtools'
@@ -49,6 +50,8 @@ export default defineConfig({
       dts: 'src/route-map.d.ts',
     }),
     vue(),
+    // Serves the mock service worker for `vp run dev:mock` (see src/mocks/).
+    msw(),
     tailwindcss(),
     UnpluginFonts({
       google: {
