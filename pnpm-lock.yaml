@@ -194,8 +194,8 @@ importers:
         specifier: ^2.119.2
         version: 2.119.2(@opentelemetry/api@1.9.1)
       '@tanstack/vue-db':
-        specifier: 1.0.0-rc.1.1
-        version: 1.0.0-rc.1.1(@typescript/typescript6@6.0.2)(vue@3.6.0-rc.16(@typescript/typescript6@6.0.2))
+        specifier: 1.0.0-rc.1.5
+        version: 1.0.0-rc.1.5(@typescript/typescript6@6.0.2)(vue@3.6.0-rc.16(@typescript/typescript6@6.0.2))
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.1)
@@ -2451,8 +2451,8 @@ packages:
       '@tanstack/query-core': ^5.90.15
       typescript: '>=4.7'
 
-  '@tanstack/vue-db@1.0.0-rc.1.1':
-    resolution: {integrity: sha512-kVkMUYYpUVi73S6fDtpp4HKP5M4SBMu1OJ8HXde6HfOmwBqLSvFukuS5iGjW1f+yXd9Iu9T0wF+Zb0xe9/ZlNQ==}
+  '@tanstack/vue-db@1.0.0-rc.1.5':
+    resolution: {integrity: sha512-KIEFANCvMp8sbkQO3kBj6TxPoC/NHpFk5/IStgHRPS0yZG2jv3e/EUGcxDl41RSsWPrAL3oDgiRIQzC6ojSUmA==}
     peerDependencies:
       vue: '>=3.3.0'
 
@@ -8078,7 +8078,7 @@ snapshots:
       '@tanstack/query-core': 5.104.0
       typescript: '@typescript/typescript6@6.0.2'
 
-  '@tanstack/vue-db@1.0.0-rc.1.1(@typescript/typescript6@6.0.2)(vue@3.6.0-rc.16(@typescript/typescript6@6.0.2))':
+  '@tanstack/vue-db@1.0.0-rc.1.5(@typescript/typescript6@6.0.2)(vue@3.6.0-rc.16(@typescript/typescript6@6.0.2))':
     dependencies:
       '@tanstack/db': 1.0.0-rc.1.1(@typescript/typescript6@6.0.2)
       vue: 3.6.0-rc.16(@typescript/typescript6@6.0.2)

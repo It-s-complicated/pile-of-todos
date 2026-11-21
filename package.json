@@ -23,7 +23,7 @@
     "@lucide/vue": "^1.77.0",
     "@supabase-labs/tanstack-db": "0.1.0",
     "@supabase/supabase-js": "^2.119.2",
-    "@tanstack/vue-db": "1.0.0-rc.1.1",
+    "@tanstack/vue-db": "1.0.0-rc.1.5",
     "drizzle-orm": "^0.45.4",
     "drizzle-valibot": "^0.4.2",
     "pg": "^8.23.1",
