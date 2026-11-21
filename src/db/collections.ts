@@ -11,7 +11,6 @@ import {
   object,
   optional,
   pipe,
-  regex,
   safeInteger,
   string,
 } from 'valibot'
@@ -20,7 +19,6 @@ export const todoLabelSchema = pipe(
   string(),
   minLength(1, 'Label cannot be empty'),
   maxLength(500, 'Label must be at most 500 characters'),
-  regex(/^[a-z0-9\s\-.,!?@+#$%&*'()]+$/i, 'Label contains invalid characters'),
 )
 
 const epochMillisecondsSchema = pipe(

@@ -7,6 +7,7 @@ import AuthStatus from './components/AuthStatus.vue'
 import NewTodoForm from './components/NewTodoForm.vue'
 import SyncStatus from './components/SyncStatus.vue'
 import { useTodos } from './composables/useTodos'
+import { useAuth } from './composables/useAuth'
 import { focusAfterUpdate } from '@/lib/focus'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 import Logo from './components/Logo.vue'
@@ -29,6 +30,7 @@ const moreNavItems = navItems.slice(4)
 
 const route = useRoute()
 const { offlineQueue } = useTodos()
+const { isAuthReady, isAuthenticated } = useAuth()
 const currentWeek = getCurrentWeekNumber()
 const isHeaderMenuOpen = ref(false)
 const headerMenuToggle = ref<HTMLButtonElement | null>(null)
@@ -263,6 +265,11 @@ onBeforeUnmount(() => {
       </section>
     </main>
 
-    <NewTodoForm />
+    <NewTodoForm v-if="isAuthReady && isAuthenticated" />
+    <AuthStatus
+      v-else-if="isAuthReady"
+      class="fixed bottom-3 left-1/2 z-40 w-[min(100%-1rem,48rem)] -translate-x-1/2 sm:bottom-4"
+      :show-details-on-mobile="true"
+    />
   </div>
 </template>

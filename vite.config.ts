@@ -74,6 +74,11 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#0c0e10',
         theme_color: '#0c0e10',
+        share_target: {
+          action: '/backlog',
+          method: 'GET',
+          params: { title: 'share_title', text: 'share_text', url: 'share_url' },
+        },
         shortcuts: [
           {
             name: 'Add task',

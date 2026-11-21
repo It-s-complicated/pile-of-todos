@@ -71,6 +71,13 @@
       "when": 1786885923298,
       "tag": "0009_harden_todo_mutation_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793520983618,
+      "tag": "0010_allow_shared_task_text",
+      "breakpoints": true
     }
   ]
 }

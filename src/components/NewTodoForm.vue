@@ -7,6 +7,7 @@ import { useTodos } from '@/composables/useTodos'
 import { todoLabelSchema } from '@/db/collections'
 import { getCurrentWeekNumber } from '@/lib/get-current-week-number'
 import { focusAfterUpdate } from '@/lib/focus'
+import { getSharedTodoLabel } from '@/lib/shared-todo'
 import WeekSelect from './WeekSelect.vue'
 
 type CreateTodoValidationErrorKind = 'gate' | 'validation' | 'none'
@@ -20,9 +21,10 @@ const formState = reactive<{ label: string; weekNumber: null | number }>({
   weekNumber: currentWeek,
 })
 const validationError = ref('')
+const isSubmitting = ref(false)
 const validationErrorKind = ref<CreateTodoValidationErrorKind>('none')
 const route = useRoute()
-const labelInput = ref<HTMLInputElement | null>(null)
+const labelInput = ref<HTMLTextAreaElement | null>(null)
 
 const showWeekOptions = computed(() => formState.label.trim().length > 0)
 
@@ -57,14 +59,45 @@ function focusShortcutInput() {
 
 onMounted(focusShortcutInput)
 watch(() => route.query.add, focusShortcutInput)
+watch(
+  () => route.query,
+  (query) => {
+    const label = getSharedTodoLabel(query)
+    if (!label) return
+
+    formState.label = label
+    formState.weekNumber = null
+    clearValidationError()
+    focusAfterUpdate(() => labelInput.value)
+    const remainingQuery = { ...query }
+    for (const key of ['share_title', 'share_text', 'share_url']) delete remainingQuery[key]
+    void router.replace({ query: remainingQuery, hash: route.hash })
+  },
+  { immediate: true },
+)
+
+function resetForm() {
+  formState.label = ''
+  formState.weekNumber = currentWeek
+  clearValidationError()
+  focusAfterUpdate(() => labelInput.value)
+}
+
+function handleEnter(event: KeyboardEvent) {
+  if (event.isComposing) return
+  event.preventDefault()
+  void createTodo()
+}
 
 async function createTodo() {
+  if (isSubmitting.value) return
   if (!canCreateTodos.value) {
     setGateError(createTodoDisabledReason.value ?? 'You cannot create todos right now.')
     return
   }
 
-  const trimmedLabel = formState.label.trim()
+  const submittedDraft = { ...formState }
+  const trimmedLabel = submittedDraft.label.trim()
   const result = safeParse(todoLabelSchema, trimmedLabel)
 
   if (!result.success) {
@@ -72,20 +105,21 @@ async function createTodo() {
     return
   }
 
+  isSubmitting.value = true
   try {
-    const todoId = await addTodo(trimmedLabel, formState.weekNumber)
-    clearValidationError()
+    const todoId = await addTodo(trimmedLabel, submittedDraft.weekNumber)
     const path =
-      formState.weekNumber === null
+      submittedDraft.weekNumber === null
         ? `/backlog`
-        : formState.weekNumber === currentWeek
+        : submittedDraft.weekNumber === currentWeek
           ? `/current`
           : `/future`
+    resetForm()
     await router.push({ path, hash: `#${todoId}` })
-    formState.label = ''
-    formState.weekNumber = currentWeek
   } catch (error) {
     setGateError(error instanceof Error ? error.message : 'Unable to create todo.')
+  } finally {
+    isSubmitting.value = false
   }
 }
 </script>
@@ -116,19 +150,20 @@ async function createTodo() {
           >
             New Task
           </label>
-          <input
+          <textarea
             ref="labelInput"
             :id="`${id}-new`"
             v-model="formState.label"
             placeholder="What needs to be done?"
-            autocomplete="off"
+            rows="1"
             required
-            class="h-12 w-full rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-0 text-body text-on-surface transition-all duration-200 placeholder:text-on-surface-variant/70 hover:border-outline-variant/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
+            @keydown.enter.exact="handleEnter"
+            class="max-h-40 min-h-12 w-full resize-y rounded-2xl border border-outline-variant/10 bg-surface-container-highest px-4 py-3 text-body text-on-surface focus:border-primary/40 focus:ring-2 focus:ring-primary/15 focus:outline-none"
           />
         </div>
         <button
           type="submit"
-          :disabled="!canCreateTodos"
+          :disabled="!canCreateTodos || isSubmitting"
           :title="createTodoDisabledReason ?? undefined"
           class="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 py-0 text-control font-semibold tracking-label whitespace-nowrap text-on-primary uppercase transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-high hover:shadow-primary-lift active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none sm:w-auto"
         >
